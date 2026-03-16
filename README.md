@@ -12,7 +12,7 @@ A collection of specialized Claude Code skills that encode the full development 
 ### Step 1: Clone this repo
 
 ```bash
-git clone https://github.com/linuxfoundation/lfx-claude-skills.git
+git clone https://github.com/linuxfoundation/skills.git
 ```
 
 ### Step 2: Install the skills
@@ -50,7 +50,7 @@ If you prefer skills scoped to a specific repo instead of global:
 ```bash
 # From inside a target repo (e.g., lfx-v2-ui)
 mkdir -p .claude/skills
-for skill in /path/to/lfx-claude-skills/lfx-*/; do
+for skill in /path/to/skills/lfx-*/; do
   ln -sf "$skill" .claude/skills/"$(basename "$skill")"
 done
 

@@ -349,4 +349,4 @@ An **interactive setup guide** that walks through environment configuration step
 
 ## License
 
-Source code is licensed under [MIT](LICENSE). Documentation is licensed under [CC-BY-4.0](LICENSE-docs).
+This project is licensed under the [MIT License](LICENSE).

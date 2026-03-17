@@ -106,6 +106,10 @@ cd <repo-path>
 # Get the git user name for filtering
 GIT_USER=$(git config user.name)
 
+# Use temp files to avoid clobbering across parallel runs
+TMPDIR=$(mktemp -d)
+trap "rm -rf $TMPDIR" EXIT
+
 # Find branches with recent work by this user, not yet merged to main
 git log --author="$GIT_USER" --all --oneline --since='30 days ago' --format='%D' \
   | tr ',' '\n' \
@@ -114,15 +118,15 @@ git log --author="$GIT_USER" --all --oneline --since='30 days ago' --format='%D'
   | sed 's|^origin/||' \
   | grep -v '^main$' \
   | grep -v '^HEAD$' \
-  | sort -u > /tmp/author_branches.txt
+  | sort -u > "$TMPDIR/author_branches.txt"
 
 # Cross-reference with unmerged branches
-git branch -r --no-merged main \
+git branch -r --no-merged origin/main \
   | sed 's|^ *origin/||' \
-  | sort -u > /tmp/unmerged_branches.txt
+  | sort -u > "$TMPDIR/unmerged_branches.txt"
 
 # Intersection: branches by user AND not merged
-comm -12 /tmp/author_branches.txt /tmp/unmerged_branches.txt
+comm -12 "$TMPDIR/author_branches.txt" "$TMPDIR/unmerged_branches.txt"
 ```
 
 For each branch found, get the last commit date for sorting:
@@ -153,7 +157,7 @@ Your unmerged branches in lfx-v2-ui (type numbers to include):
 AskUserQuestion: "Journey name?"
 ```
 
-Validate: no spaces (use hyphens), no special characters. Suggest a name based on common branch prefixes if possible, but always wait for the user's response.
+Validate: alphanumeric and hyphens only. **Reject** names containing `/`, `..`, spaces, or other special characters — the name is used in filesystem paths and git branch names. Suggest a name based on common branch prefixes if possible, but always wait for the user's response.
 
 ### Step 5: Create Worktrees
 
@@ -206,7 +210,7 @@ After all merges complete, write the manifest.
 echo $HOME
 ```
 
-Then use the `Write` tool with the **full absolute path**, e.g. `/Users/niravpatel/.lfx-journeys/<journey-name>/manifest.yaml` (NOT `~/.lfx-journeys/...`).
+Then use the `Write` tool with the **full absolute path**, e.g. `$HOME/.lfx-journeys/<journey-name>/manifest.yaml` (NOT `~/.lfx-journeys/...`).
 
 All paths inside the manifest must also be absolute.
 

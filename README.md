@@ -20,7 +20,7 @@ Type `/lfx` and describe what you want in plain language:
 - **"How does the meeting data flow work?"** — explains the architecture in plain language
 - **"Check if my changes are ready for a PR"** — validates everything and offers to create the PR
 
-The `/lfx` skill auto-detects your repo, branch, and context, then routes you to the right workflow. No need to know which of the 8 skills to pick — just describe what you want.
+The `/lfx` skill auto-detects your repo, branch, and context, then routes you to the right workflow. No need to know which skill to pick — just describe what you want.
 
 New to LFX development? Type `/lfx` and say **"show me an example"** for a walkthrough.
 

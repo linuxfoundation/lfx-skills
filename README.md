@@ -68,6 +68,7 @@ Restart Claude Code (or open a new session) in any LFX repo and type `/lfx` — 
 /lfx-pr-catchup
 /lfx-setup
 /lfx-test-journey
+/lfx-intercom
 ```
 
 ### Alternative: Per-repo installation
@@ -129,6 +130,7 @@ The skills form a layered system where each skill has a clear responsibility and
 | `/lfx-pr-catchup` | Morning PR dashboard — unresolved comments, status changes, stale PRs, approved-but-not-merged across all your open PRs | Read-only | Bash, Read, Glob, Grep, AskUserQuestion |
 | `/lfx-setup` | Environment setup — prerequisites, clone, install, env vars, dev server. Adapts to Angular or Go repos | Interactive guide | Bash, Read, Glob, Grep, AskUserQuestion |
 | `/lfx-test-journey` | Combine branches from multiple repos into worktrees for journey testing | Interactive | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
+| `/lfx-intercom` | Add or fix Intercom integration against the LFX canonical pattern — audits JWT setup, shutdown, Auth0 claim, app IDs, CSP | Audit + fix | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
 
 ---
 
@@ -458,8 +460,10 @@ An **interactive setup guide** that walks through environment configuration step
 │   └── SKILL.md                    # Morning PR catch-up dashboard
 ├── lfx-setup/
 │   └── SKILL.md                    # Environment setup guide
-└── lfx-test-journey/
-    └── SKILL.md                    # Multi-branch journey testing
+├── lfx-test-journey/
+│   └── SKILL.md                    # Multi-branch journey testing
+└── lfx-intercom/
+    └── SKILL.md                    # Intercom integration — add or fix to LFX standard
 ```
 
 ## License

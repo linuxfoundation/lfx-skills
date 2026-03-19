@@ -103,8 +103,8 @@ Use the team/function to recommend an appropriate role set. These map to existin
 | --- | --- |
 | `VIEWER` | Read-only access to analytics data in Snowflake |
 | `DATA_ADMIN` | Full administrative access to data pipelines and schemas |
-| `DATA_DEV` | Data development access — read/write to development data schemas |
-| `DBT_TRANSFORM_DEV` | Access to run and develop dbt transformations |
+| `DATA_DEV` | Data production access — read/write to data schemas |
+| `DBT_TRANSFORM_DEV` | Access to run and develop dbt transformations in the ANALYTICS_DEV database |
 | `PRODUCT_DEV` | Product engineering data access |
 | `LF_DEVELOPER_R_ROLE` | Read access to LFX developer-facing data |
 | `CENSUS_ROLE` | Integration access for the Census reverse ETL tool |
@@ -113,9 +113,6 @@ Use the team/function to recommend an appropriate role set. These map to existin
 | `TRAINING_TEAM_ROLE` | Access for the training/certification team datasets |
 | `COMMUNITY_MANAGEMENT_USER` | Community management platform data access |
 | `HUBSPOT_INTEGRATION_ROLE` | HubSpot marketing tool integration access |
-| `DB_HUBSPOT_INGEST_RO` | Read-only access to HubSpot ingested raw data |
-| `DB_STRIPE_INGEST_RO` | Read-only access to Stripe ingested raw data |
-| `DB_RAW_RW` | Read/write access to raw data schemas |
 | `ACCOUNTADMIN` | Full Snowflake account administration — CloudOps only |
 
 ### HCL block to generate

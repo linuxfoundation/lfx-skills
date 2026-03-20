@@ -15,6 +15,7 @@ allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, WebFetch
 
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
+<!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
 
 # Snowflake Access Request Guide
 
@@ -47,13 +48,6 @@ There are two types of access requests:
 > service accounts), providers, or any other Terraform files. If someone asks about those, let
 > them know that infrastructure changes require a CloudOps engineer and they should open a GitHub
 > issue or reach out in the `#lfx-devops` Slack channel.
-
-<!-- -->
-
-> 🤖 **AI attribution**: If an AI tool is used to help draft any part of this PR (HCL blocks,
-> commit messages, descriptions), the LF engineering standard requires attribution. See the
-> [AI Attribution Guide for Git Commits](https://github.com/linuxfoundation/lfx-engineering/blob/main/ai/git-commits.md)
-> for the full standard — the relevant steps are also covered in the PR Submission Guide below.
 
 ---
 
@@ -243,33 +237,18 @@ After generating the configuration, walk the user through submitting it for revi
    - `--signoff` appends a `Signed-off-by:` trailer, satisfying the [Developer Certificate of Origin (DCO)](https://developercertificate.org/)
    - If you haven't set up GPG signing yet, follow GitHub's guide: [Signing commits](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits)
 
-4. **AI attribution** — if an AI tool helped generate the configuration in this commit, add an attribution
-   line *above* the `Signed-off-by:` trailer. The full commit message format is:
-
-   ```text
-   Add Snowflake access for Jane Smith (Product Dev team)
-
-   Generated with [Claude Code](https://claude.ai/code)
-   Signed-off-by: Your Name <your.email@linuxfoundation.org>
-   ```
-
-   Use `Generated with [Tool](URL)` for AI-generated content, or `Assisted by [Tool](URL)` for
-   partial help. See the full [AI attribution guide](https://github.com/linuxfoundation/lfx-engineering/blob/main/ai/git-commits.md)
-   for supported tools and multi-tool examples.
-
-5. **Title your change request** with a clear description, e.g.:
+4. **Title your change request** with a clear description, e.g.:
    - `Add Snowflake access for Jane Smith (Product Dev team)`
    - `Add MY_SERVICE service account for [purpose]`
-6. **Write a short description** explaining:
+5. **Write a short description** explaining:
    - Who or what needs access and why
    - What level of access is being granted and a brief justification
    - For service accounts: which system it belongs to and its outbound IP addresses
    - If a new compute resource (warehouse) is needed: call this out so CloudOps knows to
      provision it alongside the access change
-   - If AI tooling was used to help draft this, note it here too (consistent with the commit)
-7. **Submit the change request to**:
+6. **Submit the change request to**:
    `https://github.com/linuxfoundation/lfx-snowflake-terraform`
-8. **Reviewers**: The CloudOps team is automatically notified — no need to manually assign anyone
+7. **Reviewers**: The CloudOps team is automatically notified — no need to manually assign anyone
 
 > Once the change is approved and merged, access is applied automatically within a few minutes.
 > New users will receive an activation email from Snowflake. Anyone who also needs command-line

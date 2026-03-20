@@ -8,6 +8,7 @@ allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
+<!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
 
 # PR Catch-Up Dashboard
 

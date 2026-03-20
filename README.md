@@ -1,6 +1,6 @@
 # LFX Skills
 
-A collection of specialized Claude Code skills that encode the full development workflow for the LFX Self-Service platform. These skills turn Claude into a context-aware development partner that understands LFX conventions, architecture, and code patterns — eliminating the need to repeatedly explain project structure, naming rules, or coding standards.
+A collection of AI coding skills that encode the full development workflow for the LFX Self-Service platform. These skills turn your AI coding assistant into a context-aware development partner that understands LFX conventions, architecture, and code patterns — eliminating the need to repeatedly explain project structure, naming rules, or coding standards.
 
 ## Quick Install
 
@@ -10,7 +10,7 @@ cd skills
 ./install.sh
 ```
 
-Then restart Claude Code, open any LFX repo, and type `/lfx` to get started.
+Then restart your AI coding assistant, open any LFX repo, and type `/lfx` to get started.
 
 ## How It Works
 
@@ -26,10 +26,12 @@ New to LFX development? Type `/lfx` and say **"show me an example"** for a walkt
 
 ## Prerequisites
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated
+- An AI coding assistant that supports skill-based workflows (e.g., Claude Code, Gemini CLI). See [docs/platform-install.md](docs/platform-install.md) for setup instructions.
 - Access to LFX repositories (for the skills to operate on)
 
 ## Manual Installation
+
+> **Note:** These manual instructions are for Claude Code. For other platforms, see [docs/platform-install.md](docs/platform-install.md).
 
 If you prefer to install manually instead of using `./install.sh`:
 
@@ -41,7 +43,7 @@ git clone https://github.com/linuxfoundation/skills.git
 
 ### Step 2: Install the skills
 
-Claude Code auto-discovers skills from `~/.claude/skills/`. Symlink each skill into that directory:
+Claude Code auto-discovers skills from `~/.claude/skills/`. Symlink each skill:
 
 ```bash
 # From the cloned repo directory
@@ -51,11 +53,11 @@ for skill in lfx-*/ lfx/; do
 done
 ```
 
-This makes all `/lfx*` skills available globally in every Claude Code session.
+This makes all `/lfx*` skills available globally.
 
 ### Step 3: Verify
 
-Restart Claude Code (or open a new session) in any LFX repo and type `/lfx` — you should see all skills in the autocomplete list:
+Restart your AI coding assistant (or open a new session) in any LFX repo and type `/lfx` — you should see all skills in the autocomplete list:
 
 ```
 /lfx                    ← start here (plain-language entry point)
@@ -87,6 +89,8 @@ echo '.claude/skills/' >> .gitignore
 ```
 
 ### Uninstall
+
+> **Note:** These instructions are for Claude Code. For other platforms, remove the skill references from your tool's configuration.
 
 ```bash
 rm -f ~/.claude/skills/lfx-*
@@ -131,6 +135,8 @@ The skills form a layered system where each skill has a clear responsibility and
 | `/lfx-setup` | Environment setup — prerequisites, clone, install, env vars, dev server. Adapts to Angular or Go repos | Interactive guide | Bash, Read, Glob, Grep, AskUserQuestion |
 | `/lfx-test-journey` | Combine branches from multiple repos into worktrees for journey testing | Interactive | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
 | `/lfx-intercom` | Add or fix Intercom integration against the LFX canonical pattern — audits JWT setup, shutdown, Auth0 claim, app IDs, CSP | Audit + fix | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
+
+> **Note:** Tool names in the table above follow Claude Code conventions. See [docs/tool-mapping.md](docs/tool-mapping.md) for equivalents on other platforms.
 
 ---
 

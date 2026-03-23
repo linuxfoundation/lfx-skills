@@ -130,7 +130,7 @@ The skills form a layered system where each skill has a clear responsibility and
 | `/lfx-backend-builder` | Generates Express.js proxy endpoints, Go microservice code, shared types. Encodes three-file pattern, logging, Goa DSL, NATS messaging | Code gen | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion |
 | `/lfx-ui-builder` | Generates Angular 20 components, services, drawers, pagination UI, styling. Encodes signal patterns, PrimeNG wrappers | Code gen | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion |
 | `/lfx-product-architect` | Answers "where should this go?", traces data flows, makes placement decisions, explains design patterns | Read-only | Bash, Read, Glob, Grep, AskUserQuestion |
-| `/lfx-preflight` | Pre-PR validation — auto-fixes formatting & license headers, runs lint, build, checks protected files, offers PR creation | Validate + fix | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion |
+| `/lfx-preflight` | Pre-PR validation — auto-fixes formatting, license headers, and common reviewer blockers (15 checks for Angular), runs lint, build, checks protected files, offers PR creation | Validate + fix | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion |
 | `/lfx-pr-catchup` | Morning PR dashboard — unresolved comments, status changes, stale PRs, approved-but-not-merged across all your open PRs | Read-only | Bash, Read, Glob, Grep, AskUserQuestion |
 | `/lfx-setup` | Environment setup — prerequisites, clone, install, env vars, dev server. Adapts to Angular or Go repos | Interactive guide | Bash, Read, Glob, Grep, AskUserQuestion |
 | `/lfx-test-journey` | Combine branches from multiple repos into worktrees for journey testing | Interactive | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
@@ -290,9 +290,10 @@ Runs a comprehensive **pre-PR validation** with auto-fix capabilities. Adapts al
 4. **Linting** — `yarn lint` (Angular) or `go vet ./...` (Go), auto-fixes import order/unused imports
 5. **Build verification** — `yarn build` (Angular) or `go build ./...` (Go), fixes simple issues
 6. **Tests** — runs if test files exist for modified code (doesn't block on failures)
-7. **Protected files check** — flags changes to infrastructure files (`server.ts`, middleware, `angular.json`, `gen/`, `charts/`, etc.)
-8. **Commit verification** — conventions, signoff, JIRA ticket
-9. **Change summary** — categorized list of all new and modified files
+7. **Code review guard** (Angular only) — 15 sub-checks for common reviewer blockers, split into auto-fix (raw HTML wrappers, dead imports, type safety, signal patterns) and advisory (loading states, error handling, accessibility, design tokens, API alignment, N+1 patterns, template completeness, stale data, visitor gating, component size, PR description)
+8. **Protected files check** — flags changes to infrastructure files (`server.ts`, middleware, `angular.json`, `gen/`, `charts/`, etc.)
+9. **Commit verification** — conventions, signoff, JIRA ticket
+10. **Change summary** — categorized list of all new and modified files
 
 **Modes:** Auto-fix (default) or report-only ("dry run"). Offers to commit auto-fixes and create PR when all checks pass.
 
@@ -418,7 +419,7 @@ An **interactive setup guide** that walks through environment configuration step
 
 ### Validate before submitting a PR
 ```
-/lfx-preflight → license headers → format → lint → build → protected files → PR
+/lfx-preflight → license headers → format → lint → build → review guard (Angular) → protected files → PR
 ```
 
 ### Set up a new developer environment

@@ -31,10 +31,16 @@ Ask the user:
 2. **App name** — What is the exact Auth0 client name for this app? (e.g. "LFX
    Project Control Center", "CB Funding"). This must match the `case` in the
    Auth0 custom_claims action exactly.
-3. **Angular version** — Angular 6 (ngrx) or Angular 14+ (standalone/signals)?
-4. **LaunchDarkly** — Does this app use LaunchDarkly? If yes, Intercom should be
+3. **Public pages?** — Is this app accessible to non-authenticated visitors?
+   - **Yes** (e.g. Mentorship, Crowdfunding, Insights) → Intercom must boot
+     anonymously on page load so banners/popups are visible to all visitors,
+     then upgrade to identified on login.
+   - **No** (e.g. PCC, Org Dashboard, Individual Dashboard, Security) → Intercom
+     boots only after login. No anonymous boot needed.
+4. **Angular version** — Angular 6 (ngrx) or Angular 14+ (standalone/signals)?
+5. **LaunchDarkly** — Does this app use LaunchDarkly? If yes, Intercom should be
    feature-flagged behind `enable-intercom`.
-5. **Intercom App ID** — Dev: `mxl90k6y`, Prod: `w29sqomy` (shared across all
+6. **Intercom App ID** — Dev: `mxl90k6y`, Prod: `w29sqomy` (shared across all
    LFX apps; already set in Step 3 — just confirm the user hasn't been given
    different IDs by the Intercom admin).
 
@@ -52,8 +58,8 @@ Check all of the following and produce a gap report:
 | **Intercom stub** | Does `initializeIntercomFunction()` create the `i.q` stub? | ✅ Required — queues commands before script loads |
 | **JWT pre-set** | Is `window.intercomSettings.intercom_user_jwt` set *before* `window.Intercom('boot')` is called? | ✅ Required |
 | **JWT stripped from boot options** | Is `intercom_user_jwt` removed from the options passed to `window.Intercom('boot')`? | ✅ Required — JWT only in `intercomSettings`, not boot payload |
-| **Anonymous boot** | Is `bootIntercomAnonymous()` called in `ngOnInit()` before user auth check? | ✅ Required — banners/popups must show for all visitors |
-| **Anonymous→identified upgrade** | Does `boot()` detect anonymous session and upgrade to identified via `shutdownForReboot()`? | ✅ Required — `bootedWithIdentity` flag tracks session type |
+| **Anonymous boot** | Is `bootIntercomAnonymous()` called in `ngOnInit()` before user auth check? | ✅ Required if app has public pages; skip if auth-only app |
+| **Anonymous→identified upgrade** | Does `boot()` detect anonymous session and upgrade to identified via `shutdownForReboot()`? | ✅ Required if anonymous boot is used — `bootedWithIdentity` flag tracks session type |
 | **Identified boot** | Is identified `boot()` called inside `userProfile$` subscription with `intercomBootAttempted` guard? | ✅ Required |
 | **Shutdown on logout** | Is `Intercom('shutdown')` called, JWT cleared, and anonymous session re-booted on logout? | ✅ Required |
 | **App IDs** | Dev: `mxl90k6y`, Prod: `w29sqomy` | ✅ Shared across all LFX apps |
@@ -391,8 +397,12 @@ upgrade on login, and shutdown + anonymous re-boot on logout.
 ```typescript
 // Class field
 private intercomBootAttempted = false;
+```
 
-// In ngOnInit(), BEFORE the auth subscription:
+**If the app has public pages** (Step 1, question 3 = Yes), add the anonymous
+boot call in `ngOnInit()` BEFORE the auth subscription:
+
+```typescript
 ngOnInit() {
   // Boot Intercom in anonymous mode so banners/popups show for all visitors
   this.bootIntercomAnonymous();
@@ -401,6 +411,9 @@ ngOnInit() {
   // ... other init code ...
 }
 ```
+
+**If the app is auth-only** (Step 1, question 3 = No), skip the anonymous boot —
+Intercom will boot only when the user logs in (Step 5b).
 
 ### 5b — Identified boot on login + shutdown on logout
 
@@ -436,10 +449,11 @@ if (userProfile) {
     }
   }
 } else if (userProfile == null) {
-  // Logout — shutdown identified session and re-boot anonymous
+  // Logout — shutdown identified session
   if (this.intercomBootAttempted) {
     this.intercomService.shutdown();
     this.intercomBootAttempted = false;
+    // Re-boot anonymous so banners remain visible (public-page apps only)
     this.bootIntercomAnonymous();
   }
 }
@@ -448,7 +462,11 @@ if (userProfile) {
 ⚠️ **Use `== null`** (loose equality) for the logout check — this catches both
 `null` and `undefined`, which different auth services may emit.
 
-### 5c — Anonymous boot helper method
+### 5c — Anonymous boot helper method (public-page apps only)
+
+**Include this method only if the app has public pages** (Step 1, question 3 = Yes).
+Auth-only apps do not need this method — remove the `bootIntercomAnonymous()` calls
+from ngOnInit and the logout block if the app is auth-only.
 
 ```typescript
 /**
@@ -471,6 +489,7 @@ private bootIntercomAnonymous() {
 
 ### Boot lifecycle summary
 
+**Public-page apps** (Mentorship, Crowdfunding, Insights):
 ```
 Page Load
   → bootIntercomAnonymous()               // banners visible to all visitors
@@ -486,6 +505,20 @@ User Logs Out (userProfile$ emits null)
   → shutdown()                             // clears identified session + JWT
   → intercomBootAttempted = false
   → bootIntercomAnonymous()                // banners visible again
+```
+
+**Auth-only apps** (PCC, Org Dashboard, Individual Dashboard, Security):
+```
+Page Load
+  → (nothing — user must log in first)
+
+User Logs In (userProfile$ emits user)
+  → boot({ user_id, intercom_user_jwt, ... })
+  → Intercom boots with identity           // bootedWithIdentity = true
+
+User Logs Out (userProfile$ emits null)
+  → shutdown()                             // clears identified session + JWT
+  → intercomBootAttempted = false
 ```
 
 If the app uses **LaunchDarkly**, wrap both the anonymous and identified boot

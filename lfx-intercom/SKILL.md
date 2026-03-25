@@ -659,6 +659,6 @@ Crowdfunding (PRs #31-#38), and PCC.
   style-src    https://*.intercomcdn.com
   font-src     https://*.intercomcdn.com
   img-src      https://static.intercomassets.com https://*.intercomcdn.com
-  frame-src    https://*.intercom.io https://*.intercom-messenger.com
+  frame-src    https://*.intercom.io https://*.intercom-messenger.com https://intercom-sheets.com
   media-src    https://js.intercomcdn.com
   ```

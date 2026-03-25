@@ -130,7 +130,7 @@ The skills form a layered system where each skill has a clear responsibility and
 | `/lfx-backend-builder` | Generates Express.js proxy endpoints, Go microservice code, shared types. Encodes three-file pattern, logging, Goa DSL, NATS messaging | Code gen | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion |
 | `/lfx-ui-builder` | Generates Angular 20 components, services, drawers, pagination UI, styling. Encodes signal patterns, PrimeNG wrappers | Code gen | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion |
 | `/lfx-product-architect` | Answers "where should this go?", traces data flows, makes placement decisions, explains design patterns | Read-only | Bash, Read, Glob, Grep, AskUserQuestion |
-| `/lfx-preflight` | Pre-PR validation — auto-fixes formatting & license headers, runs lint, build, checks protected files, offers PR creation | Validate + fix | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion |
+| `/lfx-preflight` | Pre-PR validation — Phase 1 auto-fixes (format, license, lint, build), Phase 2 code review (15 report-only checks for Angular). Pass `--skip-review` to skip Phase 2 | Validate + review | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion |
 | `/lfx-pr-catchup` | Morning PR dashboard — unresolved comments, status changes, stale PRs, approved-but-not-merged across all your open PRs | Read-only | Bash, Read, Glob, Grep, AskUserQuestion |
 | `/lfx-setup` | Environment setup — prerequisites, clone, install, env vars, dev server. Adapts to Angular or Go repos | Interactive guide | Bash, Read, Glob, Grep, AskUserQuestion |
 | `/lfx-test-journey` | Combine branches from multiple repos into worktrees for journey testing | Interactive | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
@@ -281,9 +281,9 @@ A **read-only** advisory skill that answers architectural questions without gene
 
 ### `/lfx-preflight`
 
-Runs a comprehensive **pre-PR validation** with auto-fix capabilities. Adapts all checks to the repo type.
+Runs a two-phase **pre-PR validation**. Adapts all checks to the repo type.
 
-**Checks (in order):**
+**Phase 1: Validation (auto-fix):**
 1. **Working tree status** — uncommitted changes, commits ahead of main, JIRA references, `--signoff`
 2. **License headers** — verifies and auto-fixes missing headers on `.ts`, `.html`, `.scss`, `.go` files
 3. **Formatting** — `yarn format` (Angular) or `gofmt -w .` (Go), reports which files changed
@@ -294,7 +294,10 @@ Runs a comprehensive **pre-PR validation** with auto-fix capabilities. Adapts al
 8. **Commit verification** — conventions, signoff, JIRA ticket
 9. **Change summary** — categorized list of all new and modified files
 
-**Modes:** Auto-fix (default) or report-only ("dry run"). Offers to commit auto-fixes and create PR when all checks pass.
+**Phase 2: Code Review (Angular only, report-only):**
+15 pattern checks for common reviewer blockers — raw HTML wrappers, dead code, component size, loading states, type safety, error handling, signal patterns, API alignment, PR description, accessibility, design tokens, N+1 patterns, template completeness, stale data, visitor gating. All report-only; none auto-fix.
+
+**Flags:** `--skip-review` skips Phase 2. "report only" / "dry run" makes Phase 1 report-only too.
 
 ---
 
@@ -418,7 +421,8 @@ An **interactive setup guide** that walks through environment configuration step
 
 ### Validate before submitting a PR
 ```
-/lfx-preflight → license headers → format → lint → build → protected files → PR
+/lfx-preflight → Phase 1 (license, format, lint, build, protected files) → Phase 2 (15 code review checks, Angular only) → PR
+/lfx-preflight --skip-review → Phase 1 only (useful during dev)
 ```
 
 ### Set up a new developer environment

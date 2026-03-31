@@ -20,8 +20,137 @@ You are conducting a security review of LFX code changes. Identify realvulnerabi
 **Modes:**
 
 - **Default:** Run both phases.
-- `--scan-only`**:** Run Phase 1 only. Useful for quick pre-commit checks.
-- `--file <path>`**:** Scope the review to a specific file or directory.
+- **`--scan-only`:** Run Phase 1 only. Useful for quick pre-commit checks.
+- **`--file <path>`:** Scope the review to a specific file or directory.
+- **`--full-scan`:** Run both phases on all files (not just changed files). Use for new repos or major refactors.
+- **`--explain`:** Add detailed explanations for each check (educational mode).
+- **`--ci-mode`:** Exit with non-zero status if any blockers are found. Output machine-readable JSON.
+- **`--format json`:** Output results as structured JSON instead of text report.
+- **`--watch`:** Watch for file changes and auto-run scan on save. Use during active development.
+
+## Usage Examples
+
+### Example 1: Quick Pre-Commit Check (Beginner)
+**Scenario:** You're about to commit auth-related changes and want a fast security check.
+
+```bash
+/lfx-security-engineer --scan-only
+```
+
+**What it does:** Runs Phase 1 automated scan only on changed files (fast, mechanical checks). Skips Phase 2 security review. Ideal for rapid feedback before `git commit`.
+
+---
+
+### Example 2: Full Security Review Before PR (Standard Workflow)
+**Scenario:** You're ready to submit a PR touching auth, permissions, or data handling.
+
+```bash
+/lfx-security-engineer
+```
+
+**What it does:** Runs both Phase 1 (automated scan) and Phase 2 (judgment-based security review) on all changed files. This is the default mode and recommended before every PR.
+
+---
+
+### Example 3: Review a Specific File or Directory
+**Scenario:** You modified `src/services/auth.service.ts` and want to focus the review there.
+
+```bash
+/lfx-security-engineer --file src/services/auth.service.ts
+```
+
+**What it does:** Scopes both phases to only the specified file or directory. Useful when making isolated changes to a single module.
+
+---
+
+### Example 4: Full Repository Audit (Advanced)
+**Scenario:** You inherited a new codebase or merged a major refactor and want a comprehensive security audit.
+
+```bash
+/lfx-security-engineer --full-scan
+```
+
+**What it does:** Runs both phases on **all files** in the repo (not just changed files). Warning: slow on large codebases. Use sparingly.
+
+---
+
+### Example 5: Educational Mode with Explanations
+**Scenario:** You're learning security best practices and want detailed explanations for each finding.
+
+```bash
+/lfx-security-engineer --explain
+```
+
+**What it does:** Includes educational context for each check — why it matters, real-world examples, and OWASP references. Great for onboarding or training.
+
+---
+
+### Example 6: CI/CD Pipeline Integration (Expert)
+**Scenario:** You want to block PRs with security vulnerabilities in CI.
+
+```bash
+/lfx-security-engineer --ci-mode --format json
+```
+
+**What it does:**
+- Exits with status code 1 if any `✗` blockers are found (fails the build)
+- Outputs machine-readable JSON for parsing by CI tools
+- Suitable for GitHub Actions, GitLab CI, or Jenkins pipelines
+
+**Example CI usage (GitHub Actions):**
+```yaml
+- name: Security Review
+  run: /lfx-security-engineer --ci-mode --format json
+  continue-on-error: false  # Fail the build on blockers
+```
+
+---
+
+### Example 7: Watch Mode for Active Development (Power User)
+**Scenario:** You're refactoring auth code and want instant feedback as you save files.
+
+```bash
+/lfx-security-engineer --watch --scan-only
+```
+
+**What it does:** Watches for file changes and auto-runs Phase 1 scan on save. Combines well with `--scan-only` for minimal latency. Press `Ctrl+C` to stop.
+
+---
+
+### Example 8: Terraform/OpenTofu Infrastructure Audit
+**Scenario:** You modified `.tf` files and want to check for infrastructure security issues.
+
+```bash
+/lfx-security-engineer
+```
+
+**What it does:** Detects Terraform files automatically and runs infrastructure-specific checks (open network rules, unencrypted storage, overly permissive IAM, committed `.tfvars`). No special flag needed — detection is automatic.
+
+---
+
+### Example 9: Database Migration Review
+**Scenario:** You added a new migration script with sensitive columns.
+
+```bash
+/lfx-security-engineer --file db/migrations/
+```
+
+**What it does:** Scans migration files for plain-text password columns, hardcoded PII, overly broad grants, and missing audit columns. Works with Flyway, golang-migrate, Atlas, and Liquibase conventions.
+
+---
+
+### Example 10: Combine Multiple Flags (Advanced)
+**Scenario:** You want a full scan with explanations in JSON format for CI integration.
+
+```bash
+/lfx-security-engineer --full-scan --explain --format json > security-report.json
+```
+
+**What it does:** Runs a comprehensive audit on all files, includes educational explanations, outputs structured JSON, and saves to a file for archival or CI parsing.
+
+---
+
+**Pro Tip:** For most workflows, start with the default mode (`/lfx-security-engineer`) before every PR. Use `--scan-only` for rapid iteration during development, and `--full-scan` only when onboarding a new repo or after major refactors.
 
 ## Repo Type Detection
 

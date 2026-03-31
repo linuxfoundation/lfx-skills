@@ -117,21 +117,47 @@ For each unresolved thread, extract:
 - **Outdated threads**: Include them but flag them — the code may have shifted since the comment was made. Read the current file to determine if the feedback still applies.
 - **General PR review comments** (not attached to a specific line): These appear as reviews with a `body` but no associated thread path. Collect these separately — they need responses but may not require code changes.
 
-## Step 3: Categorize Comments
+## Step 3: Validate Each Comment Against Repo Patterns
 
-Read through each unresolved thread and categorize it:
+Before categorizing or acting on any comment, validate whether the reviewer's feedback is actually correct. Reviewers can make mistakes — they may misread the code, apply conventions from a different repo, or flag something that is already handled elsewhere. Blindly implementing every comment can introduce regressions.
+
+For each unresolved thread:
+
+1. **Read the actual code** at the referenced file and line — not just the diff snippet the reviewer saw. Read enough surrounding context (20-30 lines) to understand what the code is doing.
+2. **Check the repo's existing patterns** — search for how similar code is written elsewhere in the codebase. If the reviewer says "use X pattern" but the rest of the repo uses Y pattern, that's a red flag.
+   ```bash
+   # Example: reviewer says "use BehaviorSubject" but check what the repo actually does
+   grep -r "signal(" src/app/modules/ --include="*.ts" -l | head -10
+   grep -r "BehaviorSubject" src/app/modules/ --include="*.ts" -l | head -10
+   ```
+3. **Cross-reference with project conventions** — check CLAUDE.md, eslint configs, or other style guides in the repo. The reviewer's suggestion may conflict with established conventions.
+4. **Assess the comment's validity:**
+
+| Assessment | Meaning | Action |
+|------------|---------|--------|
+| **Valid** | The reviewer is correct — the code needs to change | Proceed to categorize and address |
+| **Likely false positive** | The reviewer appears to have misread the code or applied the wrong convention | Flag for user with your reasoning |
+| **Partially valid** | The reviewer has a point but their suggested fix is wrong or incomplete | Flag with a recommended alternative |
+| **Outdated** | The code has changed since the comment — the issue no longer exists | Flag as already addressed |
+
+The goal is not to dismiss reviewer feedback — it's to catch cases where implementing the suggestion would make the code worse. When in doubt, lean toward implementing the change, but always surface your assessment to the user.
+
+## Step 4: Categorize Comments
+
+After validation, categorize each thread:
 
 | Category | Description | Action |
 |----------|-------------|--------|
-| **Code change** | Reviewer requests a specific modification (rename, refactor, fix logic, add handling) | Make the change |
+| **Code change** | Reviewer requests a specific modification and the suggestion is valid | Make the change |
 | **Question** | Reviewer asks "why did you...?" or "what about...?" | Respond with explanation |
 | **Nitpick / style** | Minor formatting, naming suggestion, or preference | Make the change (quick wins build goodwill) |
 | **Approval with comment** | "Looks good, but consider..." or "Nit: ..." with no blocking intent | Assess — fix if trivial, explain if not |
+| **False positive** | Reviewer's suggestion conflicts with repo patterns or is based on a misread | Flag for user — recommend a polite response explaining why |
 | **Discussion** | Architectural debate, trade-off, or open-ended feedback | Flag for user decision |
 
 ### Present the Plan
 
-Before making any changes, present the categorized comments to the user:
+Before making any changes, present the categorized comments to the user. Include your validation assessment for each item so the user can make an informed decision:
 
 ```
 ═══════════════════════════════════════════
@@ -142,26 +168,45 @@ PR #[number] — REVIEW COMMENTS TO ADDRESS
 
 CODE CHANGES NEEDED
 ───────────────────
-1. @[reviewer] on [file]:[line] — "[summary of what they want]"
-2. @[reviewer] on [file]:[line] — "[summary of what they want]"
+1. ✓ @[reviewer] on [file]:[line] — "[summary of what they want]"
+     Validated: [brief reason — e.g., "matches pattern in other components"]
+2. ✓ @[reviewer] on [file]:[line] — "[summary of what they want]"
+     Validated: [brief reason]
 
 QUESTIONS TO ANSWER
 ───────────────────
 3. @[reviewer] on [file]:[line] — "[the question]"
 
+LIKELY FALSE POSITIVES
+──────────────────────
+4. ⚠ @[reviewer] on [file]:[line] — "[what they suggested]"
+     Assessment: [why this appears incorrect — e.g., "Reviewer suggests
+     BehaviorSubject but this repo uses signals for component-local state.
+     Found 12 components using signal() vs 3 legacy BehaviorSubjects."]
+     Recommendation: Respond explaining the repo convention. No code change.
+
 NEEDS YOUR INPUT
 ────────────────
-4. @[reviewer] on [file]:[line] — "[the discussion point]"
+5. @[reviewer] on [file]:[line] — "[the discussion point]"
    → What would you like me to do here?
 
 ═══════════════════════════════════════════
-Shall I proceed with items 1-3? Item 4 needs your direction.
+Shall I proceed with items 1-2? Items 4-5 need your direction.
 ═══════════════════════════════════════════
 ```
 
-**Wait for user approval before making changes.** If there are "needs your input" items, the user must provide direction before proceeding.
+**Wait for user approval before making changes.** The user has final say on whether to implement, push back, or discuss further — especially for items flagged as potential false positives.
 
-## Step 4: Address Each Comment
+### Responding to False Positives
+
+When the user confirms a comment is a false positive, draft a respectful response that:
+- Acknowledges the reviewer's intent ("Good eye on this — I can see why it looks off")
+- Explains the repo convention or pattern with evidence ("This repo uses signals for component-local state — you can see the same pattern in `member-form.component.ts`, `attendance-list.component.ts`, etc.")
+- Offers to discuss further if the reviewer disagrees ("Happy to discuss if you think we should approach this differently")
+
+Never be dismissive. The reviewer took time to read the code — even a wrong comment shows engagement.
+
+## Step 5: Address Each Comment
 
 Work through the approved comments systematically.
 
@@ -196,7 +241,7 @@ Skill(skill: "lfx-backend-builder", args: "FIX PR REVIEW: [description of the ch
 
 For simple, targeted fixes (rename a variable, add a null check, fix an import), make the change directly — no need to delegate.
 
-## Step 5: Validate Changes
+## Step 6: Validate Changes
 
 After all code changes are made, run validation. Delegate to preflight with the review-skip flag since this is an iteration, not a fresh PR:
 
@@ -209,7 +254,7 @@ go vet ./... && go build ./...
 
 If validation fails, fix the issues before proceeding. Do not commit broken code.
 
-## Step 6: Commit with Detailed Summary
+## Step 7: Commit with Detailed Summary
 
 Create a single commit that summarizes all changes made to address the review feedback.
 
@@ -257,7 +302,7 @@ EOF
 )"
 ```
 
-## Step 7: Respond to Each Comment Thread
+## Step 8: Respond to Each Comment Thread
 
 After committing, respond to each review thread on GitHub. This is the critical feedback loop — reviewers need to know their comments were heard and addressed.
 
@@ -307,6 +352,17 @@ Fixed — [what was changed]. Good catch!
 [Description of what was changed, or why no change was made].
 ```
 
+**For false positives (user confirmed no change needed):**
+
+```
+Thanks for flagging this — I can see why it looks [wrong/inconsistent/off].
+
+[Explanation with evidence: "This repo uses [pattern X] for [reason]. You can see
+the same approach in [file1], [file2], etc."]
+
+[If applicable: "Happy to discuss further if you think we should reconsider."]
+```
+
 ### Response Rules
 
 - **Be specific** — don't say "Fixed." Say what was fixed and how.
@@ -314,7 +370,7 @@ Fixed — [what was changed]. Good catch!
 - **Keep it concise** — one or two sentences for simple fixes, a short paragraph for questions or discussions.
 - **Be professional and appreciative** — reviewers spent time reading the code. Acknowledge good catches.
 
-## Step 8: Resolve Review Threads
+## Step 9: Resolve Review Threads
 
 After responding to each thread, resolve it. Only resolve threads where the feedback has been fully addressed — if a thread required user input and the user chose not to address it, leave it unresolved.
 
@@ -336,7 +392,7 @@ mutation($threadId: ID!) {
 - The change couldn't be made due to a technical constraint (explain why in the response, leave unresolved)
 - You're unsure whether your change fully addresses the feedback — leave unresolved and let the reviewer confirm
 
-## Step 9: Push Changes
+## Step 10: Push Changes
 
 Push the commit to the remote branch:
 
@@ -353,7 +409,7 @@ yarn lint && yarn build
 git push
 ```
 
-## Step 10: Post Summary Comment
+## Step 11: Post Summary Comment
 
 After all threads are responded to and resolved, post a single summary comment on the PR. This gives reviewers a one-stop overview of everything that was addressed in this iteration:
 
@@ -369,6 +425,10 @@ Commit: [full SHA]
 
 ### Questions Answered
 - **[file]:[line]**: [brief answer] (asked by @[reviewer])
+
+[If any comments were identified as false positives:]
+### No Change Needed
+- **[file]:[line]**: [brief explanation of why the current code is correct and what repo pattern it follows] (flagged by @[reviewer])
 
 ### Threads Resolved
 [N] of [M] unresolved threads addressed in this iteration.
@@ -388,7 +448,7 @@ EOF
 - **Call out anything left open** — don't hide unresolved items
 - **Credit reviewers** by @-mentioning them next to their feedback
 
-## Step 11: Report to User
+## Step 12: Report to User
 
 Present the final status:
 

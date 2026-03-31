@@ -486,67 +486,119 @@ If security-sensitive code changed but no security tests were added or updated, 
 
 # Results Report
 
+Generate a color-coded, visually organized report that includes severity indicators, clickable file links, and actionable next steps.
+
+## Report Structure
+
 ```text
 ═══════════════════════════════════════════
-SECURITY REVIEW RESULTS
+🛡️  LFX SECURITY REVIEW RESULTS
 ═══════════════════════════════════════════
 
-PHASE 1: AUTOMATED SCAN
-═══════════════════════
-✓ Secrets/credentials  — No hardcoded secrets found
-✓ Access control       — All changed routes have auth middleware
-✓ Cryptography         — No weak crypto patterns
-✓ Injection            — No injection patterns detected
-✓ Authentication       — JWT validation present, alg enforced
-⚠ Logging             — Silent auth failure at auth.service.ts:42
-✓ Data exposure        — No PII in logs or error responses
-✓ Infrastructure       — No open rules, unencrypted storage, or public buckets  [if HAS_TERRAFORM]
-✓ DB migrations        — No plain-text sensitive columns or broad grants         [if HAS_MIGRATIONS]
+Repository: [repo-name]
+Branch: [branch-name]
+Files scanned: [N] changed files
+Scan duration: [X.X]s
 
-PHASE 2: SECURITY REVIEW
-═════════════════════════
-✓ Auth flow            — Token validation complete, expiry enforced
-⚠ Authorization        — getCommittee at committee.service.ts:88 returns data
-                         before FGA check for non-member role (discuss)
-✓ Input validation     — Allowlist validation on all user-controlled fields
-⚠ Security tests       — No 403 test for non-member fetching committee (discuss)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-═══════════════════════════════════════════
-REVIEW READY (3 discussion items)
-═══════════════════════════════════════════
+🔴 CRITICAL FINDINGS ([count])
+
+[For each critical finding, use the detailed format below]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🟡 WARNINGS ([count])
+
+[For each warning, use a compact format:]
+⚠️  [Brief description] at [file:line]
+    [One-line explanation and recommendation]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ PASSED CHECKS ([count])
+
+✓ No SQL injection patterns
+✓ No command injection patterns
+✓ JWT algorithm properly enforced
+✓ All routes have auth middleware
+✓ No weak cryptography detected
+✓ No PII in logs or URLs
+✓ Input validation uses allowlist approach
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 SUMMARY
+
+  Status: [✅ APPROVED | ⚠️ REVIEW NEEDED | 🔴 BLOCKERS FOUND]
+
+  [N] critical issues must be fixed before merge
+  [N] warnings should be addressed (recommend fixing before merge)
+
+  Overall security posture: [assessment]
+
+  Next steps:
+  1. [Action item 1]
+  2. [Action item 2]
+  3. Re-run: /lfx-security-engineer
+  4. [Request review if needed]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Report saved to: .security-review.md
+Exit code: [0 = pass, 1 = warnings, 2 = blockers]
+
+Use --explain for detailed security explanations
+Use --help for all available options
 ```
 
-**Legend:**
+## Detailed Finding Format
 
-- `✓` — Pass. No issues found.
-- `⚠` — Discuss. Should be addressed before merge.
-- `✗` — Blocker. Security vulnerability that must be fixed before PR.
-
-**Final verdict:**
-
-- All `✓` → `SECURITY APPROVED`
-- Has `⚠` only → `REVIEW READY (N discussion items)`
-- Has any `✗` → `NOT READY — N security blockers must be fixed`
-
-### Finding Format
-
-For each `✗` blocker:
+For each 🔴 CRITICAL finding, use this format:
 
 ```text
 FINDING: [Check name]
-File: path/to/file.ts:42
-Severity: CRITICAL / HIGH / MEDIUM
-What: Plain-language description of the vulnerability
-Risk: What an attacker could do if exploited
-Fix:
+File: [path/to/file.ts:42]
+Severity: CRITICAL
+What: [Plain-language description of the vulnerability]
+Risk: [What an attacker could do if exploited]
+Fix: [Concrete remediation with code example]
+
   // Before (vulnerable)
   const query = `SELECT * FROM users WHERE id = ${req.params.id}`;
 
   // After (safe)
   const query = 'SELECT * FROM users WHERE id = $1';
   const result = await db.query(query, [req.params.id]);
-Reference: OWASP A03 — https://owasp.org/Top10/A03_2021-Injection/
+
+Reference: OWASP [A0X] — [https://owasp.org/Top10/...]
+Next steps:
+  1. [Specific action 1]
+  2. [Specific action 2]
+  3. Re-run this scan to verify fix
 ```
+
+## Severity Indicators
+
+Use these emoji indicators consistently throughout the report:
+
+- 🔴 **CRITICAL** — Must be fixed before merge (exit code 2)
+- 🟡 **WARNING** — Should be addressed (exit code 1)
+- ✅ **PASSED** — Check passed, no issues found
+
+## File References
+
+Always use clickable format: `File: src/config/db.ts:15`
+
+This format is recognized by VS Code and other editors for quick navigation.
+
+## Exit Codes for CI/CD
+
+The report must end with the exit code information:
+
+- **Exit code 0** — All checks passed, security approved
+- **Exit code 1** — Warnings found, recommend review before merge
+- **Exit code 2** — Critical blockers found, CI should fail
 
 ## Scope Boundaries
 

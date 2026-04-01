@@ -2,8 +2,9 @@
 name: lfx-pr-resolve
 description: >
   Address PR review comments — fetches unresolved threads, makes code changes,
-  commits with a summary, responds to each comment, resolves threads, and posts
-  a follow-up summary. Use whenever someone wants to address PR feedback, fix
+  commits with a summary, responds to each comment, resolves threads, posts
+  a follow-up summary, dismisses stale "changes requested" reviews, and
+  re-requests review. Use whenever someone wants to address PR feedback, fix
   review comments, resolve PR threads, or iterate on a pull request after review.
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Skill
 ---
@@ -114,6 +115,18 @@ GRAPHQL
 
 **Pagination note:** The query caps at 100 review threads and 20 comments per thread. This covers the vast majority of PRs. If a PR exceeds these limits, fetch additional pages using `pageInfo { hasNextPage endCursor }` and the `after` parameter.
 
+### Identify AI Bot Reviewers
+
+Before processing threads, identify which reviewers are AI bots. Common bot indicators:
+
+- Username ends with `[bot]` (e.g., `copilot[bot]`, `coderabbitai[bot]`, `github-actions[bot]`)
+- Username matches known AI review bots: `copilot`, `coderabbitai`, `codeclimate`, `sonarcloud`, `deepsource`, `sourcery-ai`, `ellipsis-dev`, `korbit-ai`, `bito-ai`, `pr-agent`
+- User type from the API is `Bot` rather than `User`
+
+Maintain a list of bot reviewer logins for this PR. These reviewers must **never be `@mentioned`** in any content posted to GitHub (comments, commit messages, summary). Tagging bots causes them to re-trigger and attempt to act on already-resolved feedback.
+
+**Bot comments are still actionable** — address their feedback like any other reviewer. The restriction is only on `@mentioning` them in GitHub-posted content.
+
 ### Filter to Actionable Threads
 
 From the response, collect only **unresolved** threads (`isResolved == false`). Skip threads that are already resolved — someone else handled them or they were resolved in a previous iteration.
@@ -133,7 +146,7 @@ For each unresolved thread, extract:
 
 - **No unresolved threads**: Tell the user — "All review threads are already resolved! Nothing to address." Stop here.
 - **Outdated threads**: Include them but flag them — the code may have shifted since the comment was made. Read the current file to determine if the feedback still applies.
-- **General PR review comments** (not attached to a specific line): These appear as reviews with a `body` but no associated thread path. Collect these separately — they need responses but may not require code changes. You will respond to each of these later via a PR-level comment that `@mentions` the reviewer and references the commit that addresses their feedback (if any).
+- **General PR review comments** (not attached to a specific line): These appear as reviews with a `body` but no associated thread path. Collect these separately — they need responses but may not require code changes. You will respond to each of these later via a PR-level comment that references the reviewer and the commit that addresses their feedback (if any). When referencing reviewers, `@mention` human reviewers but use plain names (no `@` prefix) for bot reviewers to avoid re-triggering them.
 
 ## Step 3: Validate Each Comment Against Repo Patterns
 
@@ -283,10 +296,10 @@ The commit message must clearly state what review feedback was addressed, so tha
 ```
 fix(review): address PR #[number] review feedback
 
-Address review comments from @[reviewer1], @[reviewer2]:
+Address review comments from @[human-reviewer], botname[bot]:
 
-- [file]: [what was changed and why] (per @[reviewer])
-- [file]: [what was changed and why] (per @[reviewer])
+- [file]: [what was changed and why] (per @[human-reviewer])
+- [file]: [what was changed and why] (per botname[bot])
 - [file]: responded to question about [topic]
 
 Resolves [N] review threads.
@@ -298,7 +311,7 @@ Note: The `--signoff` flag automatically appends the `Signed-off-by:` trailer �
 
 - **One commit per review iteration** — don't create separate commits per comment. Reviewers want to see a single cohesive response to their feedback.
 - **Reference the PR number** in the commit subject.
-- **Credit the reviewer** — mention who asked for each change. This helps when reading git blame later.
+- **Credit human reviewers** — mention who asked for each change. This helps when reading git blame later. **Never `@mention` bot reviewers** in commit messages — use their plain name without the `@` prefix (e.g., `copilot[bot]` not `@copilot[bot]`).
 - **Include `--signoff` and `-S`** — `--signoff` is required for DCO compliance, `-S` for GPG-signed commits. Both are enforced on LFX repos.
 - **List every change** — the commit body should be a complete record. Someone reading the commit message should know exactly what review feedback was addressed without needing to read the diff.
 
@@ -307,10 +320,10 @@ git add [specific files that were changed]
 git commit -S --signoff -m "$(cat <<'EOF'
 fix(review): address PR #[number] review feedback
 
-Address review comments from @[reviewer1]:
+Address review comments from @[human-reviewer], botname[bot]:
 
-- path/to/file.ts: renamed variable per reviewer suggestion
-- path/to/component.html: added loading guard for stats display
+- path/to/file.ts: renamed variable per reviewer suggestion (per @alice)
+- path/to/component.html: added loading guard for stats display (per copilot[bot])
 - path/to/service.ts: explained error handling approach (no code change)
 
 Resolves 3 review threads.
@@ -386,6 +399,7 @@ the same approach in [file1], [file2], etc."]
 - **Reference the commit** — include the short SHA so reviewers can jump to the exact change.
 - **Keep it concise** — one or two sentences for simple fixes, a short paragraph for questions or discussions.
 - **Be professional and appreciative** — reviewers spent time reading the code. Acknowledge good catches.
+- **Never `@mention` bot reviewers** — when replying to a bot's thread, do not include `@botname` in the response body. Tagging bots causes them to re-trigger and attempt to re-review or act on already-resolved feedback.
 
 ## Step 9: Resolve Review Threads
 
@@ -438,15 +452,15 @@ gh pr comment $NUMBER --repo $OWNER/$REPO --body "$(cat <<'EOF'
 Commit: [full SHA]
 
 ### Changes Made
-- **[file]**: [what changed] (per @[reviewer])
-- **[file]**: [what changed] (per @[reviewer])
+- **[file]**: [what changed] (per @[human-reviewer])
+- **[file]**: [what changed] (per botname[bot])
 
 ### Questions Answered
-- **[file]:[line]**: [brief answer] (asked by @[reviewer])
+- **[file]:[line]**: [brief answer] (asked by @[human-reviewer])
 
 [If any comments were identified as false positives:]
 ### No Change Needed
-- **[file]:[line]**: [brief explanation of why the current code is correct and what repo pattern it follows] (flagged by @[reviewer])
+- **[file]:[line]**: [brief explanation of why the current code is correct and what repo pattern it follows] (flagged by botname[bot])
 
 ### Threads Resolved
 [N] of [M] unresolved threads addressed in this iteration.
@@ -464,9 +478,59 @@ EOF
 - **Group by action type** — changes made, questions answered, deferred
 - **Include the commit SHA** so reviewers can see the full diff
 - **Call out anything left open** — don't hide unresolved items
-- **Credit reviewers** by @-mentioning them next to their feedback
+- **Credit human reviewers** by `@mentioning` them next to their feedback (e.g., write `(per @alice)` or `(asked by @bob)`)
+- **Never `@mention` bot reviewers** in the summary — use their plain name without the `@` prefix (e.g., write `(per copilot[bot])` not `(per @copilot[bot])`). Tagging bots in the summary causes them to re-trigger and attempt to act on already-resolved feedback.
 
-## Step 12: Report to User
+## Step 12: Dismiss Stale Reviews and Re-request
+
+After pushing changes and posting the summary, dismiss any "changes requested" reviews from reviewers whose feedback was addressed, then re-request their review so they're prompted to look at the updated code.
+
+**Only do this if changes were pushed in Step 10.** If no code changes were made (e.g., only questions were answered), skip this step.
+
+### Identify Reviews to Dismiss
+
+Use the REST API to list pull request reviews and identify those where:
+- `state` is `CHANGES_REQUESTED`
+- The reviewer had unresolved threads that were addressed in this iteration
+
+```bash
+# Get the most recent CHANGES_REQUESTED review per reviewer
+gh api repos/$OWNER/$REPO/pulls/$NUMBER/reviews --jq '[ map(select(.state == "CHANGES_REQUESTED")) | group_by(.user.login)[] | max_by(.submitted_at) | {id: .id, user: .user.login}]'
+```
+
+### Dismiss Each Stale Review
+
+For each reviewer whose "changes requested" review was addressed:
+
+```bash
+gh api repos/$OWNER/$REPO/pulls/$NUMBER/reviews/$REVIEW_ID/dismissals \
+  -X PUT \
+  -f message="Review feedback has been addressed in commit [short SHA]. Re-requesting your review."
+```
+
+### Re-request Review
+
+After dismissing, re-request a review from those same reviewers so they receive a notification:
+
+```bash
+gh pr edit $NUMBER --repo $OWNER/$REPO --add-reviewer "$REVIEWER_LOGIN"
+```
+
+If multiple reviewers had changes requested, add all of them:
+
+```bash
+# All reviewers whose changes_requested was dismissed (comma-separated)
+gh pr edit $NUMBER --repo $OWNER/$REPO --add-reviewer "reviewer1,reviewer2"
+```
+
+### Edge Cases
+
+- **Reviewer is not a collaborator**: `--add-reviewer` may fail for external contributors. If it fails, note it in the report but don't block.
+- **Multiple reviews from the same reviewer**: A reviewer may have submitted multiple reviews. Only dismiss the most recent `CHANGES_REQUESTED` review — GitHub uses the latest review state per reviewer.
+- **Mixed reviewers**: Some reviewers may have had all their threads addressed while others still have open threads. Only dismiss and re-request for reviewers whose feedback was fully addressed.
+- **No `CHANGES_REQUESTED` reviews**: Skip this step entirely — nothing to dismiss.
+
+## Step 13: Report to User
 
 Present the final status:
 
@@ -484,10 +548,15 @@ Threads addressed: [N] of [M]
   ✓ [N] threads resolved on GitHub
   [- [N] left open (needs reviewer input)]
 
+[If reviews were dismissed:]
+Reviews refreshed:
+  ✓ Dismissed "changes requested" from @[reviewer1], @[reviewer2]
+  ✓ Re-requested review from @[reviewer1], @[reviewer2]
+
 Summary comment posted: [PR URL]
 
 What's next:
-  - Reviewers will be notified of your responses
+  - Reviewers have been re-requested and will be notified
   - Check back with /lfx-pr-catchup to monitor the PR
   [- [N] threads still need discussion — follow up with the reviewer]
 ═══════════════════════════════════════════
@@ -513,6 +582,8 @@ If the user runs this skill again on the same PR:
 - Resolve addressed threads
 - Post a summary comment on the PR
 - Push changes to the remote branch
+- Dismiss stale "changes requested" reviews after addressing feedback
+- Re-request review from reviewers whose feedback was addressed
 - Delegate complex changes to `/lfx-backend-builder` or `/lfx-ui-builder`
 
 **This skill does NOT:**

@@ -154,13 +154,19 @@ concrete fix.
 
 ## Repo Type Detection
 
-Use a layered approach — no single file is foolproof, but combining signalsgives high confidence.
+Use a layered approach — no single file is foolproof, but combining signals
+gives high confidence.
 
-**Primary signal** (highest confidence): check the package manager manifest forframework-specific markers. Each ecosystem has its own manifest file:
+**Primary signal** (highest confidence): check the package manager manifest for
+framework-specific markers. Each ecosystem has its own manifest file:
 
 ```bash
 # Detect primary application type
-if [ -f package.json ] && grep -q '"@angular/core"' package.json; then
+# Angular: check LFX monorepo structure first (matches lfx-preflight detection),
+# then fall back to a root package.json check for non-LFX Angular repos.
+if [ -f apps/lfx-one/angular.json ] || [ -f turbo.json ]; then
+  echo "REPO_TYPE=angular"
+elif [ -f package.json ] && grep -q '"@angular/core"' package.json; then
   echo "REPO_TYPE=angular"
 elif [ -f package.json ] && grep -q '"vue"' package.json; then
   echo "REPO_TYPE=vue"
@@ -180,18 +186,20 @@ find . -maxdepth 4 \( -path "*/migrations/*.sql" -o -name "*.up.sql" -o -name "*
   2>/dev/null | grep -q . && echo "HAS_MIGRATIONS=true"
 ```
 
-Rust is detected via `Cargo.toml` before the TypeScript BFF fallback — a`Cargo.toml` is unambiguous, whereas `package.json` requires content inspection.Terraform and migration checks run whenever those files are detected — even inrepos that also have application code (monorepos).
+Angular detection uses the same signals as `lfx-preflight`: `apps/lfx-one/angular.json` and `turbo.json` are checked first because the LFX monorepo does not place `@angular/core` in the root `package.json`. The root `package.json` grep is a fallback for non-LFX Angular repos only. Rust is detected via `Cargo.toml` before the TypeScript BFF fallback because `Cargo.toml` is unambiguous, whereas `package.json` requires content inspection. Terraform and migration checks run whenever those files are detected — even in repos that also have application code (monorepos).
 
 **Secondary signals — Angular** (use to confirm if primary is ambiguous):
 
 | File / Pattern | What it tells you |
 | --- | --- |
-| angular.json | Angular CLI workspace config — very strong signal |
-| ng-package.json | Angular library built with ng-packagr |
-| .angular/ directory | Angular CLI cache (v14+) |
-| tsconfig.app.json | Angular CLI generates this specifically |
-| src/main.ts containing bootstrapApplication or platformBrowserDynamic | Angular bootstrap entrypoint |
-| src/app/app.module.ts or src/app/app.config.ts | Standard Angular app structure |
+| `apps/lfx-one/angular.json` | LFX monorepo Angular workspace — primary LFX signal (matches lfx-preflight) |
+| `turbo.json` | LFX Turborepo config — present in the LFX monorepo alongside Angular workspace |
+| `angular.json` at repo root | Angular CLI workspace config for non-LFX Angular repos — very strong signal |
+| `ng-package.json` | Angular library built with ng-packagr |
+| `.angular/` directory | Angular CLI cache (v14+) |
+| `tsconfig.app.json` | Angular CLI generates this specifically |
+| `src/main.ts` containing `bootstrapApplication` or `platformBrowserDynamic` | Angular bootstrap entrypoint |
+| `src/app/app.module.ts` or `src/app/app.config.ts` | Standard Angular app structure |
 
 **Secondary signals — Vue** (use to confirm if primary is ambiguous):
 
@@ -393,10 +401,16 @@ git diff --name-only origin/main...HEAD | grep -E '\.rs$' | \
 
 Look for:
 
-- `unsafe`** blocks** — flag every new `unsafe` block and verify it has a `// SAFETY:` commentexplaining why it cannot cause undefined behavior with attacker-controlled data
-- **Command injection** — `Command::new()` or `std::process::Command` with values derivedfrom user input without allowlist validation
-- **SQL injection** — `format!()` used to build query strings instead of parameterized queries(sqlx `query!` macro, Diesel typed queries, or sea-orm are safe alternatives)
-- **Path traversal** — `std::fs` functions called with paths constructed from user input withoutcanonicalization and a prefix check
+- `unsafe`** blocks** — flag every new `unsafe` block and verify it has a `//
+  SAFETY:` comment explaining why it cannot cause undefined behavior with
+  attacker-controlled data
+- **Command injection** — `Command::new()` or `std::process::Command` with
+  values derived from user input without allowlist validation
+- **SQL injection** — `format!()` used to build query strings instead of
+  parameterized queries(sqlx `query!` macro, Diesel typed queries, or sea-orm
+  are safe alternatives)
+- **Path traversal** — `std::fs` functions called with paths constructed from
+  user input without canonicalization and a prefix check
 
 **Severity:** CRITICAL for all injection types.
 
@@ -941,11 +955,13 @@ The report must end with the exit code information:
 
 ### Ignore Patterns
 
-The skill respects `.gitignore` by default and supports `.secignore` for security-specific exclusions.
+The skill respects `.gitignore` by default and supports `.secignore` for
+security-specific exclusions.
 
-`.secignore`** format:**
+**`.secignore` format:**
 
-Create a `.secignore` file at the repository root to exclude paths from security scans:
+Create a `.secignore` file at the repository root to exclude paths from security
+scans:
 
 ```text
 # Test fixtures and mock data (common false positives)
@@ -969,7 +985,8 @@ docs/examples/
 *.example.js
 ```
 
-The `.secignore` file uses the same glob pattern syntax as `.gitignore`. Patterns are matched relative to the repository root.
+The `.secignore` file uses the same glob pattern syntax as `.gitignore`.
+Patterns are matched relative to the repository root.
 
 **Common patterns to exclude:**
 
@@ -991,7 +1008,8 @@ By default, the skill shows **critical findings first** to reduce noise and focu
 /lfx-security-engineer --all
 ```
 
-This displays critical, high, medium, and info findings. Use this for comprehensive audits or when addressing warnings after fixing critical issues.
+This displays critical, high, medium, and info findings. Use this for
+comprehensive audits or when addressing warnings after fixing critical issues.
 
 **Why progressive disclosure:**
 
@@ -1022,7 +1040,8 @@ rm -rf .security-cache/
 - Subsequent scans with <20 changed files: ~4 seconds
 - Cache hit rate typically >95% for normal development workflows
 
-**Note:** The `.security-cache/` directory should be added to `.gitignore` — it's local-only and not meant for version control.
+**Note:** The `.security-cache/` directory should be added to `.gitignore` —
+it's local-only and not meant for version control.
 
 ### Scan Modes
 
@@ -1047,7 +1066,8 @@ Use cases:
 
 Behavior:
 
-- Watches all files matching the repository type (`.ts`, `.go`, `.rs`, `.tf`, `.sql`)
+- Watches all files matching the repository type (`.ts`, `.go`, `.rs`, `.tf`,
+  `.sql`)
 - Runs Phase 1 (automated scan) only by default for speed
 - Debounces file changes with a 2-second delay to avoid scan storms
 - Press `Ctrl+C` to stop watching
@@ -1060,12 +1080,14 @@ Combine with `--scan-only` for minimal latency:
 
 ### Performance Optimization
 
-**Parallel checks:** Phase 1 automated scans run checks in parallel across multiple CPU cores.
+**Parallel checks:** Phase 1 automated scans run checks in parallel across
+multiple CPU cores.
 
 - **Single-threaded** (legacy mode): ~45 seconds for 100 files
 - **Parallel** (default): ~8 seconds for 100 files on a 4-core machine
 
-Parallelization is automatic and scales with available CPU cores. No configuration needed.
+Parallelization is automatic and scales with available CPU cores. No
+configuration needed.
 
 **Tips for faster scans:**
 

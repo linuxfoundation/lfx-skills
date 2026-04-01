@@ -90,7 +90,7 @@ You are conducting a security review of LFX code changes. Identify realvulnerabi
 
 **What it does:**
 
-- Exits with status code 1 if any `✗` blockers are found (fails the build)
+- Exits with a non-zero status if any `✗` blockers are found (fails the build)
 - Outputs machine-readable JSON for parsing by CI tools
 - Suitable for GitHub Actions, GitLab CI, or Jenkins pipelines
 

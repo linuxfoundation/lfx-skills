@@ -20,17 +20,18 @@ You are conducting a security review of LFX code changes. Identify realvulnerabi
 **Modes:**
 
 - **Default:** Run both phases.
-- **`--scan-only`:** Run Phase 1 only. Useful for quick pre-commit checks.
-- **`--file <path>`:** Scope the review to a specific file or directory.
-- **`--full-scan`:** Run both phases on all files (not just changed files). Use for new repos or major refactors.
-- **`--explain`:** Add detailed explanations for each check (educational mode).
-- **`--ci-mode`:** Exit with non-zero status if any blockers are found. Output machine-readable JSON.
-- **`--format json`:** Output results as structured JSON instead of text report.
-- **`--watch`:** Watch for file changes and auto-run scan on save. Use during active development.
+- `--scan-only`**:** Run Phase 1 only. Useful for quick pre-commit checks.
+- `--file <path>`**:** Scope the review to a specific file or directory.
+- `--full-scan`**:** Run both phases on all files (not just changed files). Use for new repos or major refactors.
+- `--explain`**:** Add detailed explanations for each check (educational mode).
+- `--ci-mode`**:** Exit with non-zero status if any blockers are found. Output machine-readable JSON.
+- `--format json`**:** Output results as structured JSON instead of text report.
+- `--watch`**:** Watch for file changes and auto-run scan on save. Use during active development.
 
 ## Usage Examples
 
 ### Example 1: Quick Pre-Commit Check (Beginner)
+
 **Scenario:** You're about to commit auth-related changes and want a fast security check.
 
 ```bash
@@ -39,9 +40,8 @@ You are conducting a security review of LFX code changes. Identify realvulnerabi
 
 **What it does:** Runs Phase 1 automated scan only on changed files (fast, mechanical checks). Skips Phase 2 security review. Ideal for rapid feedback before `git commit`.
 
----
-
 ### Example 2: Full Security Review Before PR (Standard Workflow)
+
 **Scenario:** You're ready to submit a PR touching auth, permissions, or data handling.
 
 ```bash
@@ -50,9 +50,8 @@ You are conducting a security review of LFX code changes. Identify realvulnerabi
 
 **What it does:** Runs both Phase 1 (automated scan) and Phase 2 (judgment-based security review) on all changed files. This is the default mode and recommended before every PR.
 
----
-
 ### Example 3: Review a Specific File or Directory
+
 **Scenario:** You modified `src/services/auth.service.ts` and want to focus the review there.
 
 ```bash
@@ -61,9 +60,8 @@ You are conducting a security review of LFX code changes. Identify realvulnerabi
 
 **What it does:** Scopes both phases to only the specified file or directory. Useful when making isolated changes to a single module.
 
----
-
 ### Example 4: Full Repository Audit (Advanced)
+
 **Scenario:** You inherited a new codebase or merged a major refactor and want a comprehensive security audit.
 
 ```bash
@@ -72,9 +70,8 @@ You are conducting a security review of LFX code changes. Identify realvulnerabi
 
 **What it does:** Runs both phases on **all files** in the repo (not just changed files). Warning: slow on large codebases. Use sparingly.
 
----
-
 ### Example 5: Educational Mode with Explanations
+
 **Scenario:** You're learning security best practices and want detailed explanations for each finding.
 
 ```bash
@@ -83,9 +80,8 @@ You are conducting a security review of LFX code changes. Identify realvulnerabi
 
 **What it does:** Includes educational context for each check — why it matters, real-world examples, and OWASP references. Great for onboarding or training.
 
----
-
 ### Example 6: CI/CD Pipeline Integration (Expert)
+
 **Scenario:** You want to block PRs with security vulnerabilities in CI.
 
 ```bash
@@ -93,20 +89,21 @@ You are conducting a security review of LFX code changes. Identify realvulnerabi
 ```
 
 **What it does:**
+
 - Exits with status code 1 if any `✗` blockers are found (fails the build)
 - Outputs machine-readable JSON for parsing by CI tools
 - Suitable for GitHub Actions, GitLab CI, or Jenkins pipelines
 
 **Example CI usage (GitHub Actions):**
+
 ```yaml
 - name: Security Review
   run: /lfx-security-engineer --ci-mode --format json
   continue-on-error: false  # Fail the build on blockers
 ```
 
----
-
 ### Example 7: Watch Mode for Active Development (Power User)
+
 **Scenario:** You're refactoring auth code and want instant feedback as you save files.
 
 ```bash
@@ -115,9 +112,8 @@ You are conducting a security review of LFX code changes. Identify realvulnerabi
 
 **What it does:** Watches for file changes and auto-runs Phase 1 scan on save. Combines well with `--scan-only` for minimal latency. Press `Ctrl+C` to stop.
 
----
-
 ### Example 8: Terraform/OpenTofu Infrastructure Audit
+
 **Scenario:** You modified `.tf` files and want to check for infrastructure security issues.
 
 ```bash
@@ -126,9 +122,8 @@ You are conducting a security review of LFX code changes. Identify realvulnerabi
 
 **What it does:** Detects Terraform files automatically and runs infrastructure-specific checks (open network rules, unencrypted storage, overly permissive IAM, committed `.tfvars`). No special flag needed — detection is automatic.
 
----
-
 ### Example 9: Database Migration Review
+
 **Scenario:** You added a new migration script with sensitive columns.
 
 ```bash
@@ -137,9 +132,8 @@ You are conducting a security review of LFX code changes. Identify realvulnerabi
 
 **What it does:** Scans migration files for plain-text password columns, hardcoded PII, overly broad grants, and missing audit columns. Works with Flyway, golang-migrate, Atlas, and Liquibase conventions.
 
----
-
 ### Example 10: Combine Multiple Flags (Advanced)
+
 **Scenario:** You want a full scan with explanations in JSON format for CI integration.
 
 ```bash
@@ -147,8 +141,6 @@ You are conducting a security review of LFX code changes. Identify realvulnerabi
 ```
 
 **What it does:** Runs a comprehensive audit on all files, includes educational explanations, outputs structured JSON, and saves to a file for archival or CI parsing.
-
----
 
 **Pro Tip:** For most workflows, start with the default mode (`/lfx-security-engineer`) before every PR. Use `--scan-only` for rapid iteration during development, and `--full-scan` only when onboarding a new repo or after major refactors.
 
@@ -624,23 +616,27 @@ Use these strategies to distinguish test fixtures from production code:
 ### Test File Recognition
 
 **Safe to skip or reduce severity:**
+
 - Files matching `**/*.spec.ts`, `**/*.test.ts`, `**/*_test.go`, `**/test_*.py`
 - Directories: `tests/`, `__tests__/`, `spec/`, `fixtures/`, `mocks/`, `__mocks__/`
 - Files containing `@jest.mock()`, `mock.Setup()`, `unittest.TestCase`
 
 **What to check anyway:**
+
 - Auth mocking patterns — are test mocks too permissive?
 - Secret handling in tests — even test secrets should use env vars, not hardcoded strings in source control
 
 ### Mock Data vs Real Secrets
 
 **Likely synthetic (lower severity):**
+
 - API keys: `sk-test-...`, `pk_test_...`, `test_key_...`, `fake-api-key`
 - Passwords in examples: `password123`, `changeme`, `example-password`
 - JWTs with payload `{"sub":"test-user"}` or expiry in the past
 - Database connection strings with `localhost`, `127.0.0.1`, or `example.com`
 
 **Likely real (flag as critical):**
+
 - Keys matching live service patterns: `sk_live_...`, `AIza[0-9A-Za-z-_]{35}`, `ghp_[0-9a-zA-Z]{36}`
 - AWS keys: `AKIA[0-9A-Z]{16}`
 - Connection strings with production domains or cloud database hosts
@@ -648,11 +644,13 @@ Use these strategies to distinguish test fixtures from production code:
 ### Example and Config Files
 
 **Safe to ignore:**
+
 - Files named `*.example`, `*.sample`, `*.template`
 - Comment blocks labeled `// Example:` or `# Sample configuration:`
 - README code blocks and documentation
 
 **Not safe:**
+
 - `.env` files (even if named `.env.example` but containing real-looking secrets)
 - Config files in production directories (`/etc/`, `/config/prod/`)
 
@@ -742,16 +740,19 @@ const testJWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ### Rules for Suppression
 
 **Valid reasons:**
+
 - Test fixture or mock data clearly labeled
 - False positive from framework convention (e.g., ORM auto-escaping)
 - Approved exception with security team sign-off (link to discussion)
 
 **Invalid reasons:**
+
 - "I checked it" (explain what you checked and why it's safe)
 - "TODO: fix later" (fix now or create a tracked issue)
 - No reason provided (suppression requires justification)
 
 **When scanning:**
+
 1. Recognize `security-ignore:` comments on the same line or line above finding
 2. Still mention the suppressed finding in report but mark as `[SUPPRESSED]`
 3. Validate suppression reason is present and not a placeholder
@@ -934,7 +935,7 @@ The report must end with the exit code information:
 
 The skill respects `.gitignore` by default and supports `.secignore` for security-specific exclusions.
 
-**`.secignore` format:**
+`.secignore`** format:**
 
 Create a `.secignore` file at the repository root to exclude paths from security scans:
 
@@ -963,6 +964,7 @@ docs/examples/
 The `.secignore` file uses the same glob pattern syntax as `.gitignore`. Patterns are matched relative to the repository root.
 
 **Common patterns to exclude:**
+
 - Test fixtures containing intentionally vulnerable code for testing
 - Mock credentials and API keys used in test suites
 - Generated OpenAPI specs or protobuf definitions
@@ -976,6 +978,7 @@ By default, the skill shows **critical findings first** to reduce noise and focu
 **Default behavior:** Show only CRITICAL severity findings in the initial report.
 
 **Show all severities:**
+
 ```bash
 /lfx-security-engineer --all
 ```
@@ -983,6 +986,7 @@ By default, the skill shows **critical findings first** to reduce noise and focu
 This displays critical, high, medium, and info findings. Use this for comprehensive audits or when addressing warnings after fixing critical issues.
 
 **Why progressive disclosure:**
+
 - Prevents overwhelm for teams new to security scanning
 - Focuses attention on merge-blocking issues first
 - Reduces false positive fatigue by deferring lower-severity findings
@@ -992,17 +996,20 @@ This displays critical, high, medium, and info findings. Use this for comprehens
 The skill caches scan results to skip unchanged files on repeat runs.
 
 **How it works:**
+
 - On first run, all matching files are scanned and results are cached in `.security-cache/`
 - On subsequent runs, only files modified since the last scan are re-scanned
 - Cache is invalidated automatically when the skill version changes
 - Cache entries expire after 7 days of inactivity
 
 **Clear the cache manually:**
+
 ```bash
 rm -rf .security-cache/
 ```
 
 **Performance impact:**
+
 - First scan of a 500-file repo: ~5 minutes
 - Subsequent scans with <20 changed files: ~4 seconds
 - Cache hit rate typically >95% for normal development workflows
@@ -1011,9 +1018,10 @@ rm -rf .security-cache/
 
 ### Scan Modes
 
-**`--full-scan`** — Scan all files in the repository, not just changed files.
+`--full-scan` — Scan all files in the repository, not just changed files.
 
 Use cases:
+
 - Initial security baseline for a new repository
 - After merging a major refactor or dependency upgrade
 - Periodic full audits (monthly or quarterly)
@@ -1021,20 +1029,23 @@ Use cases:
 
 Performance: Expect 5-10 minutes for a medium-sized repo (~500 files).
 
-**`--watch`** — Continuously watch for file changes and re-run scans automatically.
+`--watch` — Continuously watch for file changes and re-run scans automatically.
 
 Use cases:
+
 - Active development on auth or security-sensitive code
 - Refactoring session where you want instant feedback
 - Pair programming or mob programming sessions
 
 Behavior:
+
 - Watches all files matching the repository type (`.ts`, `.go`, `.rs`, `.tf`, `.sql`)
 - Runs Phase 1 (automated scan) only by default for speed
 - Debounces file changes with a 2-second delay to avoid scan storms
 - Press `Ctrl+C` to stop watching
 
 Combine with `--scan-only` for minimal latency:
+
 ```bash
 /lfx-security-engineer --watch --scan-only
 ```
@@ -1050,13 +1061,14 @@ Parallelization is automatic and scales with available CPU cores. No configurati
 
 **Tips for faster scans:**
 
-1. **Use `--scan-only`** for rapid iteration — Phase 2 judgment-based reviews take longer
+1. **Use **`--scan-only` for rapid iteration — Phase 2 judgment-based reviews take longer
 2. **Scope to changed files** — the default behavior is already optimized for PRs
 3. **Exclude generated code** — add `dist/`, `build/`, and `.next/` to `.secignore`
 4. **Let the cache work** — avoid clearing `.security-cache/` unless you suspect stale results
-5. **Use `--watch` during development** — eliminates the cost of repeated manual invocations
+5. **Use **`--watch`** during development** — eliminates the cost of repeated manual invocations
 
 **Benchmark targets:**
+
 - PR-sized scan (<20 files): <30 seconds (including Phase 2)
 - Full-repo scan (500 files): <5 minutes
 - Watch mode incremental scan: <5 seconds

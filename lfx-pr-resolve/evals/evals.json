@@ -11,7 +11,7 @@
         {"id": "presents-categorized-plan", "description": "Agent presents a structured plan categorizing all comments before making any changes"},
         {"id": "commit-message-references-pr", "description": "Commit message includes PR #142 and @-mentions the reviewers"},
         {"id": "commit-message-lists-changes", "description": "Commit body itemizes each file change with reviewer attribution"},
-        {"id": "includes-signoff", "description": "Commit message includes Signed-off-by line"},
+        {"id": "includes-signoff-and-gpg", "description": "Commit uses both --signoff (DCO) and -S (GPG signing)"},
         {"id": "responds-per-thread", "description": "Each review thread gets an individual response"},
         {"id": "response-references-commit", "description": "Thread responses reference the commit SHA"},
         {"id": "resolves-threads", "description": "Uses resolveReviewThread mutation for addressed threads"},

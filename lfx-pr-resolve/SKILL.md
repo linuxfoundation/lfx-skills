@@ -299,12 +299,12 @@ Note: The `--signoff` flag automatically appends the `Signed-off-by:` trailer �
 - **One commit per review iteration** — don't create separate commits per comment. Reviewers want to see a single cohesive response to their feedback.
 - **Reference the PR number** in the commit subject.
 - **Credit the reviewer** — mention who asked for each change. This helps when reading git blame later.
-- **Include `--signoff`** — required for all LFX commits.
+- **Include `--signoff` and `-S`** — `--signoff` is required for DCO compliance, `-S` for GPG-signed commits. Both are enforced on LFX repos.
 - **List every change** — the commit body should be a complete record. Someone reading the commit message should know exactly what review feedback was addressed without needing to read the diff.
 
 ```bash
 git add [specific files that were changed]
-git commit --signoff -m "$(cat <<'EOF'
+git commit -S --signoff -m "$(cat <<'EOF'
 fix(review): address PR #[number] review feedback
 
 Address review comments from @[reviewer1]:

@@ -74,7 +74,7 @@ Listen to what the user says and classify their intent. **Do not ask technical q
 | "How does ... work?", "Where is ...", "Explain ...", "Architecture of ..." | To understand the system | `/lfx-product-architect` |
 | "What APIs ...", "Does ... exist?", "Find ...", "Research ..." | To explore and research | `/lfx-research` |
 | "Check my changes", "Ready for PR?", "Validate ...", "Preflight" | To validate before PR | `/lfx-preflight` |
-| "Address PR comments", "Fix review feedback", "Resolve PR threads", "Handle PR #142 comments" | To address PR review feedback | `/lfx-pr-resolve` |
+| "Address PR comments", "Fix review feedback", "Resolve PR threads", "Handle PR comments" | To address PR review feedback | `/lfx-pr-resolve` |
 | "Set up", "Install", "Environment", "Getting started" | Environment setup | `/lfx-setup` |
 | "Test a journey", "Combine branches", "Integration test", "Test across branches", "Multi-branch test" | To test across branches | `/lfx-test-journey` |
 | "Show me an example", "How do I use this?", "Help" | Guidance | Show quickstart examples |

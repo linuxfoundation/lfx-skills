@@ -16,7 +16,7 @@ indexer service's `ObjectType*` constants — they lag behind active publishers.
 
 ## Resource Types by Domain
 
-Services that have a `docs/indexer-contract.md` provide the full data schema, tags, access control config, and parent references for their resource types. Use it as the authoritative reference when writing queries or indexing code for that service.
+Services that have a `docs/indexer-contract.md` provide the full data schema, tags, access control config, parent references, and fulltext/search-field definitions for their resource types. Use it as the authoritative reference when writing queries or indexing code for that service.
 
 ### Projects — `lfx-v2-project-service`
 

@@ -363,7 +363,7 @@ charts/               ← Helm chart for deployment
 - [ ] Domain model has `Tags()` method
 - [ ] Index message published on every write (create, update, delete)
 - [ ] Access message published if resource has FGA type
-- [ ] `docs/indexer-contract.md` updated if indexing behavior changed (same PR)
+- [ ] `docs/indexer-contract.md` (if present) updated if indexing behavior changed (same PR)
 - [ ] Optimistic locking via revision (native services)
 - [ ] Health endpoints (`/livez`, `/readyz`) implemented
 - [ ] Helm chart updated (ruleset, httproute if new paths)

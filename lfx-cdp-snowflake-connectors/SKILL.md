@@ -1,5 +1,5 @@
 ---
-name: scaffold-snowflake-connector
+name: lfx-cdp-snowflake-connectors
 description: Use when adding a new snowflake-connector data source to crowd.dev — a new platform or a new source within an existing platform that needs buildSourceQuery, transformer, activity types, migration, and all associated type registrations scaffolded.
 ---
 

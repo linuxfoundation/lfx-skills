@@ -46,9 +46,6 @@ FGA contract: [docs/fga-contract.md](https://github.com/linuxfoundation/lfx-v2-m
 |-------------|------------|
 | `v1_meeting` | `update_access`, `delete_access`, `member_put`, `member_remove` |
 | `v1_past_meeting` | `update_access`, `delete_access`, `member_put`, `member_remove` |
-| `v1_past_meeting_recording` | `update_access`, `delete_access` |
-| `v1_past_meeting_transcript` | `update_access`, `delete_access` |
-| `v1_past_meeting_summary` | `update_access`, `delete_access` |
 
 ### Voting — `lfx-v2-voting-service`
 

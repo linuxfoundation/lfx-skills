@@ -8,11 +8,3 @@ description: >
   results from Fin. Trigger on: "Fin tips", "Fin best practices", "improve Fin", "train Fin",
   "Fin resolution rate", "Fin guidance", "Fin snippets", "Fin suggestions", "Topics Explorer",
   "Copilot tips", "Fin re-engagement", "Fin handoff", or general Intercom AI support optimization questions.
-  Complements intercom-fin-workflow-builder and intercom-banner-creator.
----
-
-<!-- Copyright The Linux Foundation and each contributor to LFX. -->
-<!-- SPDX-License-Identifier: MIT -->
-
-
-# Intercom Fin AI Best Practices

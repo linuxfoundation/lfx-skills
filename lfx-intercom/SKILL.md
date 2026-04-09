@@ -39,37 +39,37 @@ Copilot, Fin Attributes, or Fin best practices → read `references/fin-best-pra
 
 You are bringing Intercom up to the LFX standard in an Angular application. This
 skill handles both fresh installs and fixing/standardizing existing integrations.
-Follow every step in order â the audit step (Step 2) determines which fixes are
-needed. Do not skip the Auth0 section â without it, identity verification will
+Follow every step in order — the audit step (Step 2) determines which fixes are
+needed. Do not skip the Auth0 section — without it, identity verification will
 silently fail.
 
 ---
 
-## Step 1 â Gather Context
+## Step 1 — Gather Context
 
 Ask the user:
 
-1. **Goal** â Are you adding Intercom for the first time, or fixing/standardizing
+1. **Goal** — Are you adding Intercom for the first time, or fixing/standardizing
    an existing integration?
-2. **App name** â What is the exact Auth0 client name for this app? (e.g. "LFX
+2. **App name** — What is the exact Auth0 client name for this app? (e.g. "LFX
    Project Control Center", "CB Funding"). This must match the `case` in the
    Auth0 custom_claims action exactly.
-3. **Public pages?** â Is this app accessible to non-authenticated visitors?
-   - **Yes** (e.g. Mentorship, Crowdfunding, Insights) â Intercom must boot
+3. **Public pages?** — Is this app accessible to non-authenticated visitors?
+   - **Yes** (e.g. Mentorship, Crowdfunding, Insights) → Intercom must boot
      anonymously on page load so banners/popups are visible to all visitors,
      then upgrade to identified on login.
-   - **No** (e.g. PCC, Org Dashboard, Individual Dashboard, Security) â Intercom
+   - **No** (e.g. PCC, Org Dashboard, Individual Dashboard, Security) → Intercom
      boots only after login. No anonymous boot needed.
-4. **Angular version** â Angular 6 (ngrx) or Angular 14+ (standalone/signals)?
-5. **LaunchDarkly** â Does this app use LaunchDarkly? If yes, Intercom should be
+4. **Angular version** — Angular 6 (ngrx) or Angular 14+ (standalone/signals)?
+5. **LaunchDarkly** — Does this app use LaunchDarkly? If yes, Intercom should be
    feature-flagged behind `enable-intercom`.
-6. **Intercom App ID** â Dev: `mxl90k6y`, Prod: `w29sqomy` (shared across all
-   LFX apps; already set in Step 3 â just confirm the user hasn't been given
+6. **Intercom App ID** — Dev: `mxl90k6y`, Prod: `w29sqomy` (shared across all
+   LFX apps; already set in Step 3 — just confirm the user hasn't been given
    different IDs by the Intercom admin).
 
 ---
 
-## Step 2 â Audit Existing Integration
+## Step 2 — Audit Existing Integration
 
 Search the repo for any existing Intercom integration before writing any code.
 Check all of the following and produce a gap report:
@@ -77,26 +77,26 @@ Check all of the following and produce a gap report:
 | Check | What to look for | LFX Standard |
 |---|---|---|
 | **IntercomService** | Does `intercom.service.ts` exist? | Direct script injection, `isLoaded` + `isBooted` + `isLoading` + `bootedWithIdentity` state, `boot()` returns `Promise<void>` |
-| **npm package** | `@intercom/messenger-js-sdk` or similar in `package.json` | â Not allowed â use script injection |
-| **Intercom stub** | Does `initializeIntercomFunction()` create the `i.q` stub? | â Required â queues commands before script loads |
-| **JWT pre-set** | Is `window.intercomSettings.intercom_user_jwt` set *before* `window.Intercom('boot')` is called? | â Required |
-| **JWT stripped from boot options** | Is `intercom_user_jwt` removed from the options passed to `window.Intercom('boot')`? | â Required â JWT only in `intercomSettings`, not boot payload |
-| **Anonymous boot** | Is `bootIntercomAnonymous()` called in `ngOnInit()` before user auth check? | â Required if app has public pages; skip if auth-only app |
-| **Anonymousâidentified upgrade** | Does `boot()` detect anonymous session and upgrade to identified via `shutdownForReboot()`? | â Required if anonymous boot is used â `bootedWithIdentity` flag tracks session type |
-| **Identified boot** | Is identified `boot()` called inside `userProfile$` subscription with `intercomBootAttempted` guard? | â Required |
-| **Shutdown on logout** | Is `Intercom('shutdown')` called, JWT cleared, and anonymous session re-booted on logout? | â Required |
-| **App IDs** | Dev: `mxl90k6y`, Prod: `w29sqomy` | â Shared across all LFX apps |
-| **Auth0 claim** | Is `http://lfx.dev/claims/intercom` used (not the deprecated HMAC)? | â JWT claim only |
-| **CSP** | Are ALL Intercom domains in the Content Security Policy, including WebSocket entries? | â Required if CSP exists |
-| **environment vars** | Are all 4 env fields present in both `environment.ts` and `environment.prod.ts`? | â Required |
+| **npm package** | `@intercom/messenger-js-sdk` or similar in `package.json` | ❌ Not allowed — use script injection |
+| **Intercom stub** | Does `initializeIntercomFunction()` create the `i.q` stub? | ✅ Required — queues commands before script loads |
+| **JWT pre-set** | Is `window.intercomSettings.intercom_user_jwt` set *before* `window.Intercom('boot')` is called? | ✅ Required |
+| **JWT stripped from boot options** | Is `intercom_user_jwt` removed from the options passed to `window.Intercom('boot')`? | ✅ Required — JWT only in `intercomSettings`, not boot payload |
+| **Anonymous boot** | Is `bootIntercomAnonymous()` called in `ngOnInit()` before user auth check? | ✅ Required if app has public pages; skip if auth-only app |
+| **Anonymous→identified upgrade** | Does `boot()` detect anonymous session and upgrade to identified via `shutdownForReboot()`? | ✅ Required if anonymous boot is used — `bootedWithIdentity` flag tracks session type |
+| **Identified boot** | Is identified `boot()` called inside `userProfile$` subscription with `intercomBootAttempted` guard? | ✅ Required |
+| **Shutdown on logout** | Is `Intercom('shutdown')` called, JWT cleared, and anonymous session re-booted on logout? | ✅ Required |
+| **App IDs** | Dev: `mxl90k6y`, Prod: `w29sqomy` | ✅ Shared across all LFX apps |
+| **Auth0 claim** | Is `http://lfx.dev/claims/intercom` used (not the deprecated HMAC)? | ✅ JWT claim only |
+| **CSP** | Are ALL Intercom domains in the Content Security Policy, including WebSocket entries? | ✅ Required if CSP exists |
+| **environment vars** | Are all 4 env fields present in both `environment.ts` and `environment.prod.ts`? | ✅ Required |
 
 After the audit, tell the user what is already correct, what is missing, and what
 needs to be fixed. Then proceed only with the steps that address identified gaps.
-If nothing is wrong, say so and exit â do not make unnecessary changes.
+If nothing is wrong, say so and exit — do not make unnecessary changes.
 
 ---
 
-## Step 3 â Add Environment Variables
+## Step 3 — Add Environment Variables
 
 Add to `environment.ts`:
 ```typescript
@@ -118,14 +118,14 @@ Also add these fields to the `Environment` interface if one exists.
 
 ---
 
-## Step 4 â Generate IntercomService
+## Step 4 — Generate IntercomService
 
 Create `src/app/services/intercom.service.ts` (or
-`src/app/shared/services/intercom.service.ts` â match existing service
+`src/app/shared/services/intercom.service.ts` — match existing service
 placement). This is the canonical LFX implementation validated across Mentorship,
 Crowdfunding, and PCC.
 
-â ï¸ **Adjust the `environment` import path** to match the chosen folder depth,
+⚠️ **Adjust the `environment` import path** to match the chosen folder depth,
 e.g. `../../environments/environment` from `src/app/services/` or
 `../../../environments/environment` from `src/app/shared/services/`.
 
@@ -159,8 +159,8 @@ export class IntercomService {
   private bootedWithIdentity = false;
 
   /**
-   * Boot Intercom. Can be called with no user data (anonymous â for banners/popups)
-   * or with user data (identified â for authenticated sessions).
+   * Boot Intercom. Can be called with no user data (anonymous — for banners/popups)
+   * or with user data (identified — for authenticated sessions).
    * Returns a Promise so the caller can handle failures.
    */
   public boot(options: IntercomBootOptions): Promise<void> {
@@ -180,7 +180,7 @@ export class IntercomService {
           // Upgrade from anonymous to identified: shutdown and re-boot with identity
           this.shutdownForReboot();
         } else {
-          // Already booted in the same mode â update instead
+          // Already booted in the same mode — update instead
           const { intercom_user_jwt: _jwt, app_id: _appId, api_base: _apiBase, ...userOptions } = options;
           this.update(userOptions);
           resolve();
@@ -194,13 +194,13 @@ export class IntercomService {
         this.loadIntercomScript();
       }
 
-      // Set JWT in intercomSettings before boot â required for identity verification
+      // Set JWT in intercomSettings before boot — required for identity verification
       if (options.intercom_user_jwt) {
         window.intercomSettings = window.intercomSettings || {};
         window.intercomSettings.intercom_user_jwt = options.intercom_user_jwt;
       }
 
-      // Poll until script is fully loaded (isLoaded flag, not just window.Intercom â the
+      // Poll until script is fully loaded (isLoaded flag, not just window.Intercom — the
       // stub is created immediately but the real script must load for identity verification)
       const checkLoaded = setInterval(() => {
         if (this.isLoaded && window.Intercom) {
@@ -210,7 +210,7 @@ export class IntercomService {
           // Another concurrent boot() call may have already booted
           if (this.isBooted) {
             if (options.user_id && !this.bootedWithIdentity) {
-              // Concurrent anonymous boot finished first â upgrade to identified
+              // Concurrent anonymous boot finished first — upgrade to identified
               this.shutdownForReboot();
               // Fall through to boot with identity below
             } else {
@@ -225,7 +225,7 @@ export class IntercomService {
           this.isBooted = true;
 
           try {
-            // Strip JWT from boot options â it's already in window.intercomSettings
+            // Strip JWT from boot options — it's already in window.intercomSettings
             const { intercom_user_jwt: _jwt, ...bootOptions } = options;
 
             window.Intercom('boot', {
@@ -245,7 +245,7 @@ export class IntercomService {
                 });
               } catch (updateError) {
                 console.warn('IntercomService: Update after boot failed', updateError);
-                // Don't reset isBooted â Intercom is still booted
+                // Don't reset isBooted — Intercom is still booted
               }
             }
 
@@ -262,7 +262,7 @@ export class IntercomService {
         clearInterval(checkLoaded);
         if (!this.isBooted) {
           this.isLoading = false;
-          reject(new Error('Intercom script failed to load â check network, CSP, or ad blockers'));
+          reject(new Error('Intercom script failed to load — check network, CSP, or ad blockers'));
         }
       }, 10000);
     });
@@ -300,7 +300,7 @@ export class IntercomService {
 
   public shutdown(): void {
     if (typeof window !== 'undefined') {
-      // Clear JWT first â prevents credential leakage across sessions
+      // Clear JWT first — prevents credential leakage across sessions
       if (window.intercomSettings?.intercom_user_jwt) {
         delete window.intercomSettings.intercom_user_jwt;
       }
@@ -318,7 +318,7 @@ export class IntercomService {
   }
 
   /**
-   * Internal shutdown for re-booting (anonymous â identified transition).
+   * Internal shutdown for re-booting (anonymous → identified transition).
    * Resets boot state but keeps the script loaded.
    */
   private shutdownForReboot(): void {
@@ -394,7 +394,7 @@ export class IntercomService {
     const ic = w.Intercom;
 
     if (typeof ic === 'function') {
-      // Script already loaded (e.g. page reload) â reattach
+      // Script already loaded (e.g. page reload) — reattach
       ic('reattach_activator');
       ic('update', w.intercomSettings);
     } else {
@@ -410,12 +410,12 @@ export class IntercomService {
 
 ---
 
-## Step 5 â Wire into app.component.ts
+## Step 5 — Wire into app.component.ts
 
 The Intercom lifecycle has three phases: anonymous boot on page load, identified
 upgrade on login, and shutdown + anonymous re-boot on logout.
 
-### 5a â Class field and anonymous boot in ngOnInit
+### 5a — Class field and anonymous boot in ngOnInit
 
 ```typescript
 // Class field
@@ -435,10 +435,10 @@ ngOnInit() {
 }
 ```
 
-**If the app is auth-only** (Step 1, question 3 = No), skip the anonymous boot â
+**If the app is auth-only** (Step 1, question 3 = No), skip the anonymous boot —
 Intercom will boot only when the user logs in (Step 5b).
 
-### 5b â Identified boot on login + shutdown on logout
+### 5b — Identified boot on login + shutdown on logout
 
 Inside the `auth.userProfile$` subscription in `userSettings()`:
 
@@ -465,14 +465,14 @@ if (userProfile) {
           this.intercomBootAttempted = false; // Allow retry on next emission
         });
     } else {
-      console.warn('AppComponent: Intercom not booted â missing required claim(s)', {
+      console.warn('AppComponent: Intercom not booted — missing required claim(s)', {
         hasUserId: !!userId,
         hasIntercomJwt: !!intercomJwt,
       });
     }
   }
 } else if (userProfile == null) {
-  // Logout â shutdown identified session
+  // Logout — shutdown identified session
   if (this.intercomBootAttempted) {
     this.intercomService.shutdown();
     this.intercomBootAttempted = false;
@@ -482,13 +482,13 @@ if (userProfile) {
 }
 ```
 
-â ï¸ **Use `== null`** (loose equality) for the logout check â this catches both
+⚠️ **Use `== null`** (loose equality) for the logout check — this catches both
 `null` and `undefined`, which different auth services may emit.
 
-### 5c â Anonymous boot helper method (public-page apps only)
+### 5c — Anonymous boot helper method (public-page apps only)
 
 **Include this method only if the app has public pages** (Step 1, question 3 = Yes).
-Auth-only apps do not need this method â remove the `bootIntercomAnonymous()` calls
+Auth-only apps do not need this method — remove the `bootIntercomAnonymous()` calls
 from ngOnInit and the logout block if the app is auth-only.
 
 ```typescript
@@ -515,33 +515,33 @@ private bootIntercomAnonymous() {
 **Public-page apps** (Mentorship, Crowdfunding, Insights):
 ```
 Page Load
-  â bootIntercomAnonymous()               // banners visible to all visitors
-  â Intercom boots with no user_id         // bootedWithIdentity = false
+  → bootIntercomAnonymous()               // banners visible to all visitors
+  → Intercom boots with no user_id         // bootedWithIdentity = false
 
 User Logs In (userProfile$ emits user)
-  â boot({ user_id, intercom_user_jwt, ... })
-  â IntercomService detects bootedWithIdentity === false
-  â shutdownForReboot()                    // clears anonymous session
-  â Intercom re-boots with identity        // bootedWithIdentity = true
+  → boot({ user_id, intercom_user_jwt, ... })
+  → IntercomService detects bootedWithIdentity === false
+  → shutdownForReboot()                    // clears anonymous session
+  → Intercom re-boots with identity        // bootedWithIdentity = true
 
 User Logs Out (userProfile$ emits null)
-  â shutdown()                             // clears identified session + JWT
-  â intercomBootAttempted = false
-  â bootIntercomAnonymous()                // banners visible again
+  → shutdown()                             // clears identified session + JWT
+  → intercomBootAttempted = false
+  → bootIntercomAnonymous()                // banners visible again
 ```
 
 **Auth-only apps** (PCC, Org Dashboard, Individual Dashboard, Security):
 ```
 Page Load
-  â (nothing â user must log in first)
+  → (nothing — user must log in first)
 
 User Logs In (userProfile$ emits user)
-  â boot({ user_id, intercom_user_jwt, ... })
-  â Intercom boots with identity           // bootedWithIdentity = true
+  → boot({ user_id, intercom_user_jwt, ... })
+  → Intercom boots with identity           // bootedWithIdentity = true
 
 User Logs Out (userProfile$ emits null)
-  â shutdown()                             // clears identified session + JWT
-  â intercomBootAttempted = false
+  → shutdown()                             // clears identified session + JWT
+  → intercomBootAttempted = false
 ```
 
 If the app uses **LaunchDarkly**, wrap both the anonymous and identified boot
@@ -556,11 +556,11 @@ if (this.ldClient.variation('enable-intercom', false)) {
 
 ---
 
-## Step 6 â Auth0 Configuration (REQUIRED)
+## Step 6 — Auth0 Configuration (REQUIRED)
 
-â ï¸ **This step is required.** Without it, the `http://lfx.dev/claims/intercom`
+⚠️ **This step is required.** Without it, the `http://lfx.dev/claims/intercom`
 JWT claim will not be present in the user's token and Intercom will boot without
-identity verification â a security issue.
+identity verification — a security issue.
 
 ### What needs to happen
 
@@ -601,7 +601,7 @@ app (case-sensitive, must match `event.client.name` exactly).
 - **Algorithm**: HS256
 - **Expiry**: 12 hours
 - **Payload**: `{ user_id, email, name? }`
-- The secret is automatically injected into the Auth0 Action via Terraform â
+- The secret is automatically injected into the Auth0 Action via Terraform —
   no manual secret management needed once it's in the switch statement.
 
 ### Who to contact
@@ -618,19 +618,19 @@ contains a valid JWT with `user_id`, `email` fields.
 
 ---
 
-## Step 7 â Verify the Integration
+## Step 7 — Verify the Integration
 
-1. Run the app locally using `127.0.0.1` (not `localhost` â see Notes below)
+1. Run the app locally using `127.0.0.1` (not `localhost` — see Notes below)
 2. **Before logging in**: verify Intercom loads (check console for
-   `IntercomService: Script loaded successfully`) â banners/popups should be
+   `IntercomService: Script loaded successfully`) — banners/popups should be
    visible to anonymous visitors
 3. Log in and check that the console shows
    `IntercomService: Upgrading from anonymous to identified session`
 4. Verify the Intercom chat bubble appears with your identity
-5. Open browser console and run: `window.Intercom('getVisitorId')` â should
+5. Open browser console and run: `window.Intercom('getVisitorId')` — should
    return a string, not an error
 6. Log out and confirm the console shows `Intercom('shutdown')` followed by a
-   fresh anonymous boot â banners should remain visible
+   fresh anonymous boot — banners should remain visible
 7. Decode the Auth0 ID token and confirm `http://lfx.dev/claims/intercom` is
    present (if Auth0 change is deployed)
 8. In Intercom dashboard, confirm the user appears with correct name/email
@@ -641,7 +641,7 @@ contains a valid JWT with `user_id`, `email` fields.
 
 **Canonical reference app**: LFX Mentorship (`jobspring` / `lfx-mentorship-upgrade`
 repo) is the source of truth for the LFX Intercom pattern. When in doubt about
-what "correct" looks like, check how Mentorship implements it â Crowdfunding and
+what "correct" looks like, check how Mentorship implements it — Crowdfunding and
 PCC follow the same pattern and can be used for cross-validation.
 
 **If you find this skill is outdated**: Update `SKILL.md` in the same PR where
@@ -655,17 +655,17 @@ Crowdfunding (PRs #31-#38), and PCC.
 
 ## Notes
 
-- **Do not use an npm Intercom package** â LFX uses direct script injection
+- **Do not use an npm Intercom package** — LFX uses direct script injection
   consistently across all apps. Keep it consistent.
 - **The HMAC claim** (`https://sso.linuxfoundation.org/claims/intercom`) is
-  deprecated â the JWT claim (`http://lfx.dev/claims/intercom`) is current. Use
+  deprecated — the JWT claim (`http://lfx.dev/claims/intercom`) is current. Use
   only the JWT claim in your Angular code.
 - **Shared App IDs**: Dev (`mxl90k6y`) and Prod (`w29sqomy`) are shared across
   all LFX apps. Do not create a new Intercom workspace.
-- **Identity verification is mandatory** â do not boot identified Intercom
+- **Identity verification is mandatory** — do not boot identified Intercom
   without the JWT. Booting without it allows users to impersonate others in
   Intercom. Anonymous boot (no user_id) does not require JWT.
-- **Local development**: Intercom only works on `127.0.0.1` locally â `localhost`
+- **Local development**: Intercom only works on `127.0.0.1` locally — `localhost`
   is not supported and the launcher will not appear. Run your dev server bound to
   `127.0.0.1` (e.g. `ng serve --host 127.0.0.1`) or access via `http://127.0.0.1:4200`.
 - **New hostname registration (REQUIRED)**: Intercom must be configured to allow

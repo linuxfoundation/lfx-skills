@@ -166,6 +166,20 @@ Silver models join bronze models, apply business rules, and create reusable obje
 
 {{ config(snowflake_warehouse=warehouse) }}
 
+/*
+Purpose:
+    Create a reusable project dimension with core Salesforce project attributes
+    and the latest project health score for downstream analytics.
+
+Questions answered:
+    - What are the canonical identifiers and names for each project?
+    - What is the current health score associated with each project?
+
+Data sources:
+    - bronze_fivetran_salesforce_projects
+    - silver_fact_crowd_dev_project_health_metrics
+*/
+
 WITH source_data AS (
     SELECT
         project_id,

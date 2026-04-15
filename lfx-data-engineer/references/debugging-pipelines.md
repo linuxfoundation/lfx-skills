@@ -24,7 +24,7 @@ dbt compile --select +model_name
 
 **Fix:**
 1. Check spelling — model names must match exactly (case-sensitive in YAML)
-2. Verify the upstream model exists: `ls models/**/*model_name*`
+2. Verify the upstream model exists: `find models -name '*model_name*'`
 3. For sources, check the source definition YAML file exists
 4. Run `dbt deps` if the reference is to a package model
 

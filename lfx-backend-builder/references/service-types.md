@@ -20,8 +20,7 @@ Examples: `lfx-v2-project-service`, `lfx-v2-committee-service`
 | NATS publishing | Both index + access messages on every write |
 | Template | `lfx-v2-committee-service` (newest — use this) |
 
-> **Do not use `project-service` as a template.** It uses the deprecated enricher pattern
-> for indexing. `committee-service` is the correct reference.
+> Use `lfx-v2-committee-service` as the template for new native services.
 
 ### Key structures
 

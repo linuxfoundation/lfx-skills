@@ -38,7 +38,7 @@ Own a specific resource type and expose a REST API:
 | Repo | Resource |
 | --- | --- |
 | `lfx-v2-committee-service` | Committee (native — use as template for new native services) |
-| `lfx-v2-project-service` | Project (native — deprecated enricher pattern, do not use as template) |
+| `lfx-v2-project-service` | Project (native) |
 | `lfx-v2-meeting-service` | Meeting (wrapper → ITX) |
 | `lfx-v2-voting-service` | Vote (wrapper → ITX, use as template for new wrapper services) |
 | `lfx-v2-survey-service` | Survey (wrapper → ITX) |

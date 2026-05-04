@@ -48,10 +48,7 @@ constants.ActionDeleted  // "deleted"
 ## IndexingConfig — the Current Pattern
 
 `IndexingConfig` is how a resource service provides all the metadata the indexer needs to
-build a well-structured OpenSearch document. **All new services must include it.**
-
-Without `IndexingConfig`, the indexer falls back to resource-specific "enrichers" — that
-is the old, deprecated pattern still used by `project-service`. Do not follow it.
+build a well-structured OpenSearch document. **All services must include it — messages without it are rejected by the indexer.**
 
 ```go
 type IndexingConfig struct {
@@ -113,7 +110,7 @@ msg := indexerTypes.IndexerMessageEnvelope{
 
 1. Parses the `IndexerMessageEnvelope` from the NATS payload
 2. If `IndexingConfig` is present: builds the OpenSearch document directly from it (generic path)
-3. If `IndexingConfig` is absent: looks up a resource-specific enricher by object type (deprecated path)
+3. If `IndexingConfig` is absent: rejects the message with an error
 4. Inserts a new document with `latest: true`
 5. A background janitor later sets `latest: false` on old versions
 

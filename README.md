@@ -136,6 +136,7 @@ The skills form a layered system where each skill has a clear responsibility and
 | `/lfx-test-journey` | Combine branches from multiple repos into worktrees for journey testing | Interactive | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
 | `/lfx-intercom` | Add or fix Intercom integration against the LFX canonical pattern — audits JWT setup, shutdown, Auth0 claim, app IDs, CSP | Audit + fix | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
 | `/lfx-cdp-snowflake-connectors` | Streamlines adding a new Snowflake connector to CDP — requires knowledge of the source specs | Interactive and guided | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
+| `/lfx-v2-ticket-writer` | Create a single LFXV2 Jira ticket — guided prompts, requirement-focused descriptions, reproduction steps for bugs, no sprint or assignee by default | Interactive | AskUserQuestion, Atlassian MCP |
 
 > **Note:** Tool names in the table above follow Claude Code conventions. See [docs/tool-mapping.md](docs/tool-mapping.md) for equivalents on other platforms.
 
@@ -475,8 +476,10 @@ An **interactive setup guide** that walks through environment configuration step
 │   └── SKILL.md                    # Multi-branch journey testing
 ├── lfx-intercom/
 │   └── SKILL.md                    # Intercom integration — add or fix to LFX standard
-└── lfx-cdp-snowflake-connectors/
-    └── SKILL.md                    # Snowflake connector scaffolding for CDP
+├── lfx-cdp-snowflake-connectors/
+│   └── SKILL.md                    # Snowflake connector scaffolding for CDP
+└── lfx-v2-ticket-writer/
+    └── SKILL.md                    # Guided LFXV2 Jira ticket creation
 ```
 
 ## License

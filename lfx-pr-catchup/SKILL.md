@@ -8,8 +8,6 @@ description: >
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 ---
 
-<!-- Copyright The Linux Foundation and each contributor to LFX. -->
-<!-- SPDX-License-Identifier: MIT -->
 <!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
 
 # PR Catch-Up Dashboard
@@ -249,9 +247,11 @@ Present the drill-down in a readable format.
 If the drilled-down PR has unresolved review comments (HIGH signal), proactively suggest:
 
 ```
-This PR has [N] unresolved comments. Want me to address them?
-Run: /lfx-pr-resolve #[number]
+This PR has <N> unresolved comments. Want me to address them?
+Run: /lfx-pr-resolve <pr-number>     (e.g., /lfx-pr-resolve #142)
 ```
+
+Substitute the actual PR number (the same one the user just drilled into) when surfacing the suggestion.
 
 Then offer to drill into another PR or end.
 

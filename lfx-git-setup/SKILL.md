@@ -15,9 +15,6 @@ description: >
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, WebFetch
 ---
 
-<!-- Copyright The Linux Foundation and each contributor to LFX. -->
-<!-- SPDX-License-Identifier: MIT -->
-
 # LFX git Setup: DCO Signoff & GPG Signed Commits
 
 This skill walks contributors through two essential git contribution

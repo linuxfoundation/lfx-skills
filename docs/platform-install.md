@@ -12,8 +12,8 @@ Claude Code is the reference implementation. Skills are auto-discovered from `~/
 **Automatic installation:**
 
 ```bash
-git clone https://github.com/linuxfoundation/skills.git
-cd skills
+git clone https://github.com/linuxfoundation/lfx-skills.git
+cd lfx-skills
 ./install.sh
 ```
 

@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-snowflake-access
 description: >
   Guide users through requesting Snowflake access at the Linux Foundation. Handles two request

@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-setup
 description: >
   Environment setup for any LFX repo — prerequisites, clone, install, env vars,

@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-intercom
 description: >
   Add or fix Intercom integration in an LFX Angular app. Detects existing

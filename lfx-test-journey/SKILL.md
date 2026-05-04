@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-test-journey
 description: >
   Combine multiple feature branches across repos into worktrees for

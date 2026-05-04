@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-backend-builder
 description: >
   Generate compliant backend code for LFX repos — Express.js proxy endpoints

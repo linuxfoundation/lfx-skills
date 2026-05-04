@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-pr-resolve
 description: >
   Address PR review comments — fetches unresolved threads, makes code changes,

@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-ui-builder
 description: >
   Generate compliant Angular 20 frontend code — components, services, templates,

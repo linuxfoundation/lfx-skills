@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-pr-catchup
 description: >
   Morning PR catch-up dashboard — shows unresolved comments, status changes,
@@ -242,7 +244,16 @@ gh pr view $NUMBER --repo $OWNER/$REPO --json comments,reviews,statusCheckRollup
 gh pr checks $NUMBER --repo $OWNER/$REPO
 ```
 
-Present the drill-down in a readable format, then offer to drill into another PR or end.
+Present the drill-down in a readable format.
+
+If the drilled-down PR has unresolved review comments (HIGH signal), proactively suggest:
+
+```
+This PR has [N] unresolved comments. Want me to address them?
+Run: /lfx-pr-resolve #[number]
+```
+
+Then offer to drill into another PR or end.
 
 ## Scope Boundaries
 

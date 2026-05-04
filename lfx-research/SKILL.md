@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-research
 description: >
   Read-only exploration skill for LFX repos — upstream API validation, codebase

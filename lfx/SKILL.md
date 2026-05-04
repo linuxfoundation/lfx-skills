@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx
 description: >
   Starting point for LFX development. Describe what you want in plain language
@@ -75,8 +77,13 @@ Listen to what the user says and classify their intent. **Do not ask technical q
 | "What APIs ...", "Does ... exist?", "Find ...", "Research ..." | To explore and research | `/lfx-research` |
 | "Check my changes", "Ready for PR?", "Validate ...", "Preflight" | To validate before PR | `/lfx-preflight` |
 | "Address PR comments", "Fix review feedback", "Resolve PR threads", "Handle PR comments" | To address PR review feedback | `/lfx-pr-resolve` |
+| "Show me my PRs", "Morning catch-up", "PR status overview", "Which PRs need attention", "What's stale" | To see open PR status across repos | `/lfx-pr-catchup` |
 | "Set up", "Install", "Environment", "Getting started" | Environment setup | `/lfx-setup` |
 | "Test a journey", "Combine branches", "Integration test", "Test across branches", "Multi-branch test" | To test across branches | `/lfx-test-journey` |
+| "Set up Git signing", "Configure DCO", "GPG keys for commits", "Why aren't my commits Verified", "git commit -s" | Git signing / DCO setup | `/lfx-git-setup` |
+| "Fix Intercom", "Audit Intercom", "Add Intercom integration", "JWT setup for Intercom", "Intercom CSP" | Intercom integration in an LFX Angular app | `/lfx-intercom` |
+| "Add a Snowflake connector", "Scaffold a CDP source", "New crowd.dev data source", "snowflake-connector platform" | Scaffold a new CDP Snowflake connector | `/lfx-cdp-snowflake-connectors` |
+| "I need Snowflake access", "Add me to Snowflake", "Need a service account", "Request Snowflake permissions" | Request Snowflake access via Terraform PR | `/lfx-snowflake-access` |
 | "Show me an example", "How do I use this?", "Help" | Guidance | Show quickstart examples |
 
 ## Step 3: Translate and Route
@@ -155,6 +162,49 @@ Pass the subcommand if the user specified one, otherwise invoke with no args (de
 Skill(skill: "lfx-test-journey")
 Skill(skill: "lfx-test-journey", args: "status")
 Skill(skill: "lfx-test-journey", args: "refresh committee-onboarding")
+```
+
+### Routing to `/lfx-pr-catchup`
+
+Pass an org filter or stale-days override if the user mentioned one, otherwise invoke with no args:
+
+```
+Skill(skill: "lfx-pr-catchup")
+Skill(skill: "lfx-pr-catchup", args: "linuxfoundation")
+Skill(skill: "lfx-pr-catchup", args: "stale=14")
+```
+
+### Routing to `/lfx-git-setup`
+
+No translation needed — invoke directly:
+
+```
+Skill(skill: "lfx-git-setup")
+```
+
+### Routing to `/lfx-intercom`
+
+No translation needed — the skill audits and fixes the Intercom integration in the current Angular repo:
+
+```
+Skill(skill: "lfx-intercom")
+```
+
+### Routing to `/lfx-cdp-snowflake-connectors`
+
+The skill scaffolds one connector per run. Pass the platform/source name if the user mentioned it:
+
+```
+Skill(skill: "lfx-cdp-snowflake-connectors")
+Skill(skill: "lfx-cdp-snowflake-connectors", args: "platform: discourse, source: discourse_posts")
+```
+
+### Routing to `/lfx-snowflake-access`
+
+No translation needed — the skill collects user details and generates the Terraform PR for the lfx-snowflake-terraform repo:
+
+```
+Skill(skill: "lfx-snowflake-access")
 ```
 
 ### Showing Examples

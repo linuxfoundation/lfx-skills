@@ -15,8 +15,10 @@ The general patterns:
 | Pattern | Purpose | Example |
 |---|---|---|
 | `lfx.index.{resource_type}` | Publish to indexer-service | `lfx.index.committee` |
-| `lfx.update_access.{resource_type}` | Publish access update to fga-sync | `lfx.update_access.committee` |
-| `lfx.delete_all_access.{resource_type}` | Publish access delete to fga-sync | `lfx.delete_all_access.committee` |
+| `lfx.fga-sync.update_access` | Publish access update to fga-sync | `lfx.fga-sync.update_access` |
+| `lfx.fga-sync.delete_access` | Publish access delete to fga-sync | `lfx.fga-sync.delete_access` |
+| `lfx.fga-sync.member_put` | Add a user relation via fga-sync | `lfx.fga-sync.member_put` |
+| `lfx.fga-sync.member_remove` | Remove a user relation via fga-sync | `lfx.fga-sync.member_remove` |
 | `lfx.{service-api}.{operation}` | Service-to-service request/reply | `lfx.committee-api.get_name` |
 
 ### Examples from the codebase
@@ -39,7 +41,7 @@ Not every write requires both an index message and an access message:
 | Message | When to send |
 |---|---|
 | **Index message** (`lfx.index.*`) | Always — on every create, update, delete |
-| **Access message** (`lfx.update_access.*` / `lfx.delete_all_access.*`) | Only when the resource has its own FGA type |
+| **Access message** (`lfx.fga-sync.update_access` / `lfx.fga-sync.delete_access`) | Only when the resource has its own FGA type |
 
 For example, `committee` has its own FGA type so it needs both messages. But
 `meeting_rsvp` has no FGA type — it only gets an index message, and access is

@@ -42,11 +42,11 @@ Publish to `lfx.fga-sync.update_access` using the `GenericFGAMessage` envelope:
 ```
 
 The `references.project` field is how fga-sync establishes the parent link in OpenFGA.
-It writes a tuple like `project:{uid}#project@committee:{uid}`, enabling permission
-inheritance from the parent project.
+It writes a tuple like `project:{project_uid}#project@committee:{committee_uid}`, enabling
+permission inheritance from the parent project.
 
-`references` values can be bare UIDs (handler prepends `{type}:`) or full `type:uid`
-strings — both are accepted.
+`references` values can be bare UIDs (handler prepends the map key as the type prefix,
+e.g. `"project": ["abc"]` → `project:abc`) or full `type:uid` strings — both are accepted.
 
 ## Access Message Format (delete)
 

@@ -77,6 +77,7 @@ Listen to what the user says and classify their intent. **Do not ask technical q
 | "Address PR comments", "Fix review feedback", "Resolve PR threads", "Handle PR comments" | To address PR review feedback | `/lfx-pr-resolve` |
 | "Set up", "Install", "Environment", "Getting started" | Environment setup | `/lfx-setup` |
 | "Test a journey", "Combine branches", "Integration test", "Test across branches", "Multi-branch test" | To test across branches | `/lfx-test-journey` |
+| "Create a ticket", "Open a Jira issue", "File a bug", "Log a story", "LFXV2 ticket", "Write up a feature request", "Draft a ticket" | To create a Jira ticket in LFXV2 | `/lfx-v2-ticket-writer` |
 | "Show me an example", "How do I use this?", "Help" | Guidance | Show quickstart examples |
 
 ## Step 3: Translate and Route
@@ -155,6 +156,16 @@ Pass the subcommand if the user specified one, otherwise invoke with no args (de
 Skill(skill: "lfx-test-journey")
 Skill(skill: "lfx-test-journey", args: "status")
 Skill(skill: "lfx-test-journey", args: "refresh committee-onboarding")
+```
+
+### Routing to `/lfx-v2-ticket-writer`
+
+Pass the user's plain-language request as args; the skill handles all structured prompts:
+
+```
+Skill(skill: "lfx-v2-ticket-writer", args: "Bug — committee bio field truncates at 80 chars in the member card")
+Skill(skill: "lfx-v2-ticket-writer", args: "Story — add CSV export for mailing list members")
+Skill(skill: "lfx-v2-ticket-writer")
 ```
 
 ### Showing Examples

@@ -31,6 +31,7 @@ New to LFX development? Type `/lfx` and say **"show me an example"** for a walkt
 
 - An AI coding assistant that supports skill-based workflows (e.g., Claude Code, Gemini CLI). See [docs/platform-install.md](docs/platform-install.md) for setup instructions.
 - Access to LFX repositories (for the skills to operate on)
+- **Optional: `LFX_DEV_ROOT`** — environment variable pointing to the directory where you keep your LFX repo clones. Defaults to `~/lf/`. Set it to your preferred location (e.g., `~/code/lfx`, `~/work/lfx`) and the skills will discover your local repos there. Add `export LFX_DEV_ROOT=...` to your shell rc to make it persistent.
 
 ## Manual Installation
 
@@ -338,7 +339,7 @@ Combines feature branches from one or more repos into isolated git worktrees for
 /lfx-test-journey
 ```
 This starts the interactive create flow:
-1. Select which repos are involved (auto-discovers repos in `~/lf/`)
+1. Select which repos are involved (auto-discovers repos in `$LFX_DEV_ROOT`, defaults to `~/lf/`)
 2. Pick branches to include per repo (shows your unmerged branches)
 3. Name the journey
 4. The skill creates worktrees, merges branches, and tells you exactly where to `cd` and how to run the app

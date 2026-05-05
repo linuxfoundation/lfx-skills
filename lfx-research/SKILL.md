@@ -85,7 +85,7 @@ gh api repos/linuxfoundation/<repo-name>/contents/design/<file>.go \
 | Surveys | `lfx-v2-survey-service` |
 | Members | `lfx-v2-member-service` |
 
-**If the upstream Go repo exists locally** (check `~/lf/lfx-v2-*-service`), read the files directly instead of using `gh api`. Local reads are faster and more reliable.
+**If the upstream Go repo exists locally** (check `${LFX_DEV_ROOT:-$HOME/lf}/lfx-v2-*-service`), read the files directly instead of using `gh api`. Local reads are faster and more reliable.
 
 **Report:**
 - Endpoint exists? (path, method, status codes)
@@ -247,4 +247,4 @@ This keeps the user informed that exploration is happening and what's being chec
 - **Be specific** — include file paths, method names, field names
 - **Flag blockers** — if an upstream API doesn't exist, say so clearly
 - **Include example content** — read and include the key sections of example files
-- **Prefer local reads** — if a Go repo exists at `~/lf/`, read it directly instead of using `gh api`
+- **Prefer local reads** — if a Go repo exists at `${LFX_DEV_ROOT:-$HOME/lf}`, read it directly instead of using `gh api`

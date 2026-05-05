@@ -467,6 +467,7 @@ cmd_install() {
       esac
     done
     platform="$_parts"
+    ui_blank
   fi
   # Accept "both" as legacy sugar; normalise to comma-joined.
   case "$platform" in
@@ -495,6 +496,7 @@ cmd_install() {
       esac
     done
     scope="$_parts"
+    ui_blank
   fi
   case "$scope" in
     both) scope="global,repo" ;;
@@ -523,6 +525,7 @@ cmd_install() {
   local repo_count
   repo_count="$(probe_count_repos_in "$lfx_dev_root")"
   ui_dim "  $lfx_dev_root contains $repo_count lf* git repo(s)."
+  ui_blank
 
   # Step 5a: CONFIG DIR PICKER (only if global scope)
   # Empty defaults so `${arr[@]}` is safe under bash 3.2 + `set -u`.
@@ -547,6 +550,7 @@ cmd_install() {
               "${claude_dirs_probed[@]}"
           )
           if [ "${#chosen_claude_dirs[@]}" -eq 0 ]; then ui_info "Aborted."; return 0; fi
+          ui_blank
         fi
       fi
     fi
@@ -565,6 +569,7 @@ cmd_install() {
               "${agents_dirs_probed[@]}"
           )
           if [ "${#chosen_agents_dirs[@]}" -eq 0 ]; then ui_info "Aborted."; return 0; fi
+          ui_blank
         fi
       else
         chosen_agents_dirs=("$(platform_default_global_dir agents)")
@@ -591,6 +596,7 @@ cmd_install() {
             "${candidate_repos[@]}"
         )
         if [ "${#chosen_repos[@]}" -eq 0 ]; then ui_info "Aborted."; return 0; fi
+        ui_blank
       fi
     fi
   fi

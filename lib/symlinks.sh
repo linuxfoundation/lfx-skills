@@ -36,24 +36,25 @@ symlinks_eligible_skills() {
 # This is the lifted 3-way logic from the original install.sh (lines 31-46).
 symlinks_create_one() {
   local source="$1" target="$2"
+  local name; name="$(basename "$target")"
   if [ -L "$target" ]; then
     rm "$target"
     if ln -s "$source" "$target"; then
-      ui_dim "  updated  $(basename "$target")  →  $source" >&2
+      ui_dim "  updated    $name" >&2
       printf 'updated\n'
     else
-      ui_warn "  failed   $(basename "$target")"
+      ui_warn "  failed     $name"
       printf 'failed\n'
     fi
   elif [ -e "$target" ]; then
-    ui_warn "  skipped  $(basename "$target")  (non-symlink already exists at $target)"
+    ui_warn "  skipped    $name  (non-symlink already exists at $target)"
     printf 'skipped\n'
   else
     if ln -s "$source" "$target"; then
-      ui_dim "  installed  $(basename "$target")  →  $source" >&2
+      ui_dim "  installed  $name" >&2
       printf 'installed\n'
     else
-      ui_warn "  failed   $(basename "$target")"
+      ui_warn "  failed     $name"
       printf 'failed\n'
     fi
   fi

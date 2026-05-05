@@ -606,9 +606,27 @@ cmd_install() {
   ui_section "Plan"
   local skill_count
   skill_count="$(symlinks_eligible_skills "$CLONE_ROOT" | wc -l | tr -d ' ')"
-  printf '  Skills to install: %s\n' "$skill_count"
-  printf '  Platform: %s\n' "$platform"
-  printf '  Scope: %s\n' "$scope"
+
+  # Compute number of install targets so the preview shows the actual symlink
+  # count (skills × targets), not just the number of unique skills.
+  local n_targets=0
+  if [ "$include_global" -eq 1 ]; then
+    [ "$include_claude" -eq 1 ] && n_targets=$((n_targets + ${#chosen_claude_dirs[@]}))
+    [ "$include_agents" -eq 1 ] && n_targets=$((n_targets + ${#chosen_agents_dirs[@]}))
+  fi
+  if [ "$include_repo" -eq 1 ]; then
+    local _n_platforms=0
+    [ "$include_claude" -eq 1 ] && _n_platforms=$((_n_platforms + 1))
+    [ "$include_agents" -eq 1 ] && _n_platforms=$((_n_platforms + 1))
+    n_targets=$((n_targets + ${#chosen_repos[@]} * _n_platforms))
+  fi
+  local total_symlinks=$((skill_count * n_targets))
+
+  printf '  Skills:    %s unique\n' "$skill_count"
+  printf '  Platform:  %s\n' "$platform"
+  printf '  Scope:     %s\n' "$scope"
+  printf '  Targets:   %s\n' "$n_targets"
+  printf '  Symlinks:  %s total (skills × targets)\n' "$total_symlinks"
   printf '  LFX_DEV_ROOT: %s\n' "$lfx_dev_root"
   if [ "${#chosen_claude_dirs[@]}" -gt 0 ]; then
     printf '  Claude config dirs:\n'
@@ -653,17 +671,20 @@ cmd_install() {
     config_set_shell_rcs "${rcs[@]}"
   fi
 
-  ui_step "Creating symlinks…"
   local total_installed=0 total_updated=0 total_skipped=0
   if [ "$include_global" -eq 1 ]; then
     if [ "$include_claude" -eq 1 ] && [ "${#chosen_claude_dirs[@]}" -gt 0 ]; then
       for d in "${chosen_claude_dirs[@]}"; do
+        ui_blank
+        ui_step "Claude · global · $d/skills/"
         local s; s="$(symlinks_install_all "$CLONE_ROOT" claude global "$d")"
         _accumulate_install_summary "$s"
       done
     fi
     if [ "$include_agents" -eq 1 ] && [ "${#chosen_agents_dirs[@]}" -gt 0 ]; then
       for d in "${chosen_agents_dirs[@]}"; do
+        ui_blank
+        ui_step "agents · global · $d/skills/"
         local s; s="$(symlinks_install_all "$CLONE_ROOT" agents global "$d")"
         _accumulate_install_summary "$s"
       done
@@ -672,10 +693,14 @@ cmd_install() {
   if [ "$include_repo" -eq 1 ] && [ "${#chosen_repos[@]}" -gt 0 ]; then
     for r in "${chosen_repos[@]}"; do
       if [ "$include_claude" -eq 1 ]; then
+        ui_blank
+        ui_step "Claude · per-repo · $r/.claude/skills/"
         local s; s="$(symlinks_install_all "$CLONE_ROOT" claude repo "$r")"
         _accumulate_install_summary "$s"
       fi
       if [ "$include_agents" -eq 1 ]; then
+        ui_blank
+        ui_step "agents · per-repo · $r/.agents/skills/"
         local s; s="$(symlinks_install_all "$CLONE_ROOT" agents repo "$r")"
         _accumulate_install_summary "$s"
       fi

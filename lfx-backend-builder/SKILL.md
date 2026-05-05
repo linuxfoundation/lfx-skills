@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-backend-builder
 description: >
   Generate compliant backend code for LFX repos — Express.js proxy endpoints
@@ -7,8 +9,6 @@ description: >
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
-<!-- Copyright The Linux Foundation and each contributor to LFX. -->
-<!-- SPDX-License-Identifier: MIT -->
 <!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
 
 # LFX Backend Code Generation

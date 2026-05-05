@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-ui-builder
 description: >
   Generate compliant Angular 20 frontend code — components, services, templates,
@@ -7,8 +9,6 @@ description: >
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
-<!-- Copyright The Linux Foundation and each contributor to LFX. -->
-<!-- SPDX-License-Identifier: MIT -->
 <!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
 
 # LFX Frontend Code Generation
@@ -78,8 +78,6 @@ Every new `.ts`, `.html`, and `.scss` file MUST start with the appropriate licen
 
 **HTML (`.html`):**
 ```html
-<!-- Copyright The Linux Foundation and each contributor to LFX. -->
-<!-- SPDX-License-Identifier: MIT -->
 ```
 
 **SCSS (`.scss`):**

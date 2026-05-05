@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-preflight
 description: >
   Pre-PR validation for any LFX repo — Phase 1 auto-fixes (license, format, lint, build),
@@ -7,8 +9,6 @@ description: >
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
-<!-- Copyright The Linux Foundation and each contributor to LFX. -->
-<!-- SPDX-License-Identifier: MIT -->
 <!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
 
 # Pre-Submission Preflight Check

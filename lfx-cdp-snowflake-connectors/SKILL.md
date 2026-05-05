@@ -1,10 +1,24 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-cdp-snowflake-connectors
 description: Use when adding a new snowflake-connector data source to crowd.dev — a new platform or a new source within an existing platform that needs buildSourceQuery, transformer, activity types, migration, and all associated type registrations scaffolded.
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, mcp__claude_ai_LFX_BI_Layer__get_all_sources, mcp__claude_ai_LFX_BI_Layer__get_source_details, mcp__claude_ai_LFX_BI_Layer__list_metrics, mcp__claude_ai_LFX_BI_Layer__get_dimensions, mcp__claude_ai_LFX_BI_Layer__query_metrics
 ---
 
 # Scaffold Snowflake Connector
+
+## Prerequisites
+
+This skill requires the **LFX BI Layer MCP server** to be configured in your AI tool. The skill calls these MCP tools to discover Snowflake source schemas, dimensions, and metrics:
+
+- `mcp__claude_ai_LFX_BI_Layer__get_all_sources`
+- `mcp__claude_ai_LFX_BI_Layer__get_source_details`
+- `mcp__claude_ai_LFX_BI_Layer__list_metrics`
+- `mcp__claude_ai_LFX_BI_Layer__get_dimensions`
+- `mcp__claude_ai_LFX_BI_Layer__query_metrics`
+
+If these tools are not available in your environment, the skill will fail in Phase 2 (Schema Collection) when querying source schemas. Set up the LFX BI Layer MCP server before invoking this skill — see your team's MCP onboarding docs.
 
 ## Overview
 

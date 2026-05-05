@@ -1,3 +1,6 @@
+<!-- Copyright The Linux Foundation and each contributor to LFX. -->
+<!-- SPDX-License-Identifier: MIT -->
+
 # LFX Skills
 
 A collection of AI coding skills that encode the full development workflow for the LFX Self-Service platform. These skills turn your AI coding assistant into a context-aware development partner that understands LFX conventions, architecture, and code patterns — eliminating the need to repeatedly explain project structure, naming rules, or coding standards.
@@ -5,8 +8,8 @@ A collection of AI coding skills that encode the full development workflow for t
 ## Quick Install
 
 ```bash
-git clone https://github.com/linuxfoundation/skills.git
-cd skills
+git clone https://github.com/linuxfoundation/lfx-skills.git
+cd lfx-skills
 ./install.sh
 ```
 
@@ -38,7 +41,7 @@ If you prefer to install manually instead of using `./install.sh`:
 ### Step 1: Clone this repo
 
 ```bash
-git clone https://github.com/linuxfoundation/skills.git
+git clone https://github.com/linuxfoundation/lfx-skills.git
 ```
 
 ### Step 2: Install the skills
@@ -60,7 +63,7 @@ This makes all `/lfx*` skills available globally.
 Restart your AI coding assistant (or open a new session) in any LFX repo and type `/lfx` — you should see all skills in the autocomplete list:
 
 ```
-/lfx                    ← start here (plain-language entry point)
+/lfx                              ← start here (plain-language entry point)
 /lfx-coordinator
 /lfx-research
 /lfx-backend-builder
@@ -68,9 +71,13 @@ Restart your AI coding assistant (or open a new session) in any LFX repo and typ
 /lfx-product-architect
 /lfx-preflight
 /lfx-pr-catchup
+/lfx-pr-resolve
 /lfx-setup
 /lfx-test-journey
+/lfx-git-setup
 /lfx-intercom
+/lfx-snowflake-access
+/lfx-cdp-snowflake-connectors
 ```
 
 ### Alternative: Per-repo installation
@@ -132,10 +139,13 @@ The skills form a layered system where each skill has a clear responsibility and
 | `/lfx-product-architect` | Answers "where should this go?", traces data flows, makes placement decisions, explains design patterns | Read-only | Bash, Read, Glob, Grep, AskUserQuestion |
 | `/lfx-preflight` | Pre-PR validation — Phase 1 auto-fixes (format, license, lint, build), Phase 2 code review (15 report-only checks for Angular). Pass `--skip-review` to skip Phase 2 | Validate + review | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion |
 | `/lfx-pr-catchup` | Morning PR dashboard — unresolved comments, status changes, stale PRs, approved-but-not-merged across all your open PRs | Read-only | Bash, Read, Glob, Grep, AskUserQuestion |
+| `/lfx-pr-resolve` | Address PR review feedback end-to-end — fetches threads, makes changes, commits, responds per-thread, resolves, posts summary | Audit + fix | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion, **Skill** |
 | `/lfx-setup` | Environment setup — prerequisites, clone, install, env vars, dev server. Adapts to Angular or Go repos | Interactive guide | Bash, Read, Glob, Grep, AskUserQuestion |
 | `/lfx-test-journey` | Combine branches from multiple repos into worktrees for journey testing | Interactive | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
+| `/lfx-git-setup` | Interactive setup for DCO sign-off and GPG-signed commits. Use when commits aren't showing as Verified or onboarding to LFX | Interactive guide | Bash, Read, Glob, Grep, AskUserQuestion, **WebFetch** |
 | `/lfx-intercom` | Add or fix Intercom integration against the LFX canonical pattern — audits JWT setup, shutdown, Auth0 claim, app IDs, CSP | Audit + fix | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
-| `/lfx-cdp-snowflake-connectors` | Streamlines adding a new Snowflake connector to CDP — requires knowledge of the source specs | Interactive and guided | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
+| `/lfx-snowflake-access` | Guide users requesting Snowflake access — generates Terraform HCL for `users.tf` or `service_accounts.tf` and walks through the PR | Interactive guide | Bash, Read, Glob, Grep, AskUserQuestion, **WebFetch** |
+| `/lfx-cdp-snowflake-connectors` | Streamlines adding a new Snowflake connector to CDP — requires knowledge of the source specs. Requires LFX BI Layer MCP server | Interactive and guided | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, **MCP (LFX BI Layer)** |
 
 > **Note:** Tool names in the table above follow Claude Code conventions. See [docs/tool-mapping.md](docs/tool-mapping.md) for equivalents on other platforms.
 
@@ -442,6 +452,8 @@ An **interactive setup guide** that walks through environment configuration step
 ├── lfx-coordinator/
 │   ├── SKILL.md                    # Orchestrator — plans, delegates, validates
 │   └── references/
+│       ├── fga-protected-types.md  # FGA-protected resource types (read-restricted)
+│       ├── indexed-data-types.md   # Queryable resource types and indexing
 │       └── shared-types.md         # Shared package conventions
 ├── lfx-research/
 │   └── SKILL.md                    # Read-only exploration and API validation
@@ -469,12 +481,24 @@ An **interactive setup guide** that walks through environment configuration step
 │   └── SKILL.md                    # Pre-PR validation and auto-fix
 ├── lfx-pr-catchup/
 │   └── SKILL.md                    # Morning PR catch-up dashboard
+├── lfx-pr-resolve/
+│   ├── SKILL.md                    # Address PR review feedback end-to-end
+│   └── evals/
+│       └── evals.json              # Skill behavior assertions
 ├── lfx-setup/
 │   └── SKILL.md                    # Environment setup guide
 ├── lfx-test-journey/
 │   └── SKILL.md                    # Multi-branch journey testing
+├── lfx-git-setup/
+│   ├── SKILL.md                    # DCO sign-off and GPG-signed commit setup
+│   └── references/
+│       ├── linux.md                # Linux-specific GPG/DCO instructions
+│       ├── mac.md                  # macOS-specific GPG/DCO instructions
+│       └── windows.md              # Windows-specific GPG/DCO instructions
 ├── lfx-intercom/
 │   └── SKILL.md                    # Intercom integration — add or fix to LFX standard
+├── lfx-snowflake-access/
+│   └── SKILL.md                    # Request Snowflake access via Terraform PR
 └── lfx-cdp-snowflake-connectors/
     └── SKILL.md                    # Snowflake connector scaffolding for CDP
 ```

@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-research
 description: >
   Read-only exploration skill for LFX repos — upstream API validation, codebase
@@ -7,8 +9,6 @@ description: >
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, WebFetch
 ---
 
-<!-- Copyright The Linux Foundation and each contributor to LFX. -->
-<!-- SPDX-License-Identifier: MIT -->
 <!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
 
 # LFX Research & Exploration

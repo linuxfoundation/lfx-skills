@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-product-architect
 description: >
   Understand LFX system architecture, decide where code should go, trace data flows,
@@ -8,8 +10,6 @@ description: >
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 ---
 
-<!-- Copyright The Linux Foundation and each contributor to LFX. -->
-<!-- SPDX-License-Identifier: MIT -->
 <!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
 
 # LFX Architecture Guide

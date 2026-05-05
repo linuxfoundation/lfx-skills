@@ -1,4 +1,6 @@
 ---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
 name: lfx-snowflake-access
 description: >
   Guide users through requesting Snowflake access at the Linux Foundation. Handles two request
@@ -13,8 +15,6 @@ description: >
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, WebFetch
 ---
 
-<!-- Copyright The Linux Foundation and each contributor to LFX. -->
-<!-- SPDX-License-Identifier: MIT -->
 <!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
 
 # Snowflake Access Request Guide

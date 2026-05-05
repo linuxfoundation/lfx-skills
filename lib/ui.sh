@@ -308,9 +308,15 @@ ui_checkbox_select() {
     IFS= read -rsn1 key || break
     case "$key" in
       $'\e')
-        # Could be a 3-byte arrow-key escape (ESC '[' 'A'/'B'/'C'/'D')
-        # or a bare Esc (timeout fires, $rest stays empty).
-        IFS= read -rsn2 -t 0.05 rest || rest=""
+        # Could be a 3-byte arrow-key escape (ESC '[' 'A'/'B'/'C'/'D') or a
+        # bare Esc keypress. When you press an arrow, the terminal sends the
+        # whole sequence in one burst — the next two bytes are already in the
+        # input buffer, so the read returns instantly. A bare Esc has nothing
+        # behind it, so we have to wait for the timeout to confirm.
+        # Bash 3.2 (stock macOS) only supports integer `read -t` values, so
+        # we use 1 second. Arrow keys still respond instantly; only a bare Esc
+        # has a one-second debounce before it registers as cancel.
+        IFS= read -rsn2 -t 1 rest || rest=""
         case "$rest" in
           '[A')  cursor=$(( (cursor - 1 + n) % n )) ;;  # Up
           '[B')  cursor=$(( (cursor + 1) % n )) ;;       # Down

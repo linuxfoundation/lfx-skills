@@ -64,25 +64,32 @@ If a subcommand requires a journey name and the user didn't provide one, run **L
 
 ### Step 1: Discover Repos
 
-Scan `${LFX_DEV_ROOT:-$HOME/lf}` for git repositories:
+Resolve the LFX dev root and scan it for git repositories. The first line
+sources the LFX env file written by `lfx-skills install`; this makes
+`LFX_DEV_ROOT` available without depending on the user's shell rc.
 
 ```bash
-for dir in "${LFX_DEV_ROOT:-$HOME/lf}"/*/; do
+[ -f "$HOME/.config/lfx-skills/env.sh" ] && . "$HOME/.config/lfx-skills/env.sh"
+LFX_DEV_ROOT="${LFX_DEV_ROOT:-$HOME/lf}"
+
+for dir in "$LFX_DEV_ROOT"/*/; do
   if [ -d "$dir/.git" ]; then
     echo "$dir"
   fi
 done
 ```
 
-Present as a numbered list and **STOP — use `AskUserQuestion` and wait for the user to respond before continuing**:
+Present as a numbered list (substitute the resolved `$LFX_DEV_ROOT` value
+in the displayed paths) and **STOP — use `AskUserQuestion` and wait for the
+user to respond before continuing**:
 
 ```
-Scanning ${LFX_DEV_ROOT:-$HOME/lf} for git repos...
+Scanning $LFX_DEV_ROOT for git repos...
 
 Which repos are part of this journey? (type numbers, e.g. "1, 3")
-  1. ${LFX_DEV_ROOT:-$HOME/lf}/lfx-v2-ui
-  2. ${LFX_DEV_ROOT:-$HOME/lf}/lfx-v2-committee-service
-  3. ${LFX_DEV_ROOT:-$HOME/lf}/lfx-v2-meeting-service
+  1. $LFX_DEV_ROOT/lfx-v2-ui
+  2. $LFX_DEV_ROOT/lfx-v2-committee-service
+  3. $LFX_DEV_ROOT/lfx-v2-meeting-service
 ```
 
 **⛔ GATE: You MUST call `AskUserQuestion` here and wait for the user's response. Do NOT continue to Step 2 until the user has selected repos.** Parse their response (comma-separated numbers or repo names).

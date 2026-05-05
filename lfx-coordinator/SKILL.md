@@ -79,10 +79,15 @@ Use your Read, Glob, Grep, and Bash tools to quickly check:
 
 - **Identify the upstream Go service from the code.** Read the Express proxy service file (e.g., `committee.service.ts`) and find which API paths it calls via `MicroserviceProxyService` (e.g., `/committees/...` means `lfx-v2-committee-service`). All services use `'LFX_V2_SERVICE'` as the env var — the API path prefix tells you which upstream Go repo owns the data. Then check if that repo exists locally:
   ```bash
+  # Source the LFX env file so $LFX_DEV_ROOT is set without depending on the
+  # user's shell rc. Falls back to $HOME/lf if the user hasn't run lfx-skills install.
+  [ -f "$HOME/.config/lfx-skills/env.sh" ] && . "$HOME/.config/lfx-skills/env.sh"
+  LFX_DEV_ROOT="${LFX_DEV_ROOT:-$HOME/lf}"
+
   # Find the upstream service from the proxy code
   grep -r "proxyRequest" apps/lfx-one/src/server/services/<domain>.service.ts | head -5
   # Check for local Go repos
-  ls -d "${LFX_DEV_ROOT:-$HOME/lf}"/lfx-v2-*-service 2>/dev/null
+  ls -d "$LFX_DEV_ROOT"/lfx-v2-*-service 2>/dev/null
   ```
 - **Check the upstream Go service for the needed field.** Once you've identified the repo, check its domain model, Goa design, and conversions:
   ```bash

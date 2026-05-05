@@ -718,11 +718,11 @@ cmd_install() {
 
   ui_blank
   ui_bold "Next steps:"
-  printf '  1. Add this line to your shell rc (~/.zshrc or equivalent):\n'
-  printf '       %s\n' "$(rc_snippet)"
-  printf '  2. Restart your shell (or source the rc) to pick up LFX_DEV_ROOT and the lfx-skills CLI.\n'
-  printf '  3. Restart your AI coding assistant.\n'
-  printf '  4. Type /lfx in any LFX repo to get started.\n'
+  printf '  1. Restart your AI coding assistant (or open a new session).\n'
+  printf '  2. Type /lfx in any LFX repo to get started.\n'
+  printf '\n'
+  printf '  No shell rc edits needed: the skills resolve LFX_DEV_ROOT by sourcing\n'
+  printf '  %s themselves.\n' "$(env_sh_path)"
 
   if [ "${#chosen_repos[@]}" -gt 0 ]; then
     ui_blank
@@ -733,6 +733,14 @@ cmd_install() {
     printf '  .agents/skills/lfx\n'
     printf '  %s(narrow patterns preserve any of your own committed skills)%s\n' "$_UI_DIM" "$_UI_RESET"
   fi
+
+  ui_blank
+  printf '%sOptional:%s if you want to type %slfx-skills%s directly from your terminal,\n' \
+    "$_UI_DIM" "$_UI_RESET" "$_UI_BOLD" "$_UI_RESET"
+  printf '%sadd this line to your shell rc (~/.zshrc or equivalent):%s\n' "$_UI_DIM" "$_UI_RESET"
+  printf '  %s\n' "$(rc_snippet)"
+  printf '%sOtherwise, manage everything via /lfx-skills-helper from inside Claude.%s\n' \
+    "$_UI_DIM" "$_UI_RESET"
 }
 
 # Helper used inside cmd_install to sum `installed/updated/skipped/total` strings.

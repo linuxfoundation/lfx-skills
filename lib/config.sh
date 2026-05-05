@@ -187,10 +187,13 @@ config_set_platform_claude() {
   config_set_json "platforms.claude" "{\"config_dirs\": $dirs_json}"
 }
 
-# config_set_platform_agents DIR → record the agents config dir.
+# config_set_platform_agents DIR... → record the list of agents config dirs.
+# Mirror of config_set_platform_claude — both use a `config_dirs` array so the
+# manifest shape is symmetric across platforms.
 config_set_platform_agents() {
-  local dir="$1"
-  config_set_json "platforms.agents" "{\"config_dir\": \"$dir\"}"
+  local dirs_json
+  dirs_json="$(printf '%s\n' "$@" | jq -R . | jq -sc .)"
+  config_set_json "platforms.agents" "{\"config_dirs\": $dirs_json}"
 }
 
 # config_set_shell_rcs RC... → record the list of detected shell rcs.

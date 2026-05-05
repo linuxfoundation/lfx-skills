@@ -112,12 +112,12 @@ INTERACTIVE
 
 NON-INTERACTIVE FLAGS
   --yes                       Skip all confirmations (use defaults / supplied flags)
-  --platform=claude|agents|both
-  --scope=global|repo|both
+  --platform=claude|agents|claude,agents|both    'both' is sugar for 'claude,agents'
+  --scope=global|repo|global,repo|both           'both' is sugar for 'global,repo'
   --lfx-dev-root=PATH
   --claude-config=PATH[,PATH...]   Multi-config: pass several Claude config dirs
-  --agents-config=PATH             Single agents config dir (default: ~/.agents)
-  --repos=PATH[,PATH...]           Required if --scope=repo|both
+  --agents-config=PATH[,PATH...]   Multi-config: pass several agents config dirs
+  --repos=PATH[,PATH...]           Required if --scope contains 'repo'
   --dry-run                        Show what would happen, then exit
 
 EXAMPLE
@@ -450,17 +450,60 @@ cmd_install() {
   ui_dim "  Agents config dirs: ${agents_dirs_probed[*]:-(none found)}"
   ui_dim "  Dev root candidates: ${dev_root_probed[*]:-(none found)}"
 
-  # Step 2: PLATFORM
+  # Step 2: PLATFORM (multi-select: claude, agents, or both)
   if [ -z "$platform" ]; then
-    platform="$(ui_select "Which AI platform(s)?" "claude" "agents" "both")"
+    local -a _picked=()
+    local _line
+    while IFS= read -r _line; do _picked+=("$_line"); done < <(
+      ui_checkbox_select "Which AI platform(s)? (select one or both)" "1" 1 \
+        "Claude Code" "agents.md (Codex / Gemini CLI / OpenCode)"
+    )
+    if [ "${#_picked[@]}" -eq 0 ]; then ui_info "Aborted."; return 0; fi
+    local _p _parts=""
+    for _p in "${_picked[@]}"; do
+      case "$_p" in
+        "Claude Code") _parts="${_parts:+$_parts,}claude" ;;
+        "agents.md"*) _parts="${_parts:+$_parts,}agents" ;;
+      esac
+    done
+    platform="$_parts"
   fi
-  case "$platform" in claude|agents|both) ;; *) ui_die "--platform must be claude|agents|both" ;; esac
+  # Accept "both" as legacy sugar; normalise to comma-joined.
+  case "$platform" in
+    both) platform="claude,agents" ;;
+    claude|agents|claude,agents|agents,claude) ;;
+    *) ui_die "--platform must be a combination of claude,agents (or 'both')" ;;
+  esac
+  local include_claude=0 include_agents=0
+  case ",$platform," in *,claude,*) include_claude=1 ;; esac
+  case ",$platform," in *,agents,*) include_agents=1 ;; esac
 
-  # Step 3: SCOPE
+  # Step 3: SCOPE (multi-select: global, per-repo, or both)
   if [ -z "$scope" ]; then
-    scope="$(ui_select "Install scope?" "global" "repo" "both")"
+    local -a _picked=()
+    local _line
+    while IFS= read -r _line; do _picked+=("$_line"); done < <(
+      ui_checkbox_select "Install scope? (select one or both)" "1" 1 \
+        "global  (available in every AI session)" "per-repo  (only in selected repos)"
+    )
+    if [ "${#_picked[@]}" -eq 0 ]; then ui_info "Aborted."; return 0; fi
+    local _s _parts=""
+    for _s in "${_picked[@]}"; do
+      case "$_s" in
+        global*)   _parts="${_parts:+$_parts,}global" ;;
+        per-repo*) _parts="${_parts:+$_parts,}repo" ;;
+      esac
+    done
+    scope="$_parts"
   fi
-  case "$scope" in global|repo|both) ;; *) ui_die "--scope must be global|repo|both" ;; esac
+  case "$scope" in
+    both) scope="global,repo" ;;
+    global|repo|global,repo|repo,global) ;;
+    *) ui_die "--scope must be a combination of global,repo (or 'both')" ;;
+  esac
+  local include_global=0 include_repo=0
+  case ",$scope," in *,global,*) include_global=1 ;; esac
+  case ",$scope," in *,repo,*) include_repo=1 ;; esac
 
   # Step 4: LFX DEV ROOT
   if [ -z "$lfx_dev_root" ]; then
@@ -481,15 +524,15 @@ cmd_install() {
   repo_count="$(probe_count_repos_in "$lfx_dev_root")"
   ui_dim "  $lfx_dev_root contains $repo_count lf* git repo(s)."
 
-  # Step 5a: CONFIG DIR PICKER (only if global)
+  # Step 5a: CONFIG DIR PICKER (only if global scope)
   # Empty defaults so `${arr[@]}` is safe under bash 3.2 + `set -u`.
   local -a chosen_claude_dirs=() chosen_agents_dirs=()
-  if [ "$scope" = "global" ] || [ "$scope" = "both" ]; then
-    if [ "$platform" = "claude" ] || [ "$platform" = "both" ]; then
+  if [ "$include_global" -eq 1 ]; then
+    if [ "$include_claude" -eq 1 ]; then
       if [ -n "$claude_config" ]; then
-        # Convert comma-separated to newline-separated and read line-by-line so
-        # we don't change IFS (which would leak into nested function calls and
-        # break, e.g. SYMLINKS_CLONE_ONLY iteration in symlinks_eligible_skills).
+        # Convert comma-separated to newline-separated; reading line-by-line
+        # avoids changing IFS (which dynamically scopes into nested calls and
+        # would break SYMLINKS_CLONE_ONLY iteration in symlinks_eligible_skills).
         local d
         while IFS= read -r d; do chosen_claude_dirs+=("$d"); done < <(printf '%s\n' "$claude_config" | tr ',' '\n')
       else
@@ -500,25 +543,38 @@ cmd_install() {
         else
           local picked
           while IFS= read -r picked; do chosen_claude_dirs+=("$picked"); done < <(
-            ui_multiselect "Which Claude config dir(s) to install into?" "1" "${claude_dirs_probed[@]}"
+            ui_checkbox_select "Which Claude config dir(s)? (select one or more)" "1" 1 \
+              "${claude_dirs_probed[@]}"
           )
+          if [ "${#chosen_claude_dirs[@]}" -eq 0 ]; then ui_info "Aborted."; return 0; fi
         fi
       fi
     fi
-    if [ "$platform" = "agents" ] || [ "$platform" = "both" ]; then
+    if [ "$include_agents" -eq 1 ]; then
       if [ -n "$agents_config" ]; then
-        chosen_agents_dirs=("$agents_config")
+        local d
+        while IFS= read -r d; do chosen_agents_dirs+=("$d"); done < <(printf '%s\n' "$agents_config" | tr ',' '\n')
       elif [ "${#agents_dirs_probed[@]}" -gt 0 ]; then
-        chosen_agents_dirs=("${agents_dirs_probed[0]}")
+        # If multiple, let the user pick. Single = silent default.
+        if [ "${#agents_dirs_probed[@]}" -eq 1 ]; then
+          chosen_agents_dirs=("${agents_dirs_probed[0]}")
+        else
+          local picked
+          while IFS= read -r picked; do chosen_agents_dirs+=("$picked"); done < <(
+            ui_checkbox_select "Which agents config dir(s)? (select one or more)" "1" 1 \
+              "${agents_dirs_probed[@]}"
+          )
+          if [ "${#chosen_agents_dirs[@]}" -eq 0 ]; then ui_info "Aborted."; return 0; fi
+        fi
       else
         chosen_agents_dirs=("$(platform_default_global_dir agents)")
       fi
     fi
   fi
 
-  # Step 5b: REPO PICKER (only if per-repo)
+  # Step 5b: REPO PICKER (only if per-repo scope)
   local -a chosen_repos=()
-  if [ "$scope" = "repo" ] || [ "$scope" = "both" ]; then
+  if [ "$include_repo" -eq 1 ]; then
     if [ -n "$repos" ]; then
       local r
       while IFS= read -r r; do chosen_repos+=("$r"); done < <(printf '%s\n' "$repos" | tr ',' '\n')
@@ -527,14 +583,14 @@ cmd_install() {
       while IFS= read -r r; do candidate_repos+=("$r"); done < <(probe_repos_in "$lfx_dev_root")
       if [ "${#candidate_repos[@]}" -eq 0 ]; then
         ui_warn "No lf* git repos found under $lfx_dev_root."
-        if [ "$scope" = "repo" ]; then
-          ui_die "Per-repo install requires at least one repo. Aborting."
-        fi
+        ui_die "Per-repo install requires at least one repo. Aborting."
       else
         local picked
         while IFS= read -r picked; do chosen_repos+=("$picked"); done < <(
-          ui_multiselect "Which repos to install into?" "all" "${candidate_repos[@]}"
+          ui_checkbox_select "Which repos to install into? (select one or more)" "all" 1 \
+            "${candidate_repos[@]}"
         )
+        if [ "${#chosen_repos[@]}" -eq 0 ]; then ui_info "Aborted."; return 0; fi
       fi
     fi
   fi
@@ -583,7 +639,7 @@ cmd_install() {
     config_set_platform_claude "${chosen_claude_dirs[@]}"
   fi
   if [ "${#chosen_agents_dirs[@]}" -gt 0 ]; then
-    config_set_platform_agents "${chosen_agents_dirs[0]}"
+    config_set_platform_agents "${chosen_agents_dirs[@]}"
   fi
   local -a rcs=()
   while IFS= read -r r; do rcs+=("$r"); done < <(probe_shell_rcs)
@@ -593,27 +649,27 @@ cmd_install() {
 
   ui_step "Creating symlinks…"
   local total_installed=0 total_updated=0 total_skipped=0
-  if [ "$scope" = "global" ] || [ "$scope" = "both" ]; then
-    if { [ "$platform" = "claude" ] || [ "$platform" = "both" ]; } && [ "${#chosen_claude_dirs[@]}" -gt 0 ]; then
+  if [ "$include_global" -eq 1 ]; then
+    if [ "$include_claude" -eq 1 ] && [ "${#chosen_claude_dirs[@]}" -gt 0 ]; then
       for d in "${chosen_claude_dirs[@]}"; do
         local s; s="$(symlinks_install_all "$CLONE_ROOT" claude global "$d")"
         _accumulate_install_summary "$s"
       done
     fi
-    if { [ "$platform" = "agents" ] || [ "$platform" = "both" ]; } && [ "${#chosen_agents_dirs[@]}" -gt 0 ]; then
+    if [ "$include_agents" -eq 1 ] && [ "${#chosen_agents_dirs[@]}" -gt 0 ]; then
       for d in "${chosen_agents_dirs[@]}"; do
         local s; s="$(symlinks_install_all "$CLONE_ROOT" agents global "$d")"
         _accumulate_install_summary "$s"
       done
     fi
   fi
-  if { [ "$scope" = "repo" ] || [ "$scope" = "both" ]; } && [ "${#chosen_repos[@]}" -gt 0 ]; then
+  if [ "$include_repo" -eq 1 ] && [ "${#chosen_repos[@]}" -gt 0 ]; then
     for r in "${chosen_repos[@]}"; do
-      if [ "$platform" = "claude" ] || [ "$platform" = "both" ]; then
+      if [ "$include_claude" -eq 1 ]; then
         local s; s="$(symlinks_install_all "$CLONE_ROOT" claude repo "$r")"
         _accumulate_install_summary "$s"
       fi
-      if [ "$platform" = "agents" ] || [ "$platform" = "both" ]; then
+      if [ "$include_agents" -eq 1 ]; then
         local s; s="$(symlinks_install_all "$CLONE_ROOT" agents repo "$r")"
         _accumulate_install_summary "$s"
       fi

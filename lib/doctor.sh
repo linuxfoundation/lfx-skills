@@ -192,15 +192,21 @@ $claude_dirs
 EOF
   fi
 
-  local agents_dir
-  agents_dir="$(echo "$platforms_json" | jq -r '.agents.config_dir // empty' 2>/dev/null)"
-  if [ -n "$agents_dir" ]; then
-    if [ -d "$agents_dir" ]; then
-      _emit pass platform-dir-ok platforms "Agents config dir exists" "$agents_dir" no
-    else
-      _emit fail platform-dir-missing platforms \
-        "Agents config dir missing" "$agents_dir" no
-    fi
+  local agents_dirs
+  agents_dirs="$(echo "$platforms_json" | jq -r '.agents.config_dirs[]?' 2>/dev/null)"
+  if [ -n "$agents_dirs" ]; then
+    local d
+    while IFS= read -r d; do
+      [ -z "$d" ] && continue
+      if [ -d "$d" ]; then
+        _emit pass platform-dir-ok platforms "Agents config dir exists" "$d" no
+      else
+        _emit fail platform-dir-missing platforms \
+          "Agents config dir missing" "$d" no
+      fi
+    done <<EOF
+$agents_dirs
+EOF
   fi
 }
 

@@ -77,7 +77,7 @@ COMMANDS
   uninstall    Remove installed symlinks (recorded in config.json)
   update       Re-apply the manifest; with --pull, git-pull the clone first
   check        Lightweight verification: does config match filesystem? (exit 0/1)
-  doctor       Full diagnostics across 8 categories; --fix to repair interactively
+  doctor       Full diagnostics across 7 categories; --fix to repair interactively
   list         List installed or available skills
   info SKILL   Show frontmatter + install locations for a skill
   config       Show or modify ~/.config/lfx-skills/config.json (get/set)

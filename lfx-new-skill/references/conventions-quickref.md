@@ -33,7 +33,7 @@ allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 | Orchestrator that delegates to other skills | `Bash, Read, Glob, Grep, AskUserQuestion, Skill`                     |
 | MCP-dependent (e.g. Snowflake, Atlassian)  | Above + the specific `mcp__*` tool names                              |
 
-If you list any `mcp__*` tools, add a `## Prerequisites` section to the body so users without that MCP server know what to set up. The `lfx-skills doctor` check `mcp-undocumented` enforces this.
+If you list any `mcp__*` tools, add a `## Prerequisites` section to the body so users without that MCP server configured know what to set up. Otherwise they'll hit cryptic errors when the skill tries to invoke a tool that doesn't exist.
 
 ## Body structure (suggested)
 

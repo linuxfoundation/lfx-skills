@@ -69,7 +69,7 @@ Don't auto-generate this. The contributor knows their intent better than you do.
 > Add `Write, Edit` if the skill will modify files.
 > Add `Skill` if the skill will delegate to other lfx skills.
 > Add `WebFetch` if the skill reads external URLs.
-> Add specific MCP tool names (e.g., `mcp__atlassian__getJiraIssue`) if the skill depends on MCP servers.
+> Add specific MCP tool names (formatted `mcp__SERVER__TOOL`) if the skill depends on MCP servers.
 >
 > Type the comma-separated list, or just press Enter for the default."
 
@@ -128,7 +128,7 @@ allowed-tools: <comma-separated list>
 
 ## Step 7: Prerequisites section (if MCP tools)
 
-If the user listed any `mcp__*` tools in Step 4, add a `## Prerequisites` section to the body listing them, with a one-line note about how to set up the MCP server (or a link to the right docs). The doctor's `mcp-undocumented` check looks for this — without it, the doctor will warn.
+If the user listed any MCP tools in Step 4, add a `## Prerequisites` section to the body listing them, with a one-line note about how to set up the MCP server (or a link to the right docs). Without it, users without the MCP server configured will hit cryptic errors when the skill tries to invoke a tool that doesn't exist.
 
 ## Step 8: Install locally + verify
 

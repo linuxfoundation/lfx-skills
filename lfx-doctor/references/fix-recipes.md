@@ -254,15 +254,6 @@ name: ...
 
 ---
 
-## issue-id: mcp-undocumented
-
-**What:** A SKILL.md uses `mcp__*` tool names but has no `## Prerequisites` section.
-**Why it matters:** users without the MCP server configured will get cryptic errors when the skill tries to invoke a tool that doesn't exist.
-**Fix:** add a Prerequisites section listing the MCP servers the skill depends on, with a link to setup instructions.
-**Auto-fixable?** no by CLI; the `/lfx-doctor` skill can grep the SKILL.md for `mcp__` references and draft a Prerequisites section.
-
----
-
 ## issue-id: platforms-none
 
 **What:** Manifest exists but records no platforms.

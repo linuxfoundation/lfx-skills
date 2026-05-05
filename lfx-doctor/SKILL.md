@@ -97,7 +97,6 @@ For records with `fixable: false` that the user wants addressed, apply judgment.
 | `frontmatter-no-name` / `frontmatter-name-mismatch` | Read the SKILL.md, identify the line, offer to fix it via Edit. |
 | `frontmatter-no-description` | Read the SKILL.md body, draft a one-paragraph description from it, offer to insert. |
 | `license-missing`            | Insert the YAML license-header lines (see `references/fix-recipes.md` template). |
-| `mcp-undocumented`           | Read the SKILL.md, find the `mcp__*` tool references, offer to draft a Prerequisites section. |
 | `routing-uncovered`          | Read `lfx/SKILL.md`, find the routing table, offer to add an entry for the missing skill. |
 | `routing-dangling`           | Either remove the dangling entry from `lfx/SKILL.md` or hand off to `/lfx-new-skill` to scaffold the missing skill. Ask the user. |
 | `symlink-no-skillmd`         | Hand off to `/lfx-new-skill` to scaffold the missing SKILL.md. |

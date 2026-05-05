@@ -265,11 +265,20 @@ check_routing() {
   done <<EOF
 $routed
 EOF
-  # Inverse: every installable skill mentioned in /lfx?
-  local skill
+  # Inverse: every USER-FACING skill mentioned in /lfx?
+  # Skip /lfx itself and skills that intentionally don't belong in the user-task
+  # router: internal builders only invoked by /lfx-coordinator, and management
+  # surfaces (doctor / skills-helper) which the user reaches by name, not via
+  # plain-language routing.
+  local routing_exempt="lfx lfx-backend-builder lfx-ui-builder lfx-doctor lfx-skills-helper"
+  local skill skipped
   while IFS= read -r skill; do
     [ -z "$skill" ] && continue
-    [ "$skill" = "lfx" ] && continue
+    skipped=0
+    for ex in $routing_exempt; do
+      if [ "$skill" = "$ex" ]; then skipped=1; break; fi
+    done
+    [ "$skipped" -eq 1 ] && continue
     if ! grep -qE "/${skill}([^a-z0-9-]|\$)" "$lfx_md" 2>/dev/null; then
       _emit warn routing-uncovered routing \
         "/lfx routing table does not mention /$skill" \
@@ -278,28 +287,7 @@ EOF
   done < <(symlinks_eligible_skills "$clone")
 }
 
-# ─── Category 7: MCP deps ────────────────────────────────────────────────
-check_mcp_deps() {
-  local clone
-  clone="${CLONE_ROOT:-$(probe_canonical_clone "${BASH_SOURCE[0]:-$0}")}"
-  local skill_md skill_name
-  for skill_md in "$clone"/lfx*/SKILL.md; do
-    [ -f "$skill_md" ] || continue
-    if grep -qE 'mcp__[a-zA-Z_]+' "$skill_md" 2>/dev/null; then
-      skill_name="$(basename "$(dirname "$skill_md")")"
-      if grep -qE '^##? +Prerequisites' "$skill_md" 2>/dev/null; then
-        _emit pass mcp-documented mcp_deps \
-          "$skill_name documents MCP prerequisites" "$skill_md" no
-      else
-        _emit warn mcp-undocumented mcp_deps \
-          "$skill_name uses MCP tools but has no Prerequisites section" \
-          "$skill_md" no
-      fi
-    fi
-  done
-}
-
-# ─── Category 8: License headers ─────────────────────────────────────────
+# ─── Category 7: License headers ─────────────────────────────────────────
 check_license_headers() {
   local clone
   clone="${CLONE_ROOT:-$(probe_canonical_clone "${BASH_SOURCE[0]:-$0}")}"
@@ -325,7 +313,6 @@ doctor_run_all() {
   check_platforms
   check_frontmatter
   check_routing
-  check_mcp_deps
   check_license_headers
 }
 

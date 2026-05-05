@@ -79,6 +79,8 @@ Restart your AI coding assistant (or open a new session) in any LFX repo and typ
 /lfx-intercom
 /lfx-snowflake-access
 /lfx-cdp-snowflake-connectors
+/lfx-doctor                       ← health check + auto-fix for the install
+/lfx-skills-helper                ← manage what's installed where (install/uninstall/update/list)
 ```
 
 ### Alternative: Per-repo installation

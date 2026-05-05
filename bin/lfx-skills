@@ -487,8 +487,11 @@ cmd_install() {
   if [ "$scope" = "global" ] || [ "$scope" = "both" ]; then
     if [ "$platform" = "claude" ] || [ "$platform" = "both" ]; then
       if [ -n "$claude_config" ]; then
-        local IFS=','
-        for d in $claude_config; do chosen_claude_dirs+=("$d"); done
+        # Convert comma-separated to newline-separated and read line-by-line so
+        # we don't change IFS (which would leak into nested function calls and
+        # break, e.g. SYMLINKS_CLONE_ONLY iteration in symlinks_eligible_skills).
+        local d
+        while IFS= read -r d; do chosen_claude_dirs+=("$d"); done < <(printf '%s\n' "$claude_config" | tr ',' '\n')
       else
         if [ "${#claude_dirs_probed[@]}" -eq 0 ]; then
           chosen_claude_dirs=("$(platform_default_global_dir claude)")
@@ -517,8 +520,8 @@ cmd_install() {
   local -a chosen_repos=()
   if [ "$scope" = "repo" ] || [ "$scope" = "both" ]; then
     if [ -n "$repos" ]; then
-      local IFS=','
-      for r in $repos; do chosen_repos+=("$r"); done
+      local r
+      while IFS= read -r r; do chosen_repos+=("$r"); done < <(printf '%s\n' "$repos" | tr ',' '\n')
     else
       local -a candidate_repos=()
       while IFS= read -r r; do candidate_repos+=("$r"); done < <(probe_repos_in "$lfx_dev_root")
@@ -692,11 +695,11 @@ cmd_uninstall() {
   fi
 
   if [ "$scope" = "repo" ] && [ -n "$repos" ]; then
-    local IFS=','
-    for r in $repos; do
+    local r
+    while IFS= read -r r; do
       ui_step "Removing per-repo symlinks for $r…"
       symlinks_uninstall_all repo "$r" >/dev/null
-    done
+    done < <(printf '%s\n' "$repos" | tr ',' '\n')
   else
     local s
     s="$(symlinks_uninstall_all "$scope" "")"

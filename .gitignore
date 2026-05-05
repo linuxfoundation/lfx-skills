@@ -16,14 +16,31 @@
 .Trashes
 Thumbs.db
 
-# Claude AI assistant
-.claude
+# Claude AI assistant — local state (settings.local.json, projects/, etc.)
+# stays out of the repo. The negation block un-ignores the four committed
+# meta-skill symlinks that make this clone self-discovering for /lfx-install,
+# /lfx-new-skill, /lfx-doctor, /lfx-skills-helper.
+#
+# Important: we use `.claude/*` (not `.claude/` with trailing slash) because
+# a fully-ignored directory can't be reopened with negation. The pattern below
+# ignores everything UNDER .claude/ while leaving the directory itself
+# inspectable, which is the only way `!` rules can take effect on its children.
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/lfx-install
+!.claude/skills/lfx-new-skill
+!.claude/skills/lfx-doctor
+!.claude/skills/lfx-skills-helper
 
-# Installed skill symlinks (created by per-repo installation).
-# Phase 6 will commit a small set of relative symlinks under .claude/skills/
-# (lfx-install, lfx-doctor, lfx-skills-helper, lfx-new-skill); a negation
-# block will be added there to un-ignore those specific paths.
-.claude/skills/
+# Same negation pattern for the agents.md ecosystem mirror.
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/lfx-install
+!.agents/skills/lfx-new-skill
+!.agents/skills/lfx-doctor
+!.agents/skills/lfx-skills-helper
 
 # Legacy install manifest. Older clones of lfx-skills wrote this; the new CLI
 # stores its manifest at ~/.config/lfx-skills/config.json, so this file is no

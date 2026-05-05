@@ -19,8 +19,16 @@ Thumbs.db
 # Claude AI assistant
 .claude
 
-# Installed skill symlinks (created by per-repo installation)
+# Installed skill symlinks (created by per-repo installation).
+# Phase 6 will commit a small set of relative symlinks under .claude/skills/
+# (lfx-install, lfx-doctor, lfx-skills-helper, lfx-new-skill); a negation
+# block will be added there to un-ignore those specific paths.
 .claude/skills/
+
+# Legacy install manifest. Older clones of lfx-skills wrote this; the new CLI
+# stores its manifest at ~/.config/lfx-skills/config.json, so this file is no
+# longer used. Ignored in case any clone still has one lying around.
+.install-manifest.json
 
 # Environment and configuration files
 .env

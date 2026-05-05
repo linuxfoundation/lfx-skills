@@ -79,6 +79,26 @@ probe_have_jq() {
   command -v jq >/dev/null 2>&1
 }
 
+# probe_writable_path_dir → echo the best dir on the user's PATH where we can
+# create a symlink to `lfx-skills` without sudo. Returns empty if none qualifies.
+# Preference (user-owned first):
+#   ~/.local/bin   pipx convention; many Linux distros add this to PATH
+#   ~/bin          older convention; some users still use it
+#   /opt/homebrew/bin   Apple Silicon Homebrew; user-writable since brew chowns it
+#   /usr/local/bin Intel Macs and Linux; often root-owned, but writable for some setups
+# A dir qualifies if it exists, is writable by the current user, and is on PATH.
+probe_writable_path_dir() {
+  local d
+  for d in "$HOME/.local/bin" "$HOME/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+    [ -d "$d" ] || continue
+    [ -w "$d" ] || continue
+    case ":$PATH:" in
+      *":$d:"*) printf '%s\n' "$d"; return 0 ;;
+    esac
+  done
+  return 1
+}
+
 # probe_canonical_clone → echo the absolute path of the lfx-skills clone this script lives in.
 # Caller passes the script's $0 (or any path inside the clone).
 # Walks up from bin/ or lib/ to the clone root.

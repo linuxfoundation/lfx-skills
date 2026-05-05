@@ -93,68 +93,47 @@ check_source_clone() {
 
 # ─── Category 3: LFX dev root ────────────────────────────────────────────
 check_lfx_dev_root() {
-  local recorded env_path env_exists in_session
+  local recorded dev_root_file
   recorded="$(config_get lfx_dev_root)"
-  env_path="$(env_sh_path)"
-  env_exists=0
-  [ -f "$env_path" ] && env_exists=1
-  in_session="${LFX_DEV_ROOT:-}"
+  dev_root_file="$(dev_root_path)"
 
+  # The recorded path itself
   if [ -z "$recorded" ]; then
     _emit warn dev-root-not-recorded lfx_dev_root \
-      "LFX_DEV_ROOT not recorded in config" \
+      "lfx_dev_root not recorded in config" \
       "Re-run \`lfx-skills install\` to capture it." no
   elif [ ! -d "$recorded" ]; then
     _emit fail dev-root-missing lfx_dev_root \
-      "LFX_DEV_ROOT path does not exist" \
-      "Recorded path: $recorded" no
+      "Recorded LFX dev root path does not exist" \
+      "Recorded: $recorded" no
   else
     local repo_count
     repo_count="$(probe_count_repos_in "$recorded")"
     if [ "$repo_count" -eq 0 ]; then
       _emit warn dev-root-empty lfx_dev_root \
-        "LFX_DEV_ROOT contains no lf* git repos" \
+        "LFX dev root contains no lf* git repos" \
         "$recorded — clone some LFX repos here." no
     else
       _emit pass dev-root-ok lfx_dev_root \
-        "LFX_DEV_ROOT has $repo_count lf* repo(s)" "$recorded" no
+        "LFX dev root has $repo_count lf* repo(s)" "$recorded" no
     fi
   fi
 
-  if [ "$env_exists" -eq 0 ]; then
-    _emit fail env-sh-missing lfx_dev_root \
-      "env.sh not found" \
-      "Expected at $env_path. Run \`lfx-skills install\`." yes "$env_path"
+  # The dev-root cache file that skills `cat` to resolve LFX_DEV_ROOT
+  if [ ! -f "$dev_root_file" ]; then
+    _emit fail dev-root-file-missing lfx_dev_root \
+      "Skills' dev-root cache file is missing" \
+      "Expected at $dev_root_file. Run \`lfx-skills config set lfx_dev_root=...\` to regenerate." yes "$dev_root_file"
   else
-    _emit pass env-sh-exists lfx_dev_root "env.sh exists" "$env_path" no
-  fi
-
-  if [ -z "$in_session" ]; then
-    _emit warn dev-root-not-in-session lfx_dev_root \
-      "LFX_DEV_ROOT not set in current shell" \
-      "Source $env_path or restart your shell after adding the snippet." no
-  elif [ -n "$recorded" ] && [ "$in_session" != "$recorded" ]; then
-    _emit warn dev-root-session-drift lfx_dev_root \
-      "LFX_DEV_ROOT in session differs from config" \
-      "Session: $in_session; config: $recorded" no
-  fi
-
-  if [ "$env_exists" -eq 1 ]; then
-    local rc found=0 last_rc=""
-    while IFS= read -r rc; do
-      [ -z "$rc" ] && continue
-      last_rc="$rc"
-      if grep -F "$env_path" "$rc" >/dev/null 2>&1; then
-        found=1
-        break
-      fi
-    done < <(probe_shell_rcs)
-    if [ "$found" -eq 1 ]; then
-      _emit pass env-sh-sourced lfx_dev_root "Shell rc sources env.sh" "$last_rc" no
+    local file_value
+    file_value="$(cat "$dev_root_file" 2>/dev/null)"
+    if [ "$file_value" != "$recorded" ]; then
+      _emit warn dev-root-file-mismatch lfx_dev_root \
+        "dev-root file out of sync with config.json" \
+        "File: $file_value; config: $recorded" yes "$dev_root_file"
     else
-      _emit warn env-sh-not-sourced lfx_dev_root \
-        "Shell rc does not source env.sh" \
-        "Add: $(rc_snippet)" no
+      _emit pass dev-root-file-ok lfx_dev_root \
+        "dev-root cache file in sync with config" "$dev_root_file" no
     fi
   fi
 }
@@ -413,9 +392,9 @@ doctor_fix_one() {
       ln -s "$source" "$link"
       ui_success "Recreated symlink: $link → $source"
       ;;
-    env-sh-missing)
-      write_env_sh
-      ui_success "Wrote $(env_sh_path)"
+    dev-root-file-missing|dev-root-file-mismatch)
+      write_dev_root_file
+      ui_success "Wrote $(dev_root_path)"
       ;;
     *)
       ui_warn "No auto-fix available for: $id"

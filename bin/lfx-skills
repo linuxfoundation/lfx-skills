@@ -80,7 +80,7 @@ COMMANDS
   doctor       Full diagnostics across 7 categories; --fix to repair interactively
   list         List installed or available skills
   info SKILL   Show frontmatter + install locations for a skill
-  config       Show or modify ~/.config/lfx-skills/config.json (get/set)
+  config       Show or modify ~/.lfx-skills/config.json (get/set)
   repos        List lf* git repos under \$LFX_DEV_ROOT
   version      Print version of this lfx-skills clone
   help [CMD]   Detailed help for CMD, or this overview
@@ -94,8 +94,14 @@ EXAMPLES
   lfx-skills uninstall
 
 CONFIG
-  ~/.config/lfx-skills/config.json   manifest (single source of truth)
-  ~/.config/lfx-skills/env.sh        exports LFX_DEV_ROOT + adds bin/ to PATH
+  ~/.lfx-skills/config.json          manifest (single source of truth)
+  ~/.lfx-skills/dev-root             one-line text file: the resolved dev root,
+                                     read by skills via `cat` (no env var or
+                                     shell rc needed)
+  ~/.local/bin/lfx-skills (or       symlink so you can type `lfx-skills` from
+   ~/bin, /usr/local/bin)            anywhere — picked from a writable PATH
+                                     dir at install time. Recorded in
+                                     config.json.cli_symlink.
 
 Run \`lfx-skills help <command>\` for command-specific options.
 EOF
@@ -118,6 +124,9 @@ NON-INTERACTIVE FLAGS
   --claude-config=PATH[,PATH...]   Multi-config: pass several Claude config dirs
   --agents-config=PATH[,PATH...]   Multi-config: pass several agents config dirs
   --repos=PATH[,PATH...]           Required if --scope contains 'repo'
+  --no-cli-symlink                 Skip installing the `lfx-skills` CLI
+                                   symlink into a PATH dir (default: install
+                                   if a writable PATH dir is available)
   --dry-run                        Show what would happen, then exit
 
 EXAMPLE
@@ -260,8 +269,8 @@ cmd_config() {
       [ "$key" = "$kv" ] && ui_die "Missing = in argument: $kv"
       config_set "$key" "$val"
       if [ "$key" = "lfx_dev_root" ] || [ "$key" = "canonical_clone" ]; then
-        write_env_sh
-        ui_success "Updated config and env.sh"
+        write_dev_root_file
+        ui_success "Updated config and dev-root"
       else
         ui_success "Updated config"
       fi
@@ -419,6 +428,7 @@ cmd_install() {
   require_jq
 
   local platform="" scope="" lfx_dev_root="" claude_config="" agents_config="" repos="" dry_run=0
+  local no_cli_symlink=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --yes)               LFX_SKILLS_YES=1; export LFX_SKILLS_YES ;;
@@ -428,6 +438,7 @@ cmd_install() {
       --claude-config=*)   claude_config="${1#*=}" ;;
       --agents-config=*)   agents_config="${1#*=}" ;;
       --repos=*)           repos="${1#*=}" ;;
+      --no-cli-symlink)    no_cli_symlink=1 ;;
       --dry-run)           dry_run=1 ;;
       -h|--help)           _help_install; return 0 ;;
       *) ui_error "Unknown flag: $1"; _help_install; exit 1 ;;
@@ -707,8 +718,24 @@ cmd_install() {
     done
   fi
 
-  ui_step "Writing env.sh…"
-  write_env_sh
+  ui_step "Writing dev-root…"
+  write_dev_root_file
+
+  # Install lfx-skills CLI into a writable PATH dir so the user can type
+  # `lfx-skills` from anywhere. Tracked in config.json for clean uninstall.
+  # Capture only stdout (warnings/errors flow to stderr, which the user sees
+  # directly and we don't want polluting our path variable).
+  local cli_symlink_path=""
+  if [ "$no_cli_symlink" = "0" ]; then
+    cli_symlink_path="$(install_cli_symlink "$CLONE_ROOT" || true)"
+    if [ -L "$cli_symlink_path" ]; then
+      if ! config_set_cli_symlink "$cli_symlink_path"; then
+        ui_warn "Created CLI symlink at $cli_symlink_path but failed to record it in config — uninstall won't clean it up automatically."
+      fi
+    else
+      cli_symlink_path=""
+    fi
+  fi
 
   # Step 8: VERIFY + summary
   ui_blank
@@ -716,13 +743,20 @@ cmd_install() {
   printf '  %d installed, %d updated, %d skipped\n' \
     "$total_installed" "$total_updated" "$total_skipped"
 
+  if [ -n "$cli_symlink_path" ]; then
+    ui_success "lfx-skills CLI installed to $cli_symlink_path"
+  elif [ "$no_cli_symlink" = "0" ]; then
+    ui_warn "Couldn't find a writable dir on your PATH for the CLI symlink."
+    printf '  To use %slfx-skills%s from anywhere, add an alias to your shell rc:\n' \
+      "$_UI_BOLD" "$_UI_RESET"
+    printf '    alias lfx-skills='\''%s/bin/lfx-skills'\''\n' "$CLONE_ROOT"
+    printf '  Or extend PATH to include one of: ~/.local/bin, ~/bin, /usr/local/bin\n'
+  fi
+
   ui_blank
   ui_bold "Next steps:"
   printf '  1. Restart your AI coding assistant (or open a new session).\n'
   printf '  2. Type /lfx in any LFX repo to get started.\n'
-  printf '\n'
-  printf '  No shell rc edits needed: the skills resolve LFX_DEV_ROOT by sourcing\n'
-  printf '  %s themselves.\n' "$(env_sh_path)"
 
   if [ "${#chosen_repos[@]}" -gt 0 ]; then
     ui_blank
@@ -733,14 +767,6 @@ cmd_install() {
     printf '  .agents/skills/lfx\n'
     printf '  %s(narrow patterns preserve any of your own committed skills)%s\n' "$_UI_DIM" "$_UI_RESET"
   fi
-
-  ui_blank
-  printf '%sOptional:%s if you want to type %slfx-skills%s directly from your terminal,\n' \
-    "$_UI_DIM" "$_UI_RESET" "$_UI_BOLD" "$_UI_RESET"
-  printf '%sadd this line to your shell rc (~/.zshrc or equivalent):%s\n' "$_UI_DIM" "$_UI_RESET"
-  printf '  %s\n' "$(rc_snippet)"
-  printf '%sOtherwise, manage everything via /lfx-skills-helper from inside Claude.%s\n' \
-    "$_UI_DIM" "$_UI_RESET"
 }
 
 # Helper used inside cmd_install to sum `installed/updated/skipped/total` strings.
@@ -802,12 +828,22 @@ cmd_uninstall() {
   fi
 
   if [ "$keep_config" = "0" ] && [ -z "$scope" ]; then
-    if ui_confirm "Remove ~/.config/lfx-skills/ entirely?" N; then
+    # Remove the lfx-skills CLI symlink (e.g. ~/.local/bin/lfx-skills) if we
+    # installed it. Safe-by-default: only removed if it points into the
+    # canonical clone.
+    local cli_path canonical
+    cli_path="$(config_get cli_symlink)"
+    canonical="$(config_get canonical_clone)"
+    if [ -n "$cli_path" ] && [ -L "$cli_path" ]; then
+      if remove_cli_symlink "$cli_path" "$canonical"; then
+        ui_success "Removed lfx-skills CLI symlink at $cli_path"
+      fi
+    fi
+    if ui_confirm "Remove ~/.lfx-skills/ entirely?" N; then
       config_clear
       ui_success "Removed config dir."
-      ui_info "Remove the env.sh sourcing line from your shell rc when convenient."
     else
-      ui_info "Kept config dir (env.sh preserved)."
+      ui_info "Kept config dir."
     fi
   fi
   ui_success "Uninstall complete."

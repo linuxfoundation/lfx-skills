@@ -64,13 +64,12 @@ If a subcommand requires a journey name and the user didn't provide one, run **L
 
 ### Step 1: Discover Repos
 
-Resolve the LFX dev root and scan it for git repositories. The first line
-sources the LFX env file written by `lfx-skills install`; this makes
-`LFX_DEV_ROOT` available without depending on the user's shell rc.
+Scan the LFX dev root for git repositories. The first line resolves
+`LFX_DEV_ROOT` from a one-line text file written by `lfx-skills install`,
+falling back to `~/lf` when not installed. No shell rc / env var required.
 
 ```bash
-[ -f "$HOME/.config/lfx-skills/env.sh" ] && . "$HOME/.config/lfx-skills/env.sh"
-LFX_DEV_ROOT="${LFX_DEV_ROOT:-$HOME/lf}"
+LFX_DEV_ROOT="${LFX_DEV_ROOT:-$(cat ~/.lfx-skills/dev-root 2>/dev/null || echo "$HOME/lf")}"
 
 for dir in "$LFX_DEV_ROOT"/*/; do
   if [ -d "$dir/.git" ]; then

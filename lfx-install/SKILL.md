@@ -149,17 +149,19 @@ If errors, walk the user through the auto-fix:
 
 > "One or more checks failed. Want me to run `/lfx-doctor` to investigate?"
 
-## Step 11: Show the rc snippet
+## Step 11: Confirm the CLI is on PATH
 
-The CLI prints the `env.sh` source line at the end. Repeat it explicitly:
+The installer creates a symlink at a writable PATH dir (`~/.local/bin/lfx-skills`, `~/bin/lfx-skills`, or `/usr/local/bin/lfx-skills`) so the user can type `lfx-skills` from anywhere — no shell rc edit. Read the install output to see which path was used and tell the user:
 
-> "Add this one line to your `~/.zshrc` (or `~/.bashrc`) so `LFX_DEV_ROOT` and the `lfx-skills` command are available in every new shell:
->
+> "`lfx-skills` is now at `<reported path>` and ready to use from any terminal."
+
+If the installer reported it couldn't find a writable PATH dir, share the alias snippet it printed:
+
+> "I couldn't find a writable PATH dir to drop the CLI into. Add this alias to your shell rc to use `lfx-skills` from anywhere:
 > ```bash
-> [ -f \"$HOME/.config/lfx-skills/env.sh\" ] && . \"$HOME/.config/lfx-skills/env.sh\"
+> alias lfx-skills='<clone>/bin/lfx-skills'
 > ```
->
-> I won't edit your shell rc for you — that's your call."
+> Or extend PATH to include `~/.local/bin`, `~/bin`, or `/usr/local/bin`."
 
 ## Step 12: Suggest next steps
 

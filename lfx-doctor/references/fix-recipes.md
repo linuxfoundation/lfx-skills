@@ -17,7 +17,7 @@ Each entry follows the same shape:
 
 ## issue-id: no-config
 
-**What:** No `~/.config/lfx-skills/config.json`.
+**What:** No `~/.lfx-skills/config.json`.
 **Why it matters:** the CLI doesn't know what's installed where. Doctor can only check things relative to the manifest, so most other checks will be skipped.
 **Fix:** run `lfx-skills install`. Or, inside the lfx-skills clone, run `/lfx-install` for a guided walkthrough.
 **Auto-fixable?** no (requires user choices about platform / scope / dev root).
@@ -114,54 +114,21 @@ git clone https://github.com/linuxfoundation/lfx-v2-meeting-service.git
 
 ---
 
-## issue-id: env-sh-missing
+## issue-id: dev-root-file-missing
 
-**What:** `~/.config/lfx-skills/env.sh` is gone.
-**Why it matters:** sourcing your shell rc won't set `LFX_DEV_ROOT` or add `lfx-skills` to PATH.
-**Fix this session:** `lfx-skills doctor --fix` (CLI regenerates from `config.json`).
+**What:** `~/.lfx-skills/dev-root` is gone.
+**Why it matters:** the 3 skills that need a local LFX path (`/lfx-coordinator`, `/lfx-research`, `/lfx-test-journey`) read this file via `cat` to resolve the dev root without depending on env vars. Without it, they fall back to `~/lf`, which may not match your setup.
+**Fix:** `lfx-skills doctor --fix` regenerates it from the manifest. Or `lfx-skills config set lfx_dev_root=/your/path` if you also need to change the path.
 **Auto-fixable?** yes (CLI).
 
 ---
 
-## issue-id: dev-root-not-in-session
+## issue-id: dev-root-file-mismatch
 
-**What:** `LFX_DEV_ROOT` isn't set in the current shell.
-**Why it matters:** skills that read the env var directly will fall back to defaults (`~/lf`), which may not be where you keep your repos.
-**Fix this session:**
-
-```bash
-. ~/.config/lfx-skills/env.sh
-```
-
-**Fix permanently:** add to your `~/.zshrc` (or equivalent):
-
-```bash
-[ -f "$HOME/.config/lfx-skills/env.sh" ] && . "$HOME/.config/lfx-skills/env.sh"
-```
-
-**Auto-fixable?** no (we never auto-edit user shell rc).
-
----
-
-## issue-id: dev-root-session-drift
-
-**What:** Your shell's `LFX_DEV_ROOT` differs from the manifest's recorded value.
-**Common cause:** you set the env var manually somewhere outside `env.sh`, or you re-ran `lfx-skills install` with a new dev root but haven't reloaded your shell.
-**Fix:** decide which is right; align them. Either re-source `env.sh` or update the manifest with `lfx-skills config set lfx_dev_root=...`.
-**Auto-fixable?** no.
-
----
-
-## issue-id: env-sh-not-sourced
-
-**What:** None of your shell rc files reference `~/.config/lfx-skills/env.sh`.
-**Fix:** add this one-liner to your `~/.zshrc` (or `~/.bashrc`):
-
-```bash
-[ -f "$HOME/.config/lfx-skills/env.sh" ] && . "$HOME/.config/lfx-skills/env.sh"
-```
-
-**Auto-fixable?** no.
+**What:** The contents of `~/.lfx-skills/dev-root` differ from `lfx_dev_root` in `config.json`.
+**Common cause:** the file was hand-edited, or an old `lfx-skills` version wrote one source but not the other.
+**Fix:** `lfx-skills doctor --fix` rewrites the file from `config.json` (the source of truth).
+**Auto-fixable?** yes (CLI).
 
 ---
 

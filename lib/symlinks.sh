@@ -172,3 +172,63 @@ EOF
 
   printf '%d/%d/%d/%d\n' "$n_removed" "$n_refused" "$n_missing" "$n_total"
 }
+
+# install_cli_symlink CLONE [TARGET_DIR]
+# Symlink <CLONE>/bin/lfx-skills into a writable PATH dir so the user can type
+# `lfx-skills` from anywhere — no shell rc edit required. If TARGET_DIR is not
+# given, picks the best candidate via probe_writable_path_dir.
+# Echoes the symlink path on success (e.g. "/Users/x/.local/bin/lfx-skills").
+# Returns 1 if no writable PATH dir is available, OR if the target is occupied
+# by something we don't own. Never silently clobbers a user's own script /
+# foreign symlink. The caller should print fallback instructions.
+install_cli_symlink() {
+  local clone="$1" target_dir="${2:-}"
+  local source target
+  source="$clone/bin/lfx-skills"
+  if [ -z "$target_dir" ]; then
+    target_dir="$(probe_writable_path_dir)" || return 1
+  fi
+  target="$target_dir/lfx-skills"
+  if [ -L "$target" ]; then
+    # An existing symlink at the target. Only safe to replace if it already
+    # points where WE want it to point (idempotent re-install) or into the
+    # canonical clone (e.g. another lfx-skills clone — mark the clobber loudly).
+    local actual; actual="$(readlink "$target" 2>/dev/null || true)"
+    if [ "$actual" = "$source" ]; then
+      :  # already correct — fall through to ln (will recreate identically)
+      rm "$target"
+    elif [ -n "$clone" ] && [ "${actual#"$clone/"}" != "$actual" ]; then
+      ui_warn "Replacing existing symlink at $target (was $actual, replacing with $source)"
+      rm "$target"
+    else
+      ui_warn "Refused to overwrite $target → $actual (not owned by this lfx-skills clone)"
+      return 1
+    fi
+  elif [ -e "$target" ]; then
+    ui_warn "Refused to overwrite existing non-symlink at $target"
+    return 1
+  fi
+  if ln -s "$source" "$target"; then
+    printf '%s\n' "$target"
+    return 0
+  fi
+  return 1
+}
+
+# remove_cli_symlink TARGET CLONE → remove TARGET only if it's a symlink that
+# points into the canonical clone we passed in. Safe-by-default: refuses to
+# delete anything that doesn't look like our install. Refuses on empty CLONE.
+remove_cli_symlink() {
+  local target="$1" clone="${2:-}"
+  [ -L "$target" ] || return 0
+  if [ -z "$clone" ]; then
+    ui_warn "Refused to remove $target (no canonical_clone in config — can't verify ownership)"
+    return 1
+  fi
+  local actual; actual="$(readlink "$target" 2>/dev/null || true)"
+  if [ "${actual#"$clone/"}" = "$actual" ]; then
+    ui_warn "Refused to remove $target (points to $actual, outside $clone)"
+    return 1
+  fi
+  rm -f "$target"
+}

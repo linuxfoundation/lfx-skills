@@ -23,7 +23,7 @@ You diagnose problems with a user's LFX Skills install and walk them through fix
 The `lfx-skills` CLI lives in the user's lfx-skills clone at `bin/lfx-skills`. Try, in order:
 
 1. **On PATH:** `command -v lfx-skills` — if found, use it directly.
-2. **From the manifest:** `jq -r .canonical_clone ~/.config/lfx-skills/config.json 2>/dev/null` — if the file exists, append `/bin/lfx-skills`.
+2. **From the manifest:** `jq -r .canonical_clone ~/.lfx-skills/config.json 2>/dev/null` — if the file exists, append `/bin/lfx-skills`.
 3. **Current dir:** if the user is inside the lfx-skills clone (a `bin/lfx-skills` exists relative to `pwd`), use `./bin/lfx-skills`.
 4. **Last resort:** ask the user: "Where is your lfx-skills clone? (e.g., `~/lf/lfx-skills`)".
 
@@ -92,8 +92,6 @@ For records with `fixable: false` that the user wants addressed, apply judgment.
 
 | Issue ID                     | What you can offer                                                              |
 |------------------------------|---------------------------------------------------------------------------------|
-| `env-sh-not-sourced`         | Print the exact line for the user to add to `~/.zshrc` (from `references/fix-recipes.md`). |
-| `dev-root-not-in-session`    | Suggest `source ~/.config/lfx-skills/env.sh` for this session, plus permanent fix. |
 | `frontmatter-no-name` / `frontmatter-name-mismatch` | Read the SKILL.md, identify the line, offer to fix it via Edit. |
 | `frontmatter-no-description` | Read the SKILL.md body, draft a one-paragraph description from it, offer to insert. |
 | `license-missing`            | Insert the YAML license-header lines (see `references/fix-recipes.md` template). |

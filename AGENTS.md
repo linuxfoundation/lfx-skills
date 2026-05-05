@@ -27,7 +27,9 @@ The CLI itself is at `bin/lfx-skills`. Run `bin/lfx-skills help` for the full co
 - `lfx*/` — each directory is one skill, with `SKILL.md` and optional `references/`.
 - `.claude/skills/` and `.agents/skills/` — committed relative symlinks to the four meta-skills above (this is what makes them auto-discoverable when someone clones).
 - `install.sh` — thin shim that execs `bin/lfx-skills install "$@"`.
-- `~/.config/lfx-skills/config.json` — user-level manifest written by the CLI (not in this repo).
+- `~/.lfx-skills/config.json` — user-level manifest written by the CLI (not in this repo).
+- `~/.lfx-skills/dev-root` — single-line text file the 3 dev-root-aware skills `cat` to resolve `LFX_DEV_ROOT` without depending on shell env.
+- `~/.local/bin/lfx-skills` (or `~/bin/...`, or `/usr/local/bin/...`) — symlink the installer creates so `lfx-skills` is on PATH everywhere. No shell rc edit needed.
 
 ## Tool-name compatibility
 

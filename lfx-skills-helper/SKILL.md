@@ -24,7 +24,7 @@ You are the conversational front-end for the `lfx-skills` CLI: install, uninstal
 Same as `/lfx-doctor`. Try in order:
 
 1. `command -v lfx-skills` (on PATH).
-2. `jq -r .canonical_clone ~/.config/lfx-skills/config.json 2>/dev/null` then append `/bin/lfx-skills`.
+2. `jq -r .canonical_clone ~/.lfx-skills/config.json 2>/dev/null` then append `/bin/lfx-skills`.
 3. `./bin/lfx-skills` if you're inside the lfx-skills clone.
 4. Ask the user.
 

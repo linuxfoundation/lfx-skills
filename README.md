@@ -7,11 +7,49 @@ A collection of AI coding skills that encode the full development workflow for t
 
 ## Quick Install
 
+### Claude Code
+
+Install the Claude Code plugin from the LF marketplace:
+
+```text
+/plugin marketplace add linuxfoundation/lfx-plugins
+/plugin install lfx-skills@lfx
+```
+
+For local plugin development from this checkout:
+
 ```bash
 git clone https://github.com/linuxfoundation/lfx-skills.git
 cd lfx-skills
+claude --plugin-dir .
+```
+
+Claude Code plugin commands are namespaced by the plugin name, for example `/lfx-skills:lfx`. The plugin is skills-only: it exposes the runtime skills listed in `.claude-plugin/plugin.json` and does not install or expose the CLI.
+
+### agents.md-Compatible Tools
+
+For Codex, Gemini CLI, OpenCode, and other agents.md-compatible tools, the setup is agent-first:
+
+```bash
+git clone https://github.com/linuxfoundation/lfx-skills.git
+cd lfx-skills
+```
+
+Start your coding agent in the cloned repo and ask it to set up LFX Skills. The repo includes four helper skills under `skills/` for this flow:
+
+- `lfx-install` — guided first-time setup
+- `lfx-doctor` — install health checks and repair guidance
+- `lfx-skills-helper` — list, update, uninstall, and inspect the setup
+- `lfx-new-skill` — scaffold a new skill in this repo
+
+If you prefer to run the installer manually:
+
+```bash
 ./install.sh
 ```
+
+The CLI installs skill symlinks into agents.md skill directories and records the install in `~/.lfx-skills/config.json`.
+agents.md installs include the 15 runtime skills plus `/lfx-doctor` and `/lfx-skills-helper`. `/lfx-install` and `/lfx-new-skill` stay clone-only.
 
 Then restart your AI coding assistant, open any LFX repo, and type `/lfx` to get started.
 
@@ -29,39 +67,19 @@ New to LFX development? Type `/lfx` and say **"show me an example"** for a walkt
 
 ## Prerequisites
 
-- An AI coding assistant that supports skill-based workflows (e.g., Claude Code, Gemini CLI). See [docs/platform-install.md](docs/platform-install.md) for setup instructions.
+- An AI coding assistant that supports skill-based workflows. Claude Code uses the plugin path; Codex, Gemini CLI, OpenCode, and similar tools use the CLI installer. See [docs/platform-install.md](docs/platform-install.md) for details.
 - Access to LFX repositories (for the skills to operate on)
-- **Optional: `LFX_DEV_ROOT`** — environment variable pointing to the directory where you keep your LFX repo clones. Defaults to `~/lf/`. Set it to your preferred location (e.g., `~/code/lfx`, `~/work/lfx`) and the skills will discover your local repos there. Add `export LFX_DEV_ROOT=...` to your shell rc to make it persistent.
+- **Optional: `LFX_DEV_ROOT`** — environment variable pointing to the directory where you keep your LFX repo clones. Defaults to `~/lf/`. The CLI records the chosen path in `~/.lfx-skills/dev-root` so skills can discover local repos without shell rc edits.
 
-## Manual Installation
+## CLI Safety
 
-> **Note:** These manual instructions are for Claude Code. For other platforms, see [docs/platform-install.md](docs/platform-install.md).
+`./install.sh` is a thin wrapper around `cli/lfx-skills install`. It does not edit your shell rc or rewrite your `PATH`.
 
-If you prefer to install manually instead of using `./install.sh`:
+The only PATH-related write it attempts is creating an `lfx-skills` symlink in an existing writable directory already on your `PATH` (`~/.local/bin`, `~/bin`, `/opt/homebrew/bin`, or `/usr/local/bin`). It refuses to overwrite existing non-symlinks or symlinks it does not own. If no safe directory is available, it prints an alias fallback instead.
 
-### Step 1: Clone this repo
+## Verify
 
-```bash
-git clone https://github.com/linuxfoundation/lfx-skills.git
-```
-
-### Step 2: Install the skills
-
-Claude Code auto-discovers skills from `~/.claude/skills/`. Symlink each skill:
-
-```bash
-# From the cloned repo directory
-mkdir -p ~/.claude/skills
-for skill in lfx-*/ lfx/; do
-  ln -sf "$(pwd)/$skill" ~/.claude/skills/"$(basename "$skill")"
-done
-```
-
-This makes all `/lfx*` skills available globally.
-
-### Step 3: Verify
-
-Restart your AI coding assistant (or open a new session) in any LFX repo and type `/lfx` — you should see all skills in the autocomplete list:
+Restart your AI coding assistant (or open a new session) in any LFX repo and type `/lfx` — agents.md installs should see these commands in autocomplete:
 
 ```
 /lfx                              ← start here (plain-language entry point)
@@ -83,28 +101,90 @@ Restart your AI coding assistant (or open a new session) in any LFX repo and typ
 /lfx-skills-helper                ← manage what's installed where (install/uninstall/update/list)
 ```
 
-### Alternative: Per-repo installation
+## Releases and Updates
 
-If you prefer skills scoped to a specific repo instead of global:
+Releases follow the same GitHub Release pattern used by LFX service repos such as `lfx-mcp`.
+
+You can ship one skill change or a batch of skill changes in the same release. Merge the skill changes first, then create a GitHub Release using `vMAJOR.MINOR.PATCH`; GitHub creates the tag.
+
+### Version bump guidelines
+
+| Change type | Version component |
+|---|---|
+| Typo fixes, prompt wording tweaks, docs, installer fixes, CI fixes | **patch** |
+| New skills, substantial skill behavior updates, new supported platform behavior | **minor** |
+| Breaking command names, plugin name changes, removing or renaming skills, install layout breaks | **major** (only when explicitly instructed) |
 
 ```bash
-# From inside a target repo (e.g., lfx-v2-ui)
-mkdir -p .claude/skills
-for skill in /path/to/skills/lfx-*/ /path/to/skills/lfx/; do
-  ln -sf "$skill" .claude/skills/"$(basename "$skill")"
-done
+LATEST=$(git tag --sort=-v:refname | head -1)
+echo "Latest tag: $LATEST"
+NEXT=v0.1.0
 
-# Keep symlinks out of version control
-echo '.claude/skills/' >> .gitignore
+gh release create "$NEXT" \
+  --generate-notes \
+  --latest
 ```
 
-### Uninstall
-
-> **Note:** These instructions are for Claude Code. For other platforms, remove the skill references from your tool's configuration.
+Then update the self-hosted Claude marketplace in the sibling `lfx-plugins` repo. The marketplace entry must point at the released `lfx-skills` tag, and `version` must be the same tag without the leading `v`:
 
 ```bash
-rm -f ~/.claude/skills/lfx-*
-rm -f ~/.claude/skills/lfx
+cd ../lfx-plugins
+```
+
+Update `.claude-plugin/marketplace.json`:
+
+```json
+{
+  "source": {
+    "source": "github",
+    "repo": "linuxfoundation/lfx-skills",
+    "ref": "v0.1.0"
+  },
+  "version": "0.1.0"
+}
+```
+
+Commit the marketplace bump with DCO and cryptographic signing:
+
+```bash
+git add .claude-plugin/marketplace.json
+git commit -s -S -m "chore: publish lfx-skills plugin v0.1.0"
+git push
+```
+
+Do not put `version` in `.claude-plugin/plugin.json`; Claude resolves manifest versions before marketplace versions, so the marketplace repo owns the published plugin version.
+
+Claude Code users then update from Claude:
+
+```text
+/plugin marketplace update lfx
+/plugin update lfx-skills@lfx
+```
+
+For agents.md-compatible installs, update from the terminal or ask your coding agent to update LFX Skills:
+
+```bash
+lfx-skills update --pull
+lfx-skills doctor
+```
+
+If `lfx-skills` is not on `PATH`, run the CLI from the clone:
+
+```bash
+/path/to/lfx-skills/cli/lfx-skills update --pull
+/path/to/lfx-skills/cli/lfx-skills doctor
+```
+
+To remove old Claude symlink installs from before the plugin pivot, use the CLI's legacy cleanup mode:
+
+```bash
+lfx-skills uninstall --legacy-claude-only
+```
+
+To remove the whole agents.md installation, CLI symlink, config, and any legacy Claude symlinks owned by this clone:
+
+```bash
+lfx-skills uninstall --all
 ```
 
 ## Architecture
@@ -447,63 +527,32 @@ An **interactive setup guide** that walks through environment configuration step
 ## Project Structure
 
 ```
-├── lfx/
-│   ├── SKILL.md                    # Entry point — plain-language router
-│   └── references/
-│       ├── glossary.md             # LFX terms explained in plain language
-│       └── quickstart.md           # Example workflow transcripts
-├── lfx-coordinator/
-│   ├── SKILL.md                    # Orchestrator — plans, delegates, validates
-│   └── references/
-│       ├── fga-protected-types.md  # FGA-protected resource types (read-restricted)
-│       ├── indexed-data-types.md   # Queryable resource types and indexing
-│       └── shared-types.md         # Shared package conventions
-├── lfx-research/
-│   └── SKILL.md                    # Read-only exploration and API validation
-├── lfx-backend-builder/
-│   ├── SKILL.md                    # Express.js proxy + Go microservice codegen
-│   └── references/
-│       ├── backend-endpoint.md     # Three-file pattern for Express endpoints
-│       ├── fga-patterns.md         # OpenFGA access control patterns
-│       ├── getting-started.md      # Repo map and deployment overview
-│       ├── goa-patterns.md         # Goa v3 DSL conventions
-│       ├── helm-chart.md           # Service Helm chart structure
-│       ├── indexer-patterns.md     # OpenSearch indexing patterns
-│       ├── nats-messaging.md       # NATS subject naming and messaging
-│       ├── new-service.md          # New resource service checklist
-│       ├── query-service.md        # Query service API reference
-│       └── service-types.md        # Native vs wrapper service types
-├── lfx-ui-builder/
-│   ├── SKILL.md                    # Angular 20 frontend codegen
-│   └── references/
-│       ├── frontend-component.md   # Component patterns and conventions
-│       └── frontend-service.md     # Service patterns and state management
-├── lfx-product-architect/
-│   └── SKILL.md                    # Architecture guidance and decision trees
-├── lfx-preflight/
-│   └── SKILL.md                    # Pre-PR validation and auto-fix
-├── lfx-pr-catchup/
-│   └── SKILL.md                    # Morning PR catch-up dashboard
-├── lfx-pr-resolve/
-│   ├── SKILL.md                    # Address PR review feedback end-to-end
-│   └── evals/
-│       └── evals.json              # Skill behavior assertions
-├── lfx-setup/
-│   └── SKILL.md                    # Environment setup guide
-├── lfx-test-journey/
-│   └── SKILL.md                    # Multi-branch journey testing
-├── lfx-git-setup/
-│   ├── SKILL.md                    # DCO sign-off and GPG-signed commit setup
-│   └── references/
-│       ├── linux.md                # Linux-specific GPG/DCO instructions
-│       ├── mac.md                  # macOS-specific GPG/DCO instructions
-│       └── windows.md              # Windows-specific GPG/DCO instructions
-├── lfx-intercom/
-│   └── SKILL.md                    # Intercom integration — add or fix to LFX standard
-├── lfx-snowflake-access/
-│   └── SKILL.md                    # Request Snowflake access via Terraform PR
-└── lfx-cdp-snowflake-connectors/
-    └── SKILL.md                    # Snowflake connector scaffolding for CDP
+├── .claude-plugin/
+│   └── plugin.json                 # Claude Code plugin manifest
+├── cli/
+│   └── lfx-skills                  # CLI installer and management command
+├── lib/
+│   └── *.sh                        # CLI support libraries
+└── skills/
+    ├── lfx/                         # Entry point — plain-language router
+    ├── lfx-coordinator/             # Orchestrator — plans, delegates, validates
+    ├── lfx-research/                # Read-only exploration and API validation
+    ├── lfx-backend-builder/         # Express.js proxy + Go microservice codegen
+    ├── lfx-ui-builder/              # Angular 20 frontend codegen
+    ├── lfx-product-architect/       # Architecture guidance and decision trees
+    ├── lfx-preflight/               # Pre-PR validation and auto-fix
+    ├── lfx-pr-catchup/              # Morning PR catch-up dashboard
+    ├── lfx-pr-resolve/              # Address PR review feedback end-to-end
+    ├── lfx-setup/                   # Environment setup guide
+    ├── lfx-test-journey/            # Multi-branch journey testing
+    ├── lfx-git-setup/               # DCO sign-off and GPG-signed commit setup
+    ├── lfx-intercom/                # Intercom integration — add or fix
+    ├── lfx-snowflake-access/        # Request Snowflake access via Terraform PR
+    ├── lfx-cdp-snowflake-connectors/# Snowflake connector scaffolding for CDP
+    ├── lfx-doctor/                  # Install health checks and repair guidance
+    ├── lfx-skills-helper/           # CLI management front-end
+    ├── lfx-install/                 # CLI install guide for agents.md tools
+    └── lfx-new-skill/               # Contributor scaffolder
 ```
 
 ## License

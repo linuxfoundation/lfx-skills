@@ -83,8 +83,8 @@ Reference files don't need frontmatter. Just markdown (or JSON / YAML / etc.). A
 After creating, run:
 
 ```bash
-./bin/lfx-skills update      # install the new skill at every configured target
-./bin/lfx-skills doctor      # validate frontmatter, license header, routing
+./cli/lfx-skills update      # install the new skill at every configured target
+./cli/lfx-skills doctor      # validate frontmatter, license header, routing
 ```
 
 Fix anything the doctor flags before opening a PR.

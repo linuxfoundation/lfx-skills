@@ -1,7 +1,7 @@
 # Copyright The Linux Foundation and each contributor to LFX.
 # SPDX-License-Identifier: MIT
 #
-# UI helpers for bin/lfx-skills. Sourced; do not execute directly.
+# UI helpers for cli/lfx-skills. Sourced; do not execute directly.
 # Targets bash 3.2+ (stock macOS).
 
 # Color codes — only emitted when stdout is a TTY and NO_COLOR is unset.

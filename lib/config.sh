@@ -1,12 +1,11 @@
 # Copyright The Linux Foundation and each contributor to LFX.
 # SPDX-License-Identifier: MIT
 #
-# Config + env.sh I/O for bin/lfx-skills. Sourced; do not execute directly.
+# Config + dev-root I/O for cli/lfx-skills. Sourced; do not execute directly.
 # Requires: jq (caller validates with probe_have_jq).
 
-# Config dir lives at $HOME/.lfx-skills (sibling of $HOME/.claude, $HOME/.codex,
-# etc. — the convention the user-facing AI tools follow). Each config artefact
-# is a sibling file inside that dir:
+# Config dir lives at $HOME/.lfx-skills. Each config artefact is a sibling file
+# inside that dir:
 #   config.json   manifest of every symlink the CLI installed (incl. cli_symlink)
 #   dev-root      single-line text file containing the resolved LFX_DEV_ROOT.
 #                 Skills `cat` this to get the dev root without depending on
@@ -48,7 +47,6 @@ config_init() {
          shell_rc_detected: [],
          installed_at: $now,
          last_updated_at: $now,
-         platforms: {},
          symlinks: []
        }' > "$cfg"
   fi
@@ -64,7 +62,7 @@ config_read() {
 }
 
 # config_get KEY → echo the JSON value (raw) at .KEY. Empty if missing.
-# KEY may be a dotted path: e.g., "platforms.claude.config_dirs"
+# KEY may be a dotted path: e.g., "shell_rc_detected"
 config_get() {
   local key="$1"
   config_read | jq -r --arg k "$key" '
@@ -111,16 +109,15 @@ config_set_json() {
   ' < "$cfg" > "$tmp" && mv "$tmp" "$cfg"
 }
 
-# config_add_symlink PLATFORM SCOPE LINK SOURCE [BASE]
+# config_add_symlink SCOPE LINK SOURCE [BASE]
 # Append a symlink record to the symlinks array.
-#   PLATFORM: claude | agents
 #   SCOPE:    global | repo
 #   LINK:     absolute path of the symlink we created
 #   SOURCE:   absolute path of the skill directory the symlink points at
 #   BASE:     for global → the config_dir; for repo → the repo path
 # Skill name is inferred from basename(LINK).
 config_add_symlink() {
-  local platform="$1" scope="$2" link="$3" source="$4" base="${5:-}"
+  local scope="$1" link="$2" source="$3" base="${4:-}"
   local skill cfg now tmp
   skill="$(basename "$link")"
   cfg="$(config_json_path)"
@@ -129,22 +126,20 @@ config_add_symlink() {
   local entry
   if [ "$scope" = "global" ]; then
     entry="$(jq -n \
-      --arg platform "$platform" \
       --arg scope "$scope" \
       --arg config_dir "$base" \
       --arg skill "$skill" \
       --arg link "$link" \
       --arg source "$source" \
-      '{platform:$platform, scope:$scope, config_dir:$config_dir, skill:$skill, link:$link, source:$source}')"
+      '{scope:$scope, config_dir:$config_dir, skill:$skill, link:$link, source:$source}')"
   else
     entry="$(jq -n \
-      --arg platform "$platform" \
       --arg scope "$scope" \
       --arg repo "$base" \
       --arg skill "$skill" \
       --arg link "$link" \
       --arg source "$source" \
-      '{platform:$platform, scope:$scope, repo:$repo, skill:$skill, link:$link, source:$source}')"
+      '{scope:$scope, repo:$repo, skill:$skill, link:$link, source:$source}')"
   fi
   jq --argjson entry "$entry" --arg now "$now" '
     .symlinks = ((.symlinks // []) | map(select(.link != $entry.link)) + [$entry])
@@ -190,22 +185,6 @@ config_list_symlink_records() {
   config_read | jq -c --argjson _ 0 "(.symlinks // [])[] | select($filter)"
 }
 
-# config_set_platform_claude DIR... → record the list of claude config dirs.
-config_set_platform_claude() {
-  local dirs_json
-  dirs_json="$(printf '%s\n' "$@" | jq -R . | jq -sc .)"
-  config_set_json "platforms.claude" "{\"config_dirs\": $dirs_json}"
-}
-
-# config_set_platform_agents DIR... → record the list of agents config dirs.
-# Mirror of config_set_platform_claude — both use a `config_dirs` array so the
-# manifest shape is symmetric across platforms.
-config_set_platform_agents() {
-  local dirs_json
-  dirs_json="$(printf '%s\n' "$@" | jq -R . | jq -sc .)"
-  config_set_json "platforms.agents" "{\"config_dirs\": $dirs_json}"
-}
-
 # config_set_shell_rcs RC... → record the list of detected shell rcs.
 config_set_shell_rcs() {
   local rcs_json
@@ -219,9 +198,19 @@ config_clear() {
   rmdir "$(config_dir)" 2>/dev/null || true
 }
 
+# config_prune_obsolete_platforms → remove legacy platform metadata.
+config_prune_obsolete_platforms() {
+  config_exists || return 0
+  local cfg now tmp
+  cfg="$(config_json_path)"
+  now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  tmp="$cfg.tmp.$$"
+  jq --arg now "$now" 'del(.platforms) | .last_updated_at = $now' < "$cfg" > "$tmp" && mv "$tmp" "$cfg"
+}
+
 # write_dev_root_file → write the resolved LFX_DEV_ROOT path to
 # $HOME/.lfx-skills/dev-root as a single line. Skills read this with `cat` so
-# they don't have to source env.sh, parse JSON, or depend on env vars.
+# they don't have to source shell config, parse JSON, or depend on env vars.
 write_dev_root_file() {
   local devroot path
   devroot="$(config_get lfx_dev_root)"

@@ -20,11 +20,11 @@ You diagnose problems with a user's LFX Skills install and walk them through fix
 
 ## Step 1: Locate the CLI
 
-The `lfx-skills` CLI lives in the user's lfx-skills clone at `bin/lfx-skills`. Try, in order:
+The `lfx-skills` CLI lives in the user's lfx-skills clone at `cli/lfx-skills`. Try, in order:
 
 1. **On PATH:** `command -v lfx-skills` — if found, use it directly.
-2. **From the manifest:** `jq -r .canonical_clone ~/.lfx-skills/config.json 2>/dev/null` — if the file exists, append `/bin/lfx-skills`.
-3. **Current dir:** if the user is inside the lfx-skills clone (a `bin/lfx-skills` exists relative to `pwd`), use `./bin/lfx-skills`.
+2. **From the manifest:** `jq -r .canonical_clone ~/.lfx-skills/config.json 2>/dev/null` — if the file exists, append `/cli/lfx-skills`.
+3. **Current dir:** if the user is inside the lfx-skills clone (a `cli/lfx-skills` exists relative to `pwd`), use `./cli/lfx-skills`.
 4. **Last resort:** ask the user: "Where is your lfx-skills clone? (e.g., `~/lf/lfx-skills`)".
 
 If none of the above works, the install was never run: tell the user to clone the repo and run `./install.sh` (or use `/lfx-install` if they're inside the clone). Stop here.

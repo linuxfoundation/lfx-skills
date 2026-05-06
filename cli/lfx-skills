@@ -7,7 +7,16 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [ -L "$SCRIPT_PATH" ]; do
+  SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
+  SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+  case "$SCRIPT_PATH" in
+    /*) ;;
+    *) SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_PATH" ;;
+  esac
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
 CLONE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 export CLONE_ROOT
 
@@ -15,8 +24,8 @@ export CLONE_ROOT
 . "$CLONE_ROOT/lib/ui.sh"
 # shellcheck source=../lib/probe.sh
 . "$CLONE_ROOT/lib/probe.sh"
-# shellcheck source=../lib/platforms.sh
-. "$CLONE_ROOT/lib/platforms.sh"
+# shellcheck source=../lib/targets.sh
+. "$CLONE_ROOT/lib/targets.sh"
 # shellcheck source=../lib/config.sh
 . "$CLONE_ROOT/lib/config.sh"
 # shellcheck source=../lib/symlinks.sh
@@ -66,14 +75,14 @@ cmd_help() {
 }
 
 _help_root() {
-  cat <<EOF
+  cat <<'EOF'
 lfx-skills — install, manage, and diagnose the LFX Skills collection
 
 USAGE
   lfx-skills <command> [options]
 
 COMMANDS
-  install      Install LFX skills (interactive wizard or non-interactive flags)
+  install      Install LFX skills for agents.md-compatible tools
   uninstall    Remove installed symlinks (recorded in config.json)
   update       Re-apply the manifest; with --pull, git-pull the clone first
   check        Lightweight verification: does config match filesystem? (exit 0/1)
@@ -81,13 +90,13 @@ COMMANDS
   list         List installed or available skills
   info SKILL   Show frontmatter + install locations for a skill
   config       Show or modify ~/.lfx-skills/config.json (get/set)
-  repos        List lf* git repos under \$LFX_DEV_ROOT
+  repos        List lf* git repos under $LFX_DEV_ROOT
   version      Print version of this lfx-skills clone
   help [CMD]   Detailed help for CMD, or this overview
 
 EXAMPLES
   lfx-skills install                        # interactive wizard
-  lfx-skills install --yes --platform=claude --scope=global
+  lfx-skills install --yes --scope=global
   lfx-skills doctor
   lfx-skills doctor --fix
   lfx-skills list --available
@@ -103,7 +112,7 @@ CONFIG
                                      dir at install time. Recorded in
                                      config.json.cli_symlink.
 
-Run \`lfx-skills help <command>\` for command-specific options.
+Run `lfx-skills help <command>` for command-specific options.
 EOF
 }
 
@@ -113,15 +122,14 @@ USAGE
   lfx-skills install [flags]
 
 INTERACTIVE
-  Run with no flags to step through: platform → scope → dev root → config
-  dirs (if global) → repos (if per-repo) → preview → apply → verify.
+  Run with no flags to step through: scope → dev root → config dirs
+  (if global) → repos (if per-repo) → preview → apply → verify.
+  This CLI creates symlinks only for agents.md-compatible tools.
 
 NON-INTERACTIVE FLAGS
   --yes                       Skip all confirmations (use defaults / supplied flags)
-  --platform=claude|agents|claude,agents|both    'both' is sugar for 'claude,agents'
   --scope=global|repo|global,repo|both           'both' is sugar for 'global,repo'
   --lfx-dev-root=PATH
-  --claude-config=PATH[,PATH...]   Multi-config: pass several Claude config dirs
   --agents-config=PATH[,PATH...]   Multi-config: pass several agents config dirs
   --repos=PATH[,PATH...]           Required if --scope contains 'repo'
   --no-cli-symlink                 Skip installing the `lfx-skills` CLI
@@ -131,9 +139,8 @@ NON-INTERACTIVE FLAGS
 
 EXAMPLE
   lfx-skills install --yes \
-    --platform=both --scope=both \
+    --scope=both \
     --lfx-dev-root=$HOME/lf \
-    --claude-config=$HOME/.claude,$HOME/.claude-work \
     --repos=$HOME/lf/lfx-v2-ui,$HOME/lf/lfx-v2-meeting-service
 EOF
 }
@@ -143,13 +150,16 @@ _help_uninstall() {
 USAGE
   lfx-skills uninstall [flags]
 
-  Removes every symlink listed in config.json. Asks before deleting env.sh.
+  Removes recorded agents.md symlinks by default.
 
 FLAGS
   --yes                       Skip confirmations
   --scope=global|repo         Limit removal to a scope
   --repos=PATH[,PATH...]      With --scope=repo: only remove from these repos
-  --keep-config               Keep config.json + env.sh on disk
+  --legacy-claude-only        Only remove legacy Claude symlinks owned by this clone
+  --all                       Remove the whole installation: recorded symlinks,
+                              legacy Claude symlinks, CLI symlink, and config
+  --keep-config               Keep config.json + dev-root on disk
 EOF
 }
 
@@ -160,9 +170,8 @@ USAGE
 
   Re-apply the install manifest. With --pull, git-pull the canonical clone
   first. Detects skills present in the clone but missing from the manifest
-  (newly added upstream OR locally created via /lfx-new-skill) and asks
-  whether to install them. Detects manifest entries whose source skill is
-  gone and offers cleanup.
+  (newly added upstream OR locally created via /lfx-new-skill) and reports
+  them so you can re-run install.
 EOF
 }
 
@@ -183,7 +192,7 @@ USAGE
   lfx-skills doctor [--json] [--fix]
 
 FLAGS
-  --json   Emit results as a JSON array (for scripts / Claude skills)
+  --json   Emit results as a JSON array (for scripts / skills)
   --fix    Interactive fix: walk through fixable issues and prompt per issue
 EOF
 }
@@ -214,7 +223,7 @@ _help_config() {
 USAGE
   lfx-skills config              Show full config.json (pretty-printed)
   lfx-skills config get KEY      Print one value
-  lfx-skills config set KEY=VAL  Update a value (re-writes env.sh if relevant)
+  lfx-skills config set KEY=VAL  Update a value (re-writes dev-root if relevant)
 EOF
 }
 
@@ -311,7 +320,7 @@ cmd_list() {
       jq_filter="$jq_filter and .repo == \"$repo\""
     fi
   fi
-  config_read | jq -r --argjson _ 0 "(.symlinks // [])[] | select($jq_filter) | \"\(.platform)/\(.scope)\t\(.skill)\t\(.link)\"" | sort -u
+  config_read | jq -r --argjson _ 0 "(.symlinks // [])[] | select($jq_filter) | \"\(.scope)\t\(.skill)\t\(.link)\"" | sort -u
 }
 
 # ─── info ────────────────────────────────────────────────────────────────
@@ -319,13 +328,13 @@ cmd_info() {
   require_jq
   local skill="${1:-}"
   [ -z "$skill" ] && ui_die "Usage: lfx-skills info SKILL"
-  local skill_md="$CLONE_ROOT/$skill/SKILL.md"
+  local skill_md="$CLONE_ROOT/skills/$skill/SKILL.md"
   if [ ! -f "$skill_md" ]; then
-    ui_error "No SKILL.md for \`$skill\` in $CLONE_ROOT"
+    ui_error "No SKILL.md for \`$skill\` in $CLONE_ROOT/skills"
     exit 1
   fi
   ui_section "$skill"
-  printf 'Source: %s\n' "$CLONE_ROOT/$skill"
+  printf 'Source: %s\n' "$CLONE_ROOT/skills/$skill"
   printf '\n'
   ui_bold "Frontmatter:"
   awk 'NR==1 && /^---$/ {start=1; next} start && /^---$/ {exit} start {print "  " $0}' "$skill_md"
@@ -337,7 +346,7 @@ cmd_info() {
     if [ "$n_locations" -eq 0 ]; then
       printf '  (not installed anywhere)\n'
     else
-      config_read | jq -r --arg s "$skill" '(.symlinks // [])[] | select(.skill == $s) | "  \(.platform)/\(.scope)  \(.link)"'
+      config_read | jq -r --arg s "$skill" '(.symlinks // [])[] | select(.skill == $s) | "  \(.scope)  \(.link)"'
     fi
   fi
 }
@@ -427,15 +436,15 @@ EOF
 cmd_install() {
   require_jq
 
-  local platform="" scope="" lfx_dev_root="" claude_config="" agents_config="" repos="" dry_run=0
+  local scope="" lfx_dev_root="" agents_config="" repos="" dry_run=0
   local no_cli_symlink=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --yes)               LFX_SKILLS_YES=1; export LFX_SKILLS_YES ;;
-      --platform=*)        platform="${1#*=}" ;;
+      --platform=*)        ui_die "--platform is no longer supported; the CLI installs agents.md skills only." ;;
       --scope=*)           scope="${1#*=}" ;;
       --lfx-dev-root=*)    lfx_dev_root="${1#*=}" ;;
-      --claude-config=*)   claude_config="${1#*=}" ;;
+      --claude-config=*)   ui_die "--claude-config is no longer supported; Claude Code uses the lfx-skills plugin." ;;
       --agents-config=*)   agents_config="${1#*=}" ;;
       --repos=*)           repos="${1#*=}" ;;
       --no-cli-symlink)    no_cli_symlink=1 ;;
@@ -452,45 +461,14 @@ cmd_install() {
   ui_step "Probing your system…"
   # Initialize all dynamic arrays to empty up-front so `${arr[@]}` is safe under
   # bash 3.2 with `set -u` even when the probe yields nothing.
-  local -a claude_dirs_probed=() agents_dirs_probed=() dev_root_probed=()
-  while IFS= read -r d; do claude_dirs_probed+=("$d"); done < <(probe_claude_config_dirs)
+  local -a agents_dirs_probed=() dev_root_probed=()
   while IFS= read -r d; do agents_dirs_probed+=("$d"); done < <(probe_agents_config_dirs)
   while IFS= read -r d; do dev_root_probed+=("$d"); done < <(probe_dev_root_candidates)
 
-  ui_dim "  Claude config dirs: ${claude_dirs_probed[*]:-(none found)}"
   ui_dim "  Agents config dirs: ${agents_dirs_probed[*]:-(none found)}"
   ui_dim "  Dev root candidates: ${dev_root_probed[*]:-(none found)}"
 
-  # Step 2: PLATFORM (multi-select: claude, agents, or both)
-  if [ -z "$platform" ]; then
-    local -a _picked=()
-    local _line
-    while IFS= read -r _line; do _picked+=("$_line"); done < <(
-      ui_checkbox_select "Which AI platform(s)? (select one or both)" "1" 1 \
-        "Claude Code" "agents.md (Codex / Gemini CLI / OpenCode)"
-    )
-    if [ "${#_picked[@]}" -eq 0 ]; then ui_info "Aborted."; return 0; fi
-    local _p _parts=""
-    for _p in "${_picked[@]}"; do
-      case "$_p" in
-        "Claude Code") _parts="${_parts:+$_parts,}claude" ;;
-        "agents.md"*) _parts="${_parts:+$_parts,}agents" ;;
-      esac
-    done
-    platform="$_parts"
-    ui_blank
-  fi
-  # Accept "both" as legacy sugar; normalise to comma-joined.
-  case "$platform" in
-    both) platform="claude,agents" ;;
-    claude|agents|claude,agents|agents,claude) ;;
-    *) ui_die "--platform must be a combination of claude,agents (or 'both')" ;;
-  esac
-  local include_claude=0 include_agents=0
-  case ",$platform," in *,claude,*) include_claude=1 ;; esac
-  case ",$platform," in *,agents,*) include_agents=1 ;; esac
-
-  # Step 3: SCOPE (multi-select: global, per-repo, or both)
+  # Step 2: SCOPE (multi-select: global, per-repo, or both)
   if [ -z "$scope" ]; then
     local -a _picked=()
     local _line
@@ -518,7 +496,7 @@ cmd_install() {
   case ",$scope," in *,global,*) include_global=1 ;; esac
   case ",$scope," in *,repo,*) include_repo=1 ;; esac
 
-  # Step 4: LFX DEV ROOT
+  # Step 3: LFX DEV ROOT
   if [ -z "$lfx_dev_root" ]; then
     if [ -n "${LFX_DEV_ROOT:-}" ]; then
       lfx_dev_root="$LFX_DEV_ROOT"
@@ -529,66 +507,41 @@ cmd_install() {
       lfx_dev_root="$(ui_input "Where do you keep your LFX repos?" "$HOME/lf")"
     fi
   fi
-  if [ ! -d "$lfx_dev_root" ]; then
-    ui_warn "$lfx_dev_root does not exist. Creating…"
-    mkdir -p "$lfx_dev_root"
-  fi
   local repo_count
-  repo_count="$(probe_count_repos_in "$lfx_dev_root")"
+  if [ -d "$lfx_dev_root" ]; then
+    repo_count="$(probe_count_repos_in "$lfx_dev_root")"
+  else
+    repo_count=0
+  fi
   ui_dim "  $lfx_dev_root contains $repo_count lf* git repo(s)."
   ui_blank
 
-  # Step 5a: CONFIG DIR PICKER (only if global scope)
+  # Step 4a: CONFIG DIR PICKER (only if global scope)
   # Empty defaults so `${arr[@]}` is safe under bash 3.2 + `set -u`.
-  local -a chosen_claude_dirs=() chosen_agents_dirs=()
+  local -a chosen_agents_dirs=()
   if [ "$include_global" -eq 1 ]; then
-    if [ "$include_claude" -eq 1 ]; then
-      if [ -n "$claude_config" ]; then
-        # Convert comma-separated to newline-separated; reading line-by-line
-        # avoids changing IFS (which dynamically scopes into nested calls and
-        # would break SYMLINKS_CLONE_ONLY iteration in symlinks_eligible_skills).
-        local d
-        while IFS= read -r d; do chosen_claude_dirs+=("$d"); done < <(printf '%s\n' "$claude_config" | tr ',' '\n')
+    if [ -n "$agents_config" ]; then
+      local d
+      while IFS= read -r d; do chosen_agents_dirs+=("$d"); done < <(printf '%s\n' "$agents_config" | tr ',' '\n')
+    elif [ "${#agents_dirs_probed[@]}" -gt 0 ]; then
+      # If multiple, let the user pick. Single = silent default.
+      if [ "${#agents_dirs_probed[@]}" -eq 1 ]; then
+        chosen_agents_dirs=("${agents_dirs_probed[0]}")
       else
-        if [ "${#claude_dirs_probed[@]}" -eq 0 ]; then
-          chosen_claude_dirs=("$(platform_default_global_dir claude)")
-        elif [ "${#claude_dirs_probed[@]}" -eq 1 ]; then
-          chosen_claude_dirs=("${claude_dirs_probed[0]}")
-        else
-          local picked
-          while IFS= read -r picked; do chosen_claude_dirs+=("$picked"); done < <(
-            ui_checkbox_select "Which Claude config dir(s)? (select one or more)" "1" 1 \
-              "${claude_dirs_probed[@]}"
-          )
-          if [ "${#chosen_claude_dirs[@]}" -eq 0 ]; then ui_info "Aborted."; return 0; fi
-          ui_blank
-        fi
+        local picked
+        while IFS= read -r picked; do chosen_agents_dirs+=("$picked"); done < <(
+          ui_checkbox_select "Which agents config dir(s)? (select one or more)" "1" 1 \
+            "${agents_dirs_probed[@]}"
+        )
+        if [ "${#chosen_agents_dirs[@]}" -eq 0 ]; then ui_info "Aborted."; return 0; fi
+        ui_blank
       fi
-    fi
-    if [ "$include_agents" -eq 1 ]; then
-      if [ -n "$agents_config" ]; then
-        local d
-        while IFS= read -r d; do chosen_agents_dirs+=("$d"); done < <(printf '%s\n' "$agents_config" | tr ',' '\n')
-      elif [ "${#agents_dirs_probed[@]}" -gt 0 ]; then
-        # If multiple, let the user pick. Single = silent default.
-        if [ "${#agents_dirs_probed[@]}" -eq 1 ]; then
-          chosen_agents_dirs=("${agents_dirs_probed[0]}")
-        else
-          local picked
-          while IFS= read -r picked; do chosen_agents_dirs+=("$picked"); done < <(
-            ui_checkbox_select "Which agents config dir(s)? (select one or more)" "1" 1 \
-              "${agents_dirs_probed[@]}"
-          )
-          if [ "${#chosen_agents_dirs[@]}" -eq 0 ]; then ui_info "Aborted."; return 0; fi
-          ui_blank
-        fi
-      else
-        chosen_agents_dirs=("$(platform_default_global_dir agents)")
-      fi
+    else
+      chosen_agents_dirs=("$(default_agents_config_dir)")
     fi
   fi
 
-  # Step 5b: REPO PICKER (only if per-repo scope)
+  # Step 4b: REPO PICKER (only if per-repo scope)
   local -a chosen_repos=()
   if [ "$include_repo" -eq 1 ]; then
     if [ -n "$repos" ]; then
@@ -612,7 +565,7 @@ cmd_install() {
     fi
   fi
 
-  # Step 6: PREVIEW
+  # Step 5: PREVIEW
   ui_blank
   ui_section "Plan"
   local skill_count
@@ -622,26 +575,20 @@ cmd_install() {
   # count (skills × targets), not just the number of unique skills.
   local n_targets=0
   if [ "$include_global" -eq 1 ]; then
-    [ "$include_claude" -eq 1 ] && n_targets=$((n_targets + ${#chosen_claude_dirs[@]}))
-    [ "$include_agents" -eq 1 ] && n_targets=$((n_targets + ${#chosen_agents_dirs[@]}))
+    n_targets=$((n_targets + ${#chosen_agents_dirs[@]}))
   fi
   if [ "$include_repo" -eq 1 ]; then
-    local _n_platforms=0
-    [ "$include_claude" -eq 1 ] && _n_platforms=$((_n_platforms + 1))
-    [ "$include_agents" -eq 1 ] && _n_platforms=$((_n_platforms + 1))
-    n_targets=$((n_targets + ${#chosen_repos[@]} * _n_platforms))
+    n_targets=$((n_targets + ${#chosen_repos[@]}))
   fi
   local total_symlinks=$((skill_count * n_targets))
 
   printf '  Skills:    %s unique\n' "$skill_count"
-  printf '  Platform:  %s\n' "$platform"
   printf '  Scope:     %s\n' "$scope"
   printf '  Targets:   %s\n' "$n_targets"
   printf '  Symlinks:  %s total (skills × targets)\n' "$total_symlinks"
   printf '  LFX_DEV_ROOT: %s\n' "$lfx_dev_root"
-  if [ "${#chosen_claude_dirs[@]}" -gt 0 ]; then
-    printf '  Claude config dirs:\n'
-    for d in "${chosen_claude_dirs[@]}"; do printf '    %s\n' "$d"; done
+  if [ ! -d "$lfx_dev_root" ]; then
+    printf '  Will create LFX_DEV_ROOT directory.\n'
   fi
   if [ "${#chosen_agents_dirs[@]}" -gt 0 ]; then
     printf '  Agents config dirs:\n'
@@ -664,18 +611,18 @@ cmd_install() {
     return 0
   fi
 
-  # Step 7: APPLY
+  # Step 6: APPLY
   ui_blank
+  if [ ! -d "$lfx_dev_root" ]; then
+    ui_step "Creating $lfx_dev_root…"
+    mkdir -p "$lfx_dev_root"
+  fi
+
   ui_step "Writing config…"
   config_init "$CLONE_ROOT" "$lfx_dev_root"
+  config_prune_obsolete_platforms
   config_set canonical_clone "$CLONE_ROOT"
   config_set lfx_dev_root "$lfx_dev_root"
-  if [ "${#chosen_claude_dirs[@]}" -gt 0 ]; then
-    config_set_platform_claude "${chosen_claude_dirs[@]}"
-  fi
-  if [ "${#chosen_agents_dirs[@]}" -gt 0 ]; then
-    config_set_platform_agents "${chosen_agents_dirs[@]}"
-  fi
   local -a rcs=()
   while IFS= read -r r; do rcs+=("$r"); done < <(probe_shell_rcs)
   if [ "${#rcs[@]}" -gt 0 ]; then
@@ -684,37 +631,21 @@ cmd_install() {
 
   local total_installed=0 total_updated=0 total_skipped=0
   if [ "$include_global" -eq 1 ]; then
-    if [ "$include_claude" -eq 1 ] && [ "${#chosen_claude_dirs[@]}" -gt 0 ]; then
-      for d in "${chosen_claude_dirs[@]}"; do
-        ui_blank
-        ui_step "Claude · global · $d/skills/"
-        local s; s="$(symlinks_install_all "$CLONE_ROOT" claude global "$d")"
-        _accumulate_install_summary "$s"
-      done
-    fi
-    if [ "$include_agents" -eq 1 ] && [ "${#chosen_agents_dirs[@]}" -gt 0 ]; then
+    if [ "${#chosen_agents_dirs[@]}" -gt 0 ]; then
       for d in "${chosen_agents_dirs[@]}"; do
         ui_blank
         ui_step "agents · global · $d/skills/"
-        local s; s="$(symlinks_install_all "$CLONE_ROOT" agents global "$d")"
+        local s; s="$(symlinks_install_all "$CLONE_ROOT" global "$d")"
         _accumulate_install_summary "$s"
       done
     fi
   fi
   if [ "$include_repo" -eq 1 ] && [ "${#chosen_repos[@]}" -gt 0 ]; then
     for r in "${chosen_repos[@]}"; do
-      if [ "$include_claude" -eq 1 ]; then
-        ui_blank
-        ui_step "Claude · per-repo · $r/.claude/skills/"
-        local s; s="$(symlinks_install_all "$CLONE_ROOT" claude repo "$r")"
-        _accumulate_install_summary "$s"
-      fi
-      if [ "$include_agents" -eq 1 ]; then
-        ui_blank
-        ui_step "agents · per-repo · $r/.agents/skills/"
-        local s; s="$(symlinks_install_all "$CLONE_ROOT" agents repo "$r")"
-        _accumulate_install_summary "$s"
-      fi
+      ui_blank
+      ui_step "agents · per-repo · $r/.agents/skills/"
+      local s; s="$(symlinks_install_all "$CLONE_ROOT" repo "$r")"
+      _accumulate_install_summary "$s"
     done
   fi
 
@@ -737,7 +668,7 @@ cmd_install() {
     fi
   fi
 
-  # Step 8: VERIFY + summary
+  # Step 7: VERIFY + summary
   ui_blank
   ui_section "Done"
   printf '  %d installed, %d updated, %d skipped\n' \
@@ -746,10 +677,10 @@ cmd_install() {
   if [ -n "$cli_symlink_path" ]; then
     ui_success "lfx-skills CLI installed to $cli_symlink_path"
   elif [ "$no_cli_symlink" = "0" ]; then
-    ui_warn "Couldn't find a writable dir on your PATH for the CLI symlink."
+    ui_warn "Couldn't safely install the CLI symlink into a writable dir on your PATH."
     printf '  To use %slfx-skills%s from anywhere, add an alias to your shell rc:\n' \
       "$_UI_BOLD" "$_UI_RESET"
-    printf '    alias lfx-skills='\''%s/bin/lfx-skills'\''\n' "$CLONE_ROOT"
+    printf '    alias lfx-skills='\''%s/cli/lfx-skills'\''\n' "$CLONE_ROOT"
     printf '  Or extend PATH to include one of: ~/.local/bin, ~/bin, /usr/local/bin\n'
   fi
 
@@ -761,8 +692,6 @@ cmd_install() {
   if [ "${#chosen_repos[@]}" -gt 0 ]; then
     ui_blank
     ui_bold "Per-repo install: add to each repo's .gitignore"
-    printf '  .claude/skills/lfx-*\n'
-    printf '  .claude/skills/lfx\n'
     printf '  .agents/skills/lfx-*\n'
     printf '  .agents/skills/lfx\n'
     printf '  %s(narrow patterns preserve any of your own committed skills)%s\n' "$_UI_DIM" "$_UI_RESET"
@@ -784,12 +713,14 @@ EOF
 # ─── uninstall ───────────────────────────────────────────────────────────
 cmd_uninstall() {
   require_jq
-  local scope="" repos="" keep_config=0
+  local scope="" repos="" keep_config=0 legacy_only=0 remove_all=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --yes)            LFX_SKILLS_YES=1; export LFX_SKILLS_YES ;;
       --scope=*)        scope="${1#*=}" ;;
       --repos=*)        repos="${1#*=}" ;;
+      --legacy-claude-only) legacy_only=1 ;;
+      --all)            remove_all=1 ;;
       --keep-config)    keep_config=1 ;;
       -h|--help)        _help_uninstall; return 0 ;;
       *) ui_error "Unknown flag: $1"; _help_uninstall; exit 1 ;;
@@ -797,12 +728,39 @@ cmd_uninstall() {
     shift
   done
 
+  if [ "$legacy_only" = "1" ] && [ "$remove_all" = "1" ]; then
+    ui_die "--legacy-claude-only and --all cannot be combined."
+  fi
+  if [ "$remove_all" = "1" ] && { [ -n "$scope" ] || [ -n "$repos" ] || [ "$keep_config" = "1" ]; }; then
+    ui_die "--all cannot be combined with --scope, --repos, or --keep-config."
+  fi
+  if [ "$legacy_only" = "1" ]; then
+    ui_section "Legacy Claude Cleanup"
+    if ! ui_confirm "Remove legacy lfx-skills Claude symlinks only?" N; then
+      ui_info "Aborted."
+      return 0
+    fi
+    _cleanup_legacy_claude
+    config_prune_obsolete_platforms
+    ui_success "Legacy Claude cleanup complete."
+    return 0
+  fi
+
   if ! config_exists; then
-    ui_warn "No config.json — nothing to uninstall."
+    ui_warn "No config.json — no recorded agents.md install to uninstall."
+    ui_section "Legacy Claude Cleanup"
+    if ui_confirm "Check ~/.claude/skills and remove lfx-skills symlinks that point into this clone?" N; then
+      local legacy_summary
+      legacy_summary="$(symlinks_uninstall_legacy_claude_root "$CLONE_ROOT")"
+      ui_dim "  $legacy_summary removed/refused/missing/total"
+    fi
     return 0
   fi
 
   ui_section "LFX Skills Uninstall"
+  if [ "$remove_all" = "1" ]; then
+    printf '  Mode: remove whole installation\n'
+  fi
   if [ -n "$scope" ]; then
     printf '  Scope filter: %s\n' "$scope"
   fi
@@ -810,7 +768,11 @@ cmd_uninstall() {
     printf '  Repo filter: %s\n' "$repos"
   fi
 
-  if ! ui_confirm "Remove the recorded symlinks?" Y; then
+  local confirm_msg="Remove the recorded agents.md symlinks?"
+  if [ "$remove_all" = "1" ]; then
+    confirm_msg="Remove the whole lfx-skills installation?"
+  fi
+  if ! ui_confirm "$confirm_msg" N; then
     ui_info "Aborted."
     return 0
   fi
@@ -827,7 +789,15 @@ cmd_uninstall() {
     ui_dim "  $s removed/refused/missing/total"
   fi
 
-  if [ "$keep_config" = "0" ] && [ -z "$scope" ]; then
+  if [ "$remove_all" = "1" ]; then
+    _cleanup_legacy_claude
+  elif [ -z "$scope" ] || [ "$scope" = "global" ]; then
+    _cleanup_legacy_claude
+  fi
+
+  config_prune_obsolete_platforms
+
+  if { [ "$keep_config" = "0" ] && [ -z "$scope" ]; } || [ "$remove_all" = "1" ]; then
     # Remove the lfx-skills CLI symlink (e.g. ~/.local/bin/lfx-skills) if we
     # installed it. Safe-by-default: only removed if it points into the
     # canonical clone.
@@ -839,7 +809,7 @@ cmd_uninstall() {
         ui_success "Removed lfx-skills CLI symlink at $cli_path"
       fi
     fi
-    if ui_confirm "Remove ~/.lfx-skills/ entirely?" N; then
+    if [ "$remove_all" = "1" ] || ui_confirm "Remove ~/.lfx-skills/ entirely?" N; then
       config_clear
       ui_success "Removed config dir."
     else
@@ -847,6 +817,16 @@ cmd_uninstall() {
     fi
   fi
   ui_success "Uninstall complete."
+}
+
+_cleanup_legacy_claude() {
+  local recorded_summary root_summary
+  ui_step "Removing legacy Claude symlinks recorded in config…"
+  recorded_summary="$(symlinks_uninstall_legacy_claude_recorded)"
+  ui_dim "  $recorded_summary removed/refused/missing/total"
+  ui_step "Checking legacy Claude root symlinks in ~/.claude/skills…"
+  root_summary="$(symlinks_uninstall_legacy_claude_root "$CLONE_ROOT")"
+  ui_dim "  $root_summary removed/refused/missing/total"
 }
 
 # ─── update ──────────────────────────────────────────────────────────────
@@ -869,24 +849,26 @@ cmd_update() {
 
   if [ "$do_pull" = "1" ]; then
     ui_step "git pull in $CLONE_ROOT…"
-    (cd "$CLONE_ROOT" && git pull --ff-only) || ui_warn "git pull failed — proceeding with current state."
+    (cd "$CLONE_ROOT" && git pull --ff-only) || ui_die "git pull failed."
   fi
 
-  # Re-apply: walk every recorded (platform, scope, base) tuple and re-install.
+  # Re-apply: walk every recorded agents.md (scope, base) tuple and re-install.
   ui_step "Re-applying manifest…"
   local rec
   config_read | jq -c '
-    [(.symlinks // [])[] | {platform, scope, base: (if .scope == "global" then .config_dir else .repo end)}]
-    | unique_by(.platform + "/" + .scope + "/" + .base)
+    [(.symlinks // [])[]
+      | select((.platform // "agents") != "claude")
+      | {scope, base: (if .scope == "global" then .config_dir else .repo end)}]
+    | unique_by(.scope + "/" + .base)
     | .[]
   ' | while IFS= read -r rec; do
-    local platform scope base
-    platform="$(echo "$rec" | jq -r .platform)"
+    local scope base
     scope="$(echo "$rec" | jq -r .scope)"
     base="$(echo "$rec" | jq -r .base)"
-    ui_dim "  → $platform/$scope at $base"
-    symlinks_install_all "$CLONE_ROOT" "$platform" "$scope" "$base" >/dev/null
+    ui_dim "  → $scope at $base"
+    symlinks_install_all "$CLONE_ROOT" "$scope" "$base" >/dev/null
   done
+  config_prune_obsolete_platforms
 
   # Detect new skills (in clone, not in manifest)
   local installed_set new_skills

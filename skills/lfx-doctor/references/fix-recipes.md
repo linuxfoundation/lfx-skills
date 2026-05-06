@@ -20,7 +20,7 @@ Each entry follows the same shape:
 **What:** No `~/.lfx-skills/config.json`.
 **Why it matters:** the CLI doesn't know what's installed where. Doctor can only check things relative to the manifest, so most other checks will be skipped.
 **Fix:** run `lfx-skills install`. Or, inside the lfx-skills clone, run `/lfx-install` for a guided walkthrough.
-**Auto-fixable?** no (requires user choices about platform / scope / dev root).
+**Auto-fixable?** no (requires user choices about scope / dev root).
 
 ---
 
@@ -93,7 +93,7 @@ Each entry follows the same shape:
 
 **What:** The recorded `lfx_dev_root` path doesn't exist on disk.
 **Common cause:** moved your clones to a new location.
-**Fix:** `lfx-skills config set lfx_dev_root=/new/path`. The CLI will rewrite `env.sh` automatically.
+**Fix:** `lfx-skills config set lfx_dev_root=/new/path`. The CLI will rewrite `~/.lfx-skills/dev-root` automatically.
 **Auto-fixable?** no.
 
 ---
@@ -129,23 +129,6 @@ git clone https://github.com/linuxfoundation/lfx-v2-meeting-service.git
 **Common cause:** the file was hand-edited, or an old `lfx-skills` version wrote one source but not the other.
 **Fix:** `lfx-skills doctor --fix` rewrites the file from `config.json` (the source of truth).
 **Auto-fixable?** yes (CLI).
-
----
-
-## issue-id: cli-not-on-path
-
-**What:** The `claude` CLI isn't found on PATH but the manifest records a Claude install.
-**Fix:** install Claude Code from <https://claude.com/code>, or check `which claude` from outside this shell.
-**Auto-fixable?** no.
-
----
-
-## issue-id: platform-dir-missing
-
-**What:** A recorded config dir (e.g., `~/.claude`) no longer exists.
-**Common cause:** you removed Claude Code, or moved its config.
-**Fix:** if you still want skills installed there, recreate the dir (`mkdir -p ~/.claude/skills`) and run `lfx-skills doctor --fix`. Otherwise, run `lfx-skills uninstall --scope=global` and re-install with the new config dir.
-**Auto-fixable?** no.
 
 ---
 
@@ -218,12 +201,3 @@ name: ...
 **Fix:** add an entry to `lfx/SKILL.md`'s routing table for the skill, including 1–2 example trigger phrases.
 **Caveat:** internal-only skills (like `lfx-backend-builder` and `lfx-ui-builder`, which are only invoked by `/lfx-coordinator`) can legitimately stay out of the routing table. Use judgment.
 **Auto-fixable?** no by CLI; the `/lfx-doctor` skill can patch via Edit.
-
----
-
-## issue-id: platforms-none
-
-**What:** Manifest exists but records no platforms.
-**Common cause:** install was interrupted, or someone hand-edited the config.
-**Fix:** run `lfx-skills install` again.
-**Auto-fixable?** no.

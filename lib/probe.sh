@@ -1,27 +1,17 @@
 # Copyright The Linux Foundation and each contributor to LFX.
 # SPDX-License-Identifier: MIT
 #
-# System probes for bin/lfx-skills. Sourced; do not execute directly.
+# System probes for cli/lfx-skills. Sourced; do not execute directly.
 # All probe_* functions have no side effects — they only inspect the system.
 
-# probe_clis → echo each detected CLI on its own line.
-# Detects: claude, codex, gemini, opencode.
+# probe_clis → echo each detected agents.md-compatible CLI on its own line.
+# Detects: codex, gemini, opencode.
 probe_clis() {
   local cli
-  for cli in claude codex gemini opencode; do
+  for cli in codex gemini opencode; do
     if command -v "$cli" >/dev/null 2>&1; then
       printf '%s\n' "$cli"
     fi
-  done
-}
-
-# probe_claude_config_dirs → echo each ~/.claude*/ directory that exists.
-# Catches .claude, .claude-work, .claude-personal, etc.
-probe_claude_config_dirs() {
-  local d
-  for d in "$HOME"/.claude*; do
-    [ -d "$d" ] || continue
-    printf '%s\n' "$d"
   done
 }
 
@@ -66,7 +56,7 @@ probe_count_repos_in() {
 }
 
 # probe_shell_rcs → echo each shell rc file that exists.
-# Used by the doctor "is env.sh sourced?" check.
+# Kept for manifest context; install does not edit shell rc files.
 probe_shell_rcs() {
   local rc
   for rc in "$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile" "$HOME/.config/fish/config.fish"; do
@@ -101,13 +91,13 @@ probe_writable_path_dir() {
 
 # probe_canonical_clone → echo the absolute path of the lfx-skills clone this script lives in.
 # Caller passes the script's $0 (or any path inside the clone).
-# Walks up from bin/ or lib/ to the clone root.
+# Walks up from cli/ or lib/ to the clone root.
 probe_canonical_clone() {
   local script_path="$1"
   local script_dir
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   case "$(basename "$script_dir")" in
-    bin|lib) (cd "$script_dir/.." && pwd) ;;
+    cli|lib) (cd "$script_dir/.." && pwd) ;;
     *) printf '%s\n' "$script_dir" ;;
   esac
 }

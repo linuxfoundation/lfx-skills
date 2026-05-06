@@ -3,14 +3,12 @@
 # SPDX-License-Identifier: MIT
 name: lfx-new-skill
 description: >
-  Scaffold a new skill in the lfx-skills repo. Walks the contributor through
-  picking a name, description, and tool list; generates the SKILL.md with the
-  correct frontmatter shape per docs/skill-authoring.md conventions; sets up
-  references/ if needed; chains into `lfx-skills update` to install the new
-  skill locally and `lfx-skills doctor` to verify so it can be tried
+  Scaffold a new skill in the lfx-skills repo under skills/. Walks the
+  contributor through picking a name, description, and tool list; generates the
+  SKILL.md with the correct frontmatter shape; sets up references/ if needed;
+  chains into `lfx-skills update` and `lfx-skills doctor` so it can be tried
   immediately. Use whenever someone wants to add a new lfx skill, scaffold a
-  new SKILL.md, or asks "how do I create a new skill". Only available inside
-  the lfx-skills clone.
+  new SKILL.md, or asks "how do I create a new skill".
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
@@ -25,7 +23,7 @@ You help a contributor scaffold a new skill in the `lfx-skills` repo. Your job e
 This skill only works inside the `lfx-skills` clone. Verify:
 
 ```bash
-[ -x ./bin/lfx-skills ] && [ -d ./lfx ] && echo OK || echo NOT_IN_CLONE
+[ -x ./cli/lfx-skills ] && [ -d ./skills/lfx ] && echo OK || echo NOT_IN_CLONE
 ```
 
 If `NOT_IN_CLONE`:
@@ -47,7 +45,7 @@ Use `AskUserQuestion`:
 
 Validate the answer:
 - Must match `^lfx-[a-z0-9-]+$`
-- Must NOT collide with an existing directory: check `[ -d "lfx-<name>" ]` — if exists, ask for another.
+- Must NOT collide with an existing directory: check `[ -d "skills/lfx-<name>" ]` — if exists, ask for another.
 - Must NOT collide with `lfx` itself or any reserved prefix.
 
 Re-ask until you get a valid name.
@@ -79,11 +77,11 @@ Validate: tools should be a comma-separated list of identifiers. If the user inc
 
 > "Will this skill have reference docs alongside `SKILL.md`? (e.g., a long table, a JSON config, a checklist that's too big to inline.) — yes / no."
 
-If yes: create `lfx-<name>/references/` with a `.gitkeep` so the directory is tracked even when empty.
+If yes: create `skills/lfx-<name>/references/` with a `.gitkeep` so the directory is tracked even when empty.
 
 ## Step 6: Generate SKILL.md
 
-Use the `Write` tool with the absolute path `<clone>/lfx-<name>/SKILL.md`. Template:
+Use the `Write` tool with the absolute path `<clone>/skills/lfx-<name>/SKILL.md`. Template:
 
 ```markdown
 ---
@@ -135,15 +133,15 @@ If the user listed any MCP tools in Step 4, add a `## Prerequisites` section to 
 Chain into the CLI to make the new skill available immediately:
 
 ```bash
-./bin/lfx-skills update
+./cli/lfx-skills update
 ```
 
-This re-applies the manifest and detects the new `lfx-<name>/` directory. The CLI will list it as a new skill not in the manifest and prompt to install it everywhere already configured.
+This re-applies the manifest and detects the new `skills/lfx-<name>/` directory. The CLI will list it as a new skill not in the manifest and prompt to install it everywhere already configured.
 
 Then verify:
 
 ```bash
-./bin/lfx-skills doctor
+./cli/lfx-skills doctor
 ```
 
 If the doctor flags `frontmatter-no-name`, `frontmatter-name-mismatch`, `license-missing`, `routing-uncovered`, or any other content issue with your new skill, fix it (use Edit) and re-run `doctor` until clean.
@@ -159,13 +157,32 @@ The `routing-uncovered` warning is a reminder to add an entry to `lfx/SKILL.md` 
 >
 > Iterate on the body as you go: every time you save the SKILL.md, your tool picks it up on the next invocation."
 
-## Step 10: Hand off to CONTRIBUTING
+## Step 10: Explain release/update flow
 
 > "When you're ready to ship this skill upstream:
 >
 > - Read `CONTRIBUTING.md` for the DCO, sign-off, and review flow.
 > - Run `/lfx-preflight` to validate your changes.
 > - Open a PR against `main`.
+> - After the PR is merged, ship either this skill alone or a batch of skill changes with a GitHub Release:
+>
+>   | Change type | Version component |
+>   |---|---|
+>   | Typo fixes, prompt wording tweaks, docs, installer fixes, CI fixes | patch |
+>   | New skills, substantial skill behavior updates, new supported platform behavior | minor |
+>   | Breaking command names, plugin name changes, removing or renaming skills, install layout breaks | major (only when explicitly instructed) |
+>
+>   ```bash
+>   LATEST=$(git tag --sort=-v:refname | head -1)
+>   echo "Latest tag: $LATEST"
+>   NEXT=v0.1.0
+>
+>   gh release create "$NEXT" \
+>     --generate-notes \
+>     --latest
+>   ```
+>
+> The release tag is the canonical version. After creating the GitHub Release, manually update `../lfx-plugins/.claude-plugin/marketplace.json` so `lfx-skills` points at the new tag and the marketplace `version` is the tag without the leading `v`; commit that marketplace bump with `git commit -s -S`. Claude users update with `/plugin marketplace update lfx` and `/plugin update lfx-skills@lfx`; agents.md users update with `lfx-skills update --pull` and `lfx-skills doctor`.
 >
 > Welcome to lfx-skills."
 

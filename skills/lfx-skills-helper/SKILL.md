@@ -3,13 +3,15 @@
 # SPDX-License-Identifier: MIT
 name: lfx-skills-helper
 description: >
-  Manage your LFX Skills installation via the lfx-skills CLI: list what's
-  installed, install or uninstall in this repo or globally, update from
-  upstream, view or change config, look up what a specific skill does. Use for
-  "add lfx skills to this repo", "what's installed", "update lfx skills",
-  "show my lfx setup", "uninstall", "what does /lfx-foo do". For "which skill
-  should I use for X" or other plain-language routing questions, hand off to
-  /lfx. For health checks or repair, hand off to /lfx-doctor.
+  Manage the agents.md LFX Skills installation via the lfx-skills CLI: list
+  what's installed, install or uninstall in this repo or globally, update from
+  upstream, view or change config, look up what a specific skill does, and
+  remove legacy Claude symlink installs. Use for "add lfx skills to this repo",
+  "what's installed", "update lfx skills", "show my lfx setup", "uninstall",
+  "remove old Claude symlinks", "what does /lfx-foo do". For Claude plugin
+  installs, explain the plugin marketplace path. For "which skill should I use
+  for X" or other plain-language routing questions, hand off to /lfx. For health
+  checks or repair, hand off to /lfx-doctor.
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 ---
 
@@ -17,15 +19,17 @@ allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 
 # LFX Skills Helper
 
-You are the conversational front-end for the `lfx-skills` CLI: install, uninstall, update, list, info, config. You are NOT a router. If the user asks "which skill should I use for X" or describes a task ("I need to add a feature", "review my PR"), hand off to `/lfx` — that's the plain-language router. Your job is skill *management*, not skill *discovery*.
+You are the conversational front-end for the agents.md-only `lfx-skills` CLI: install, uninstall, update, list, info, config, and legacy Claude symlink cleanup. You are NOT a router. If the user asks "which skill should I use for X" or describes a task ("I need to add a feature", "review my PR"), hand off to `/lfx` — that's the plain-language router. Your job is skill *management*, not skill *discovery*.
+
+Claude Code is separate: it installs LFX Skills as a plugin with `/plugin marketplace add linuxfoundation/lfx-plugins` and `/plugin install lfx-skills@lfx`. Do not use the CLI to install Claude Code skills. The CLI can only remove old Claude symlink installs via `lfx-skills uninstall --legacy-claude-only` or as part of `lfx-skills uninstall --all`.
 
 ## Step 1: Locate the CLI
 
 Same as `/lfx-doctor`. Try in order:
 
 1. `command -v lfx-skills` (on PATH).
-2. `jq -r .canonical_clone ~/.lfx-skills/config.json 2>/dev/null` then append `/bin/lfx-skills`.
-3. `./bin/lfx-skills` if you're inside the lfx-skills clone.
+2. `jq -r .canonical_clone ~/.lfx-skills/config.json 2>/dev/null` then append `/cli/lfx-skills`.
+3. `./cli/lfx-skills` if you're inside the lfx-skills clone.
 4. Ask the user.
 
 If none works: the install was never run. Tell the user to clone `linuxfoundation/lfx-skills` and run `./install.sh` (or invoke `/lfx-install` if they're already in the clone). Stop.
@@ -55,10 +59,10 @@ For commands that change state (`install`, `uninstall`, `update`, `config set`),
 
 The CLI output is structured but utilitarian. Reformat it for conversation:
 
-- **`lfx-skills list`** outputs `platform/scope<TAB>skill<TAB>link`. Render as a friendly grouped list:
+- **`lfx-skills list`** outputs `scope<TAB>skill<TAB>link`. Render as a friendly grouped list:
 
   ```
-  Globally installed (Claude):
+  Globally installed (agents.md):
     /lfx
     /lfx-coordinator
     ...
@@ -71,7 +75,7 @@ The CLI output is structured but utilitarian. Reformat it for conversation:
 
 - **`lfx-skills info <skill>`** outputs frontmatter + install locations. Render the description in prose, list trigger phrases, summarise where it's installed.
 
-- **`lfx-skills config`** outputs raw JSON. Pretty-print it as a small table: dev root, canonical clone, platforms, total symlinks.
+- **`lfx-skills config`** outputs raw JSON. Pretty-print it as a small table: dev root, canonical clone, total symlinks, and CLI symlink.
 
 - **`lfx-skills repos`** outputs one path per line. Group as a numbered list with sizes/last-modified if helpful.
 

@@ -5,7 +5,7 @@
 
 Reference for `/lfx-skills-helper`. Maps natural-language **management** intents to the corresponding `lfx-skills` CLI invocation.
 
-This file is for skill *management*: install, uninstall, update, list, info, config. It is not a recommendation engine. Routing questions ("which skill should I use for X?") belong to `/lfx`. Diagnostic questions belong to `/lfx-doctor`. Authoring belongs to `/lfx-new-skill`.
+This file is for agents.md skill *management*: install, uninstall, update, list, info, config, and legacy Claude symlink cleanup. It is not a recommendation engine. Routing questions ("which skill should I use for X?") belong to `/lfx`. Diagnostic questions belong to `/lfx-doctor`. Authoring belongs to `/lfx-new-skill`.
 
 When the user's phrasing isn't an exact match, infer the closest intent and confirm the chosen command before running anything stateful.
 
@@ -37,9 +37,10 @@ Always confirm via `AskUserQuestion` before running. Show the exact command firs
 |-------------------------------------------------|--------------------------------------------------------------------------------------|
 | "Add lfx skills to this repo"                   | Confirm, then `lfx-skills install --yes --scope=repo --repos="$(pwd)"`. Suggest `/lfx-doctor` after. |
 | "Remove lfx skills from this repo"              | Confirm, then `lfx-skills uninstall --yes --scope=repo --repos="$(pwd)"`              |
-| "Install lfx skills globally for Claude"        | Confirm, then `lfx-skills install --yes --platform=claude --scope=global`            |
-| "Add agents.md support"                         | Confirm, then `lfx-skills install --yes --platform=agents --scope=global`            |
+| "Install lfx skills globally for Claude"        | Explain the Claude Code plugin path: `/plugin marketplace add linuxfoundation/lfx-plugins`, then `/plugin install lfx-skills@lfx` |
+| "Add agents.md support"                         | Confirm, then `lfx-skills install --yes --scope=global`                              |
 | "Install everything everywhere"                 | Confirm. Don't assume `--repos=`; ask the user which repos.                          |
+| "Uninstall lfx skills"                          | Confirm, then `lfx-skills uninstall --yes --all`                                     |
 
 ## Maintenance
 
@@ -47,8 +48,10 @@ Always confirm via `AskUserQuestion` before running. Show the exact command firs
 |-------------------------------------------------|-----------------------------------------------------------|-----------------------------------------------------------------------------|
 | "Update lfx skills"                             | `lfx-skills update --pull`                                | Suggest `/lfx-doctor` after                                                 |
 | "Re-apply my install"                           | `lfx-skills update`                                       | No `--pull`; just refresh symlinks against the manifest                     |
-| "Update my LFX dev root"                        | Confirm new path, `lfx-skills config set lfx_dev_root=NEW_PATH` | Rewrites `env.sh` automatically                                       |
-| "Switch my Claude config dir"                   | Suggest `lfx-skills uninstall` then `lfx-skills install --claude-config=NEW_DIR`. Don't try to mutate in place. |
+| "Remove old Claude symlinks"                    | Confirm, then `lfx-skills uninstall --yes --legacy-claude-only` | Removes only lfx-skills-owned legacy Claude symlinks                  |
+| "Remove lfx-skills completely"                  | Confirm, then `lfx-skills uninstall --yes --all`          | Removes agents.md symlinks, legacy Claude symlinks, CLI symlink, config     |
+| "Update my LFX dev root"                        | Confirm new path, `lfx-skills config set lfx_dev_root=NEW_PATH` | Rewrites `~/.lfx-skills/dev-root` automatically                       |
+| "Switch my Claude config dir"                   | Explain that Claude Code plugin scope is managed by Claude Code settings, not this CLI. |
 
 ## Hand-offs (not your job)
 

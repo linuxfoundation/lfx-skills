@@ -3,13 +3,12 @@
 # SPDX-License-Identifier: MIT
 name: lfx-install
 description: >
-  Install or set up LFX Skills. Walks the user through every choice in plain
-  language: which AI tools they use (Claude Code, agents.md tools, both),
-  where their LFX repos live, scope (global / per-repo / both), then runs the
-  installer and verifies. Use whenever the user says "I just cloned this — what
-  now?", "set up lfx skills", "install lfx skills", "I'm new to lfx-skills",
-  "first-time setup", or runs into the repo with no install manifest yet. Only
-  available inside the lfx-skills clone.
+  Install or set up LFX Skills for agents.md-compatible tools via the
+  lfx-skills CLI, and point Claude Code-only users to the Claude plugin path.
+  Walks through the choices in plain language: where their LFX repos live,
+  scope, agents config dirs, then runs the installer and verifies. Use
+  whenever the user says "I just cloned this — what now?", "set up lfx skills",
+  "install lfx skills", "I'm new to lfx-skills", or "first-time setup".
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 ---
 
@@ -17,14 +16,14 @@ allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 
 # LFX Skills Install
 
-You guide the user through their first-time install. The bash CLI (`bin/lfx-skills install`) can do this non-interactively if every flag is supplied; this skill is the conversational layer that figures out what those flags should be by asking the user, in plain language, one question at a time.
+You guide the user through their first-time install. The bash CLI (`cli/lfx-skills install`) can do this non-interactively if every flag is supplied; this skill is the conversational layer that figures out what those flags should be by asking the user, in plain language, one question at a time.
 
 ## Step 1: Verify you're in the clone
 
-This skill only works inside the `lfx-skills` clone (it's the only place where it's auto-discovered, via committed symlinks under `.claude/skills/`). Verify:
+This skill only works inside the `lfx-skills` clone. Verify:
 
 ```bash
-[ -x ./bin/lfx-skills ] && echo OK || echo NOT_IN_CLONE
+[ -x ./cli/lfx-skills ] && echo OK || echo NOT_IN_CLONE
 ```
 
 If `NOT_IN_CLONE`, tell the user:
@@ -35,16 +34,13 @@ Stop.
 
 ## Step 2: Probe the system
 
-Run `./bin/lfx-skills` indirectly via its install command's PROBE step — but for the conversation, you also want the data yourself so you can ask informed questions. Do these one-shot probes:
+Run `./cli/lfx-skills` indirectly via its install command's PROBE step — but for the conversation, you also want the data yourself so you can ask informed questions. Do these one-shot probes:
 
 ```bash
-# CLIs available
-for cli in claude codex gemini opencode; do
+# agents.md-compatible CLIs available
+for cli in codex gemini opencode; do
   command -v "$cli" >/dev/null 2>&1 && echo "$cli"
 done
-
-# Claude config dirs
-ls -d "$HOME"/.claude* 2>/dev/null
 
 # Agents config dirs
 ls -d "$HOME"/.agents* 2>/dev/null
@@ -55,17 +51,28 @@ for d in "$HOME/lf" "$HOME/lfx" "$HOME/code/lfx" "$HOME/work/lfx"; do
 done
 ```
 
-## Step 3: Q1 — Platform
+## Step 3: Q1 — Install route
 
 Use `AskUserQuestion`:
 
-> "Which AI coding tools do you use? (1) Claude Code, (2) an agents.md-compatible tool (Codex, Gemini CLI, OpenCode), (3) both."
+> "Which setup do you need? (1) agents.md-compatible tool (Codex, Gemini CLI, OpenCode), (2) Claude Code only, (3) both."
 
 If you detected only one CLI installed, default to it but still confirm.
 
+If the user picks Claude Code only, explain that Claude installs this repo as a plugin and does not use the CLI symlink installer:
+
+```text
+/plugin marketplace add linuxfoundation/lfx-plugins
+/plugin install lfx-skills@lfx
+```
+
+If they are testing from a local checkout, tell them to run Claude Code with the local plugin directory or add the local marketplace per the Claude Code plugin docs. Stop after explaining the plugin path; do not run `./cli/lfx-skills install` for Claude-only installs.
+
+If the user picks both, use the plugin path for Claude Code and continue with the CLI flow below for agents.md-compatible tools. The CLI itself remains agents.md-only.
+
 ## Step 4: Q2 — Scope
 
-> "Install scope? (1) **Global** — available in every session of your AI tool. (2) **Per-repo** — only in specific repos (their `.claude/skills/` or `.agents/skills/`). (3) **Both** — global plus pin into specific repos."
+> "Install scope? (1) **Global** — available in every session of your agents.md-compatible tool. (2) **Per-repo** — only in specific repos (their `.agents/skills/`). (3) **Both** — global plus pin into specific repos."
 
 This question goes second so subsequent questions can adapt. (Per-repo only? Skip the global config picker. Global only? Skip the repo picker.)
 
@@ -84,13 +91,13 @@ Use `AskUserQuestion`. If the user already has `LFX_DEV_ROOT` set in the shell, 
 
 If the chosen path doesn't exist, ask whether to create it (`mkdir -p`). If it has zero `lf*` git repos, warn but proceed: the install will still work; the dev-root-empty doctor warning will trigger until they clone some.
 
-## Step 6: Q4 — Config dirs (only if scope includes Global)
+## Step 6: Q4 — Agents config dirs (only if scope includes Global)
 
-If you saw multiple Claude config dirs (e.g., `~/.claude`, `~/.claude-work`, `~/.claude-personal`), ask which to install into:
+If you saw multiple `~/.agents*` config dirs, ask which to install into:
 
-> "I see these Claude config dirs: …. Install into all of them, or just one? (defaults to `~/.claude`)"
+> "I see these agents config dirs: …. Install into all of them, or just one? (defaults to `~/.agents`)"
 
-Same for `~/.agents*` if applicable. (Most users have one each; this only matters for power users with multiple profiles.)
+Most users have one; this only matters for power users with multiple profiles.
 
 If scope is Per-repo only, skip this step entirely.
 
@@ -108,10 +115,8 @@ Before running anything, summarise:
 
 ```
 Plan:
-  Platform:       claude + agents
   Scope:          global + per-repo
   LFX_DEV_ROOT:   ~/lf
-  Claude dirs:    ~/.claude, ~/.claude-work
   Agents dir:     ~/.agents
   Repos (4):      lfx-v2-ui, lfx-v2-meeting-service, lfx-v2-committee-service, lfx-v2-query-service
   Skills:         15 user-facing + lfx-doctor + lfx-skills-helper
@@ -126,11 +131,9 @@ Will create approximately N symlinks. Proceed?
 Compose the non-interactive flags from the user's answers:
 
 ```bash
-./bin/lfx-skills install --yes \
-  --platform=<platform> \
+./cli/lfx-skills install --yes \
   --scope=<scope> \
   --lfx-dev-root=<path> \
-  --claude-config=<dir1,dir2,...> \
   --agents-config=<dir> \
   --repos=<repo1,repo2,...>
 ```
@@ -142,7 +145,7 @@ Stream the output to the user.
 Run a quick verification:
 
 ```bash
-./bin/lfx-skills doctor
+./cli/lfx-skills doctor
 ```
 
 If errors, walk the user through the auto-fix:
@@ -159,7 +162,7 @@ If the installer reported it couldn't find a writable PATH dir, share the alias 
 
 > "I couldn't find a writable PATH dir to drop the CLI into. Add this alias to your shell rc to use `lfx-skills` from anywhere:
 > ```bash
-> alias lfx-skills='<clone>/bin/lfx-skills'
+> alias lfx-skills='<clone>/cli/lfx-skills'
 > ```
 > Or extend PATH to include `~/.local/bin`, `~/bin`, or `/usr/local/bin`."
 

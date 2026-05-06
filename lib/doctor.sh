@@ -1,7 +1,7 @@
 # Copyright The Linux Foundation and each contributor to LFX.
 # SPDX-License-Identifier: MIT
 #
-# Diagnostic checks for bin/lfx-skills doctor. Sourced; do not execute directly.
+# Diagnostic checks for cli/lfx-skills doctor. Sourced; do not execute directly.
 #
 # Architecture: records flow as text. Each check writes pipe-delimited records
 # to stdout; aggregators concatenate; formatters consume stdin and render either
@@ -138,63 +138,12 @@ check_lfx_dev_root() {
   fi
 }
 
-# ─── Category 4: Platforms ───────────────────────────────────────────────
-check_platforms() {
-  local platforms_json
-  platforms_json="$(config_get_json platforms)"
-  if [ -z "$platforms_json" ] || [ "$platforms_json" = "null" ] || [ "$platforms_json" = "{}" ]; then
-    _emit warn platforms-none platforms "No platforms recorded" \
-      "config.json has no platforms entry." no
-    return
-  fi
-
-  local claude_dirs
-  claude_dirs="$(echo "$platforms_json" | jq -r '.claude.config_dirs[]?' 2>/dev/null)"
-  if [ -n "$claude_dirs" ]; then
-    if command -v claude >/dev/null 2>&1; then
-      _emit pass cli-on-path platforms "claude CLI on PATH" "$(command -v claude)" no
-    else
-      _emit warn cli-not-on-path platforms "claude CLI not on PATH" \
-        "Install Claude Code or check your PATH." no
-    fi
-    local d
-    while IFS= read -r d; do
-      [ -z "$d" ] && continue
-      if [ -d "$d" ]; then
-        _emit pass platform-dir-ok platforms "Claude config dir exists" "$d" no
-      else
-        _emit fail platform-dir-missing platforms \
-          "Claude config dir missing" "$d" no
-      fi
-    done <<EOF
-$claude_dirs
-EOF
-  fi
-
-  local agents_dirs
-  agents_dirs="$(echo "$platforms_json" | jq -r '.agents.config_dirs[]?' 2>/dev/null)"
-  if [ -n "$agents_dirs" ]; then
-    local d
-    while IFS= read -r d; do
-      [ -z "$d" ] && continue
-      if [ -d "$d" ]; then
-        _emit pass platform-dir-ok platforms "Agents config dir exists" "$d" no
-      else
-        _emit fail platform-dir-missing platforms \
-          "Agents config dir missing" "$d" no
-      fi
-    done <<EOF
-$agents_dirs
-EOF
-  fi
-}
-
-# ─── Category 5: Frontmatter ─────────────────────────────────────────────
+# ─── Category 4: Frontmatter ─────────────────────────────────────────────
 check_frontmatter() {
   local clone
   clone="${CLONE_ROOT:-$(probe_canonical_clone "${BASH_SOURCE[0]:-$0}")}"
   local skill_md skill_name name_in_md desc_in_md
-  for skill_md in "$clone"/lfx*/SKILL.md; do
+  for skill_md in "$clone"/skills/lfx*/SKILL.md; do
     [ -f "$skill_md" ] || continue
     skill_name="$(basename "$(dirname "$skill_md")")"
     if [ "$(head -1 "$skill_md")" != "---" ]; then
@@ -225,11 +174,11 @@ check_frontmatter() {
   done
 }
 
-# ─── Category 6: Routing ─────────────────────────────────────────────────
+# ─── Category 5: Routing ─────────────────────────────────────────────────
 check_routing() {
   local clone lfx_md
   clone="${CLONE_ROOT:-$(probe_canonical_clone "${BASH_SOURCE[0]:-$0}")}"
-  lfx_md="$clone/lfx/SKILL.md"
+  lfx_md="$clone/skills/lfx/SKILL.md"
   if [ ! -f "$lfx_md" ]; then
     _emit warn routing-no-lfx routing "/lfx skill not found" \
       "$lfx_md missing — routing check skipped." no
@@ -242,10 +191,10 @@ check_routing() {
   while IFS= read -r s; do
     [ -z "$s" ] && continue
     local skill_name="${s#/}"
-    if [ ! -d "$clone/$skill_name" ]; then
+    if [ ! -d "$clone/skills/$skill_name" ]; then
       _emit warn routing-dangling routing \
         "/lfx mentions $s but skill directory missing" \
-        "Expected $clone/$skill_name" no
+        "Expected $clone/skills/$skill_name" no
     fi
   done <<EOF
 $routed
@@ -272,12 +221,12 @@ EOF
   done < <(symlinks_eligible_skills "$clone")
 }
 
-# ─── Category 7: License headers ─────────────────────────────────────────
+# ─── Category 6: License headers ─────────────────────────────────────────
 check_license_headers() {
   local clone
   clone="${CLONE_ROOT:-$(probe_canonical_clone "${BASH_SOURCE[0]:-$0}")}"
   local skill_md skill_name
-  for skill_md in "$clone"/lfx*/SKILL.md; do
+  for skill_md in "$clone"/skills/lfx*/SKILL.md; do
     [ -f "$skill_md" ] || continue
     skill_name="$(basename "$(dirname "$skill_md")")"
     if head -4 "$skill_md" | grep -qF "Copyright The Linux Foundation"; then
@@ -295,7 +244,6 @@ doctor_run_all() {
   check_symlinks
   check_source_clone
   check_lfx_dev_root
-  check_platforms
   check_frontmatter
   check_routing
   check_license_headers

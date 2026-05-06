@@ -9,12 +9,16 @@ A collection of AI coding skills that encode the full development workflow for t
 
 ### Claude Code
 
-Install the Claude Code plugin from the LF marketplace:
+Install the Claude Code plugin from the LFX marketplace:
 
 ```text
 /plugin marketplace add linuxfoundation/lfx-plugins
 /plugin install lfx-skills@lfx
 ```
+
+After installation, start with the `lfx` skill. In Claude Code that command is namespaced as `/lfx-skills:lfx`; describe what you want in plain language and it will route you to the right workflow.
+
+The marketplace metadata lives in the separate `linuxfoundation/lfx-plugins` repo. That lets LFX publish multiple Claude Code plugins from one marketplace. This repo owns the `lfx-skills` plugin source; the marketplace repo owns the published plugin version and source tag.
 
 For local plugin development from this checkout:
 
@@ -24,7 +28,13 @@ cd lfx-skills
 claude --plugin-dir .
 ```
 
-Claude Code plugin commands are namespaced by the plugin name, for example `/lfx-skills:lfx`. The plugin is skills-only: it exposes the runtime skills listed in `.claude-plugin/plugin.json` and does not install or expose the CLI.
+The Claude Code plugin is skills-only: it exposes the runtime skills listed in `.claude-plugin/plugin.json` and does not install or expose the CLI.
+
+If you previously installed LFX Skills into Claude Code with symlinks, clone this repo, start your coding agent here, and ask it to uninstall the legacy Claude setup. Manual fallback:
+
+```bash
+./cli/lfx-skills uninstall --legacy-claude-only
+```
 
 ### agents.md-Compatible Tools
 
@@ -67,7 +77,7 @@ New to LFX development? Type `/lfx` and say **"show me an example"** for a walkt
 
 ## Prerequisites
 
-- An AI coding assistant that supports skill-based workflows. Claude Code uses the plugin path; Codex, Gemini CLI, OpenCode, and similar tools use the CLI installer. See [docs/platform-install.md](docs/platform-install.md) for details.
+- An AI coding assistant that supports skill-based workflows. Claude Code uses the plugin path; Codex, Gemini CLI, OpenCode, and similar tools use the CLI installer. See [docs/overview.md](docs/overview.md) for details.
 - Access to LFX repositories (for the skills to operate on)
 - **Optional: `LFX_DEV_ROOT`** — environment variable pointing to the directory where you keep your LFX repo clones. Defaults to `~/lf/`. The CLI records the chosen path in `~/.lfx-skills/dev-root` so skills can discover local repos without shell rc edits.
 
@@ -125,7 +135,7 @@ gh release create "$NEXT" \
   --latest
 ```
 
-Then update the self-hosted Claude marketplace in the sibling `lfx-plugins` repo. The marketplace entry must point at the released `lfx-skills` tag, and `version` must be the same tag without the leading `v`:
+Then update the self-hosted Claude marketplace in the sibling `lfx-plugins` repo. The marketplace can host multiple LFX plugins; update only the `lfx-skills` entry for an LFX Skills release. The entry must point at the released `lfx-skills` tag, and `version` must be the same tag without the leading `v`:
 
 ```bash
 cd ../lfx-plugins

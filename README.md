@@ -18,7 +18,7 @@ Install the Claude Code plugin from the LFX marketplace:
 
 After installation, start with the `lfx` skill. In Claude Code that command is namespaced as `/lfx-skills:lfx`; describe what you want in plain language and it will route you to the right workflow.
 
-The marketplace metadata lives in `.claude-plugin/marketplace.json` in LFX Skills. The marketplace points the plugin source at the released `linuxfoundation/lfx-skills` tag and carries the published plugin version.
+The marketplace metadata lives in `.claude-plugin/marketplace.json` in LFX Skills. It lists the local plugin source as `"./"`; the Claude plugin version is tracked in `.claude-plugin/plugin.json`.
 
 The Claude Code plugin is skills-only: it exposes the runtime skills listed in `.claude-plugin/plugin.json` and does not install or expose the CLI.
 
@@ -37,12 +37,14 @@ git clone https://github.com/linuxfoundation/lfx-skills.git
 cd lfx-skills
 ```
 
-Start your coding agent in the cloned repo and ask it to set up LFX Skills. The repo includes four helper skills under `skills/` for this flow:
+Start your coding agent in the cloned repo and ask it to set up LFX Skills. This repo ships four bootstrap helper skills out of the box through committed `.agents/skills/` and `.claude/skills/` wrappers, so agents can use them inside this repo without running the installer first:
 
 - `lfx-install` — guided first-time setup
 - `lfx-doctor` — install health checks and repair guidance
 - `lfx-skills-helper` — list, update, uninstall, and inspect the setup
 - `lfx-new-skill` — scaffold a new skill in this repo
+
+The canonical source for those helpers still lives under `skills/`; the `.agents/skills/` and `.claude/skills/` files are repo-local bootstrap wrappers.
 
 If you prefer to run the installer manually:
 
@@ -50,7 +52,7 @@ If you prefer to run the installer manually:
 ./install.sh
 ```
 
-The CLI installs skill symlinks into agents.md skill directories and records the install in `~/.lfx-skills/config.json`.
+The CLI installs skill symlinks into agents.md skill directories outside this repo and records the install in `~/.lfx-skills/config.json`.
 agents.md installs include the 15 runtime skills plus `/lfx-doctor` and `/lfx-skills-helper`. `/lfx-install` and `/lfx-new-skill` stay clone-only.
 
 Then restart your AI coding assistant, open any LFX repo, and type `/lfx` to get started.
@@ -67,17 +69,21 @@ The `/lfx` skill auto-detects your repo, branch, and context, then routes you to
 
 New to LFX development? Type `/lfx` and say **"show me an example"** for a walkthrough.
 
+## Authoring Skills
+
+New skills should be authored from the cloned LFX Skills repo. Start your coding agent in this repo and use `/lfx-new-skill`; it guides the authoring flow, creates the `skills/lfx-<name>/SKILL.md` structure, applies the repo conventions, and explains how to test the skill locally.
+
+Use `/lfx-new-skill` whether you are starting from an idea or from a fully written skill. If you already have the skill body, give it to the agent and it should preserve the content while normalizing the repo-specific details such as frontmatter, license header, path, and validation.
+
+The authoring helper keeps Claude Code plugin testing separate from agents.md testing. For Claude Code, it points you at plugin validation and local `--plugin-dir` testing. For agents.md-compatible tools, it points you at the CLI update flow. It also offers to help prepare a signed commit with `git commit -s -S`.
+
+New user-facing skills that should be available through the Claude Code plugin must be added to the `skills` allowlist in `.claude-plugin/plugin.json`. Creating `skills/lfx-<name>/SKILL.md` is not enough for Claude plugin users; the plugin exposes only the skill paths listed in that manifest.
+
 ## Prerequisites
 
 - An AI coding assistant that supports skill-based workflows. Claude Code uses the plugin path; Codex, Gemini CLI, OpenCode, and similar tools use the CLI installer. See [docs/overview.md](docs/overview.md) for details.
 - Access to LFX repositories (for the skills to operate on)
 - **Optional: `LFX_DEV_ROOT`** — environment variable pointing to the directory where you keep your LFX repo clones. Defaults to `~/lf/`. The CLI records the chosen path in `~/.lfx-skills/dev-root` so skills can discover local repos without shell rc edits. Skills that use this will prompt the user to either set it or use default.
-
-## CLI Safety
-
-`./install.sh` is a thin wrapper around `cli/lfx-skills install`. It does not edit your shell rc or rewrite your `PATH`.
-
-The only PATH-related write it attempts is creating an `lfx-skills` symlink in an existing writable directory already on your `PATH` (`~/.local/bin`, `~/bin`, `/opt/homebrew/bin`, or `/usr/local/bin`). It refuses to overwrite existing non-symlinks or symlinks it does not own. If no safe directory is available, it prints an alias fallback instead.
 
 ## Verify
 
@@ -103,11 +109,16 @@ Restart your AI coding assistant (or open a new session) in any LFX repo and typ
 /lfx-skills-helper                ← manage what's installed where (install/uninstall/update/list)
 ```
 
-## Releases and Updates
+## Versioning and Updates
 
-Releases follow the same tag-first GitHub Release pattern used by LFX service repos such as `lfx-mcp`.
+Skill changes can be shipped one at a time or batched together. For Claude Code users to receive plugin changes, update the `version` field in `.claude-plugin/plugin.json` before merging or pushing the change to `main`.
 
-You can ship one skill change or a batch of skill changes in the same release. Merge the skill changes first, bump the plugin version and marketplace tag reference, then create a GitHub Release using `vMAJOR.MINOR.PATCH`; GitHub creates the tag.
+The marketplace follows the LFX Skills default branch. Because `.claude-plugin/plugin.json` defines `version`, Claude Code uses that value for cache and update detection. If skill content changes but the plugin version stays the same, Claude Code will keep using the already cached plugin version.
+
+For new Claude-facing skills, update both parts of `.claude-plugin/plugin.json`:
+
+- Add the new skill path to the `skills` allowlist, for example `"./skills/lfx-example/"`.
+- Bump `version` using the patch/minor/major guidance below.
 
 ### Version bump guidelines
 
@@ -117,46 +128,29 @@ You can ship one skill change or a batch of skill changes in the same release. M
 | New skills, substantial skill behavior updates, new supported platform behavior                 | **minor**                                   |
 | Breaking command names, plugin name changes, removing or renaming skills, install layout breaks | **major** (only when explicitly instructed) |
 
-Before creating the release, update the marketplace entry in `.claude-plugin/marketplace.json`:
+Update `.claude-plugin/plugin.json`:
 
 ```json
 {
-  "source": {
-    "source": "github",
-    "repo": "linuxfoundation/lfx-skills",
-    "ref": "v0.1.0"
-  },
   "version": "0.1.0"
 }
 ```
 
-Commit the version bump with DCO and cryptographic signing before creating the GitHub Release:
+Commit the version bump with the skill changes, using DCO and cryptographic signing:
 
 ```bash
-git add .claude-plugin/marketplace.json
-git commit -s -S -m "chore: release lfx-skills plugin v0.1.0"
+git add .claude-plugin/plugin.json skills/<changed-skill>
+git commit -s -S -m "feat: update lfx skills plugin"
 ```
 
-Do not set `version` in `.claude-plugin/plugin.json`. Anthropic's version-resolution order checks `plugin.json` first, then marketplace `version`, then the git commit SHA. Keeping the explicit version only in the marketplace avoids duplicate version sources while still pinning the plugin source to the release tag.
-
-Create the GitHub Release after the version bump commit is merged:
-
-```bash
-LATEST=$(git tag --sort=-v:refname | head -1)
-echo "Latest tag: $LATEST"
-NEXT=v0.1.0
-
-gh release create "$NEXT" \
-  --generate-notes \
-  --latest
-```
-
-Claude Code users then update from Claude:
+After the change is on `main`, Claude Code users update from Claude:
 
 ```text
 /plugin marketplace update lfx-skills
 /plugin update lfx-skills@lfx-skills
 ```
+
+They can also enable auto-update.
 
 For agents.md-compatible installs, update from the terminal or ask your coding agent to update LFX Skills:
 
@@ -579,6 +573,16 @@ An **interactive setup guide** that walks through environment configuration step
     ├── lfx-skills-helper/           # CLI management front-end
     ├── lfx-install/                 # CLI install guide for agents.md tools
     └── lfx-new-skill/               # Contributor scaffolder
+├── .agents/skills/                  # Repo-local bootstrap wrappers for agents.md tools
+│   ├── lfx-doctor/
+│   ├── lfx-skills-helper/
+│   ├── lfx-install/
+│   └── lfx-new-skill/
+├── .claude/skills/                  # Repo-local bootstrap wrappers for Claude Code
+│   ├── lfx-doctor/
+│   ├── lfx-skills-helper/
+│   ├── lfx-install/
+│   └── lfx-new-skill/
 ```
 
 ## License

@@ -46,7 +46,8 @@ Always confirm via `AskUserQuestion` before running. Show the exact command firs
 
 | User says                                       | Run                                                       | Notes                                                                       |
 |-------------------------------------------------|-----------------------------------------------------------|-----------------------------------------------------------------------------|
-| "Update lfx skills"                             | `lfx-skills update --pull`                                | Suggest `/lfx-doctor` after                                                 |
+| "Update lfx skills"                             | Ask whether they mean Claude Code plugin or agents.md CLI install. For agents.md, run `lfx-skills update --pull`. | Suggest `/lfx-doctor` after agents.md updates                              |
+| "Update the Claude plugin" / "Update Claude skills" | Explain: `/plugin marketplace update lfx-skills`, then `/plugin update lfx-skills@lfx-skills` | Claude Code plugin updates are not handled by the CLI                       |
 | "Re-apply my install"                           | `lfx-skills update`                                       | No `--pull`; just refresh symlinks against the manifest                     |
 | "Remove old Claude symlinks"                    | Confirm, then `lfx-skills uninstall --yes --legacy-claude-only` | Removes only lfx-skills-owned legacy Claude symlinks                  |
 | "Remove lfx-skills completely"                  | Confirm, then `lfx-skills uninstall --yes --all`          | Removes agents.md symlinks, legacy Claude symlinks, CLI symlink, config     |

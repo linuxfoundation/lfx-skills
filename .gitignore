@@ -17,13 +17,36 @@
 Thumbs.db
 
 # Claude AI assistant — local state (settings.local.json, projects/, etc.)
-# stays out of the repo. Claude Code distribution now goes through the
-# .claude-plugin manifest; this repo does not commit .claude/skills symlinks.
+# stays out of the repo. The four committed bootstrap skills below make this
+# source repo usable in Claude Code without installing the published plugin.
 .claude/*
+!.claude/
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/lfx-install/
+!.claude/skills/lfx-install/**
+!.claude/skills/lfx-doctor/
+!.claude/skills/lfx-doctor/**
+!.claude/skills/lfx-skills-helper/
+!.claude/skills/lfx-skills-helper/**
+!.claude/skills/lfx-new-skill/
+!.claude/skills/lfx-new-skill/**
 
-# agents.md-compatible tools can still use the CLI installer; no bootstrap
-# symlinks are committed in this repo for now.
+# agents.md-compatible tools can use the four committed bootstrap skills in
+# this repo without running the installer. Other generated per-repo skill
+# files or symlinks stay local.
 .agents/*
+!.agents/
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/lfx-install/
+!.agents/skills/lfx-install/**
+!.agents/skills/lfx-doctor/
+!.agents/skills/lfx-doctor/**
+!.agents/skills/lfx-skills-helper/
+!.agents/skills/lfx-skills-helper/**
+!.agents/skills/lfx-new-skill/
+!.agents/skills/lfx-new-skill/**
 
 # Legacy install manifest. Older clones of lfx-skills wrote this; the CLI
 # stores its manifest at ~/.lfx-skills/config.json, so this file is no

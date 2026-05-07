@@ -3,12 +3,15 @@
 # SPDX-License-Identifier: MIT
 name: lfx-doctor
 description: >
-  Diagnose problems with the LFX Skills installation: broken symlinks, missing
-  dev root, frontmatter errors, routing gaps, MCP setup. Use whenever a skill
+  Diagnose problems with the agents.md LFX Skills installation and legacy
+  Claude symlink installs: broken symlinks, missing dev root, frontmatter
+  errors, routing gaps, MCP setup. Use whenever an agents.md-installed skill
   isn't loading, when /lfx commands aren't appearing in autocomplete, when
-  newly installed skills don't show up, or when the user asks "what's wrong
-  with my install", "is my setup OK", or "check my lfx skills". Wraps
-  `lfx-skills doctor --json` with a conversational fix flow.
+  newly installed agents.md skills don't show up, or when the user asks
+  "what's wrong with my install", "is my setup OK", or "check my lfx skills".
+  For Claude Code plugin installs, explain the plugin marketplace update path
+  instead of running the CLI doctor. Wraps `lfx-skills doctor --json` with a
+  conversational fix flow.
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 ---
 
@@ -16,7 +19,9 @@ allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 
 # LFX Skills Doctor
 
-You diagnose problems with a user's LFX Skills install and walk them through fixing the ones that need a human-in-the-loop. The bash CLI handles mechanical repairs; you handle everything that needs judgment (content gaps, scaffolding, file edits).
+You diagnose problems with a user's agents.md LFX Skills install and legacy Claude symlink installs, then walk them through fixing the ones that need a human-in-the-loop. The bash CLI handles mechanical repairs; you handle everything that needs judgment (content gaps, scaffolding, file edits).
+
+Claude Code plugin installs are separate. Claude Code uses `/plugin marketplace add linuxfoundation/lfx-skills` and `/plugin install lfx-skills@lfx-skills`; it does not use the CLI installer or agents.md symlinks. If the user is asking about the Claude Code plugin itself, do not run `lfx-skills doctor`. Tell them to update with `/plugin marketplace update lfx-skills` and `/plugin update lfx-skills@lfx-skills`, and to run `claude plugin validate .` from the LFX Skills clone when validating local plugin metadata. Use the CLI doctor only for agents.md installs and legacy Claude symlink cleanup.
 
 ## Step 1: Locate the CLI
 
@@ -27,7 +32,7 @@ The `lfx-skills` CLI lives in the user's lfx-skills clone at `cli/lfx-skills`. T
 3. **Current dir:** if the user is inside the lfx-skills clone (a `cli/lfx-skills` exists relative to `pwd`), use `./cli/lfx-skills`.
 4. **Last resort:** ask the user: "Where is your lfx-skills clone? (e.g., `~/lf/lfx-skills`)".
 
-If none of the above works, the install was never run: tell the user to clone the repo and run `./install.sh` (or use `/lfx-install` if they're inside the clone). Stop here.
+If none of the above works, the agents.md install was never run: tell the user to clone the repo and run `./install.sh` (or use `/lfx-install` if they're inside the clone). If they only need Claude Code, point them to the plugin marketplace commands instead. Stop here.
 
 ## Step 2: Run diagnostics
 
@@ -120,6 +125,7 @@ End with:
 
 ## What this skill does NOT do
 
+- Diagnose Claude Code plugin cache or marketplace state through the CLI. Use Claude Code plugin commands for that path.
 - Install new skills or change install scope: that's `/lfx-install`.
 - List, manage, or scaffold skills: `/lfx-skills-helper` and `/lfx-new-skill`.
 - Modify `lfx/SKILL.md`'s routing table without asking the user first.

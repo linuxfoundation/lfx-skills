@@ -35,9 +35,11 @@ The marketplace lives in LFX Skills:
 linuxfoundation/lfx-skills
 ```
 
-The marketplace publishes the `lfx-skills` Claude Code plugin. Its source points at the released LFX Skills tag, so Claude Code users install a tagged release rather than an arbitrary branch commit.
+The marketplace publishes the `lfx-skills` Claude Code plugin. Its source is `"./"`, so the plugin is loaded from the LFX Skills repo root when the marketplace is cloned.
 
-LFX Skills also owns the plugin manifest. The marketplace carries both the published plugin version and the release tag reference.
+LFX Skills also owns the plugin manifest. The Claude plugin version is tracked in `.claude-plugin/plugin.json`.
+
+The `skills` array in `.claude-plugin/plugin.json` is the Claude plugin allowlist. New user-facing skills are not available through the plugin just because they exist under `skills/`; they must be added to that allowlist and the plugin version must be bumped.
 
 ## Legacy Claude Symlink Cleanup
 
@@ -77,12 +79,14 @@ cd lfx-skills
 
 Then start your coding agent in the cloned LFX Skills directory and ask it to set up LFX Skills.
 
-LFX Skills includes four helper skills for this flow:
+LFX Skills includes four helper skills for this flow. They are available out of the box inside the cloned repo through committed `.agents/skills/` and `.claude/skills/` bootstrap wrappers, so a coding agent can use them before anything is installed:
 
 - `lfx-install` — guided first-time setup
 - `lfx-doctor` — install health checks and repair guidance
 - `lfx-skills-helper` — list, update, uninstall, and inspect the setup
 - `lfx-new-skill` — scaffold a new LFX skill
+
+The canonical helper skill bodies live under `skills/`; the repo-local `.agents/skills/` and `.claude/skills/` files are lightweight wrappers for bootstrapping work in this repository.
 
 Manual fallback:
 
@@ -131,13 +135,7 @@ If `lfx-skills` is not on `PATH`, run it from the local LFX Skills clone:
 
 ## Releases
 
-Skill releases use GitHub Release tags in `linuxfoundation/lfx-skills`.
-
-Use SemVer tags:
-
-```text
-vMAJOR.MINOR.PATCH
-```
+Skill versions use SemVer in `.claude-plugin/plugin.json`.
 
 Version bump guide:
 
@@ -147,35 +145,23 @@ Version bump guide:
 | New skills or substantial skill behavior updates                                                | **minor**         |
 | Breaking command names, plugin name changes, removing or renaming skills, install layout breaks | **major**         |
 
-Before creating the release, update the marketplace entry in `.claude-plugin/marketplace.json`.
+For Claude Code users to receive plugin changes, update `.claude-plugin/plugin.json` before merging or pushing the change to `main`. Because the plugin manifest defines `version`, Claude Code uses that value for cache and update detection. If skill content changes but the plugin version stays the same, Claude Code will keep using the already cached plugin version.
 
-Do not set `version` in `.claude-plugin/plugin.json`. Anthropic's version-resolution order checks `plugin.json` first, then marketplace `version`, then the git commit SHA. Keeping the explicit version only in the marketplace avoids duplicate version sources while still pinning the plugin source to the release tag.
+For new Claude-facing skills, update both the `skills` allowlist and `version` in `.claude-plugin/plugin.json`.
 
 This follows Anthropic's Claude Code marketplace guidance:
 
 - [Create and distribute a plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces)
 - [Plugins reference](https://code.claude.com/docs/en/plugins-reference)
 
-Commit the version bump with DCO and cryptographic signing:
+Commit the version bump with the skill changes, using DCO and cryptographic signing:
 
 ```bash
-git add .claude-plugin/marketplace.json
-git commit -s -S -m "chore: release lfx-skills plugin v0.1.0"
+git add .claude-plugin/plugin.json skills/<changed-skill>
+git commit -s -S -m "feat: update lfx skills plugin"
 ```
 
-After the version bump commit is merged, create the tag release with the same `gh release create` flow used by LFX MCP:
-
-```bash
-LATEST=$(git tag --sort=-v:refname | head -1)
-echo "Latest tag: $LATEST"
-NEXT=v0.1.0
-
-gh release create "$NEXT" \
-  --generate-notes \
-  --latest
-```
-
-The `gh release create` command creates the release tag. The tag is the canonical LFX Skills version.
+After the change is on `main`, Claude Code users update the marketplace and plugin from Claude Code.
 
 ## Removing agents.md Installs
 

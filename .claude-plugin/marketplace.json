@@ -7,12 +7,7 @@
   "plugins": [
     {
       "name": "lfx-skills",
-      "source": {
-        "source": "github",
-        "repo": "linuxfoundation/lfx-skills",
-        "ref": "v0.1.0"
-      },
-      "version": "0.1.0",
+      "source": "./",
       "description": "Claude Code skills for LFX. Start with the lfx skill and describe what you want in plain language."
     }
   ]

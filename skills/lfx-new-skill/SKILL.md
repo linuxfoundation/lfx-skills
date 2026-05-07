@@ -90,7 +90,8 @@ Ask which runtime they want to test: Claude Code plugin, agents.md, or both.
 
 For Claude Code plugin testing:
 
-- If the skill should ship in the Claude plugin, add it to `.claude-plugin/plugin.json`.
+- If the skill should ship in the Claude plugin, add its path to the `skills` allowlist in `.claude-plugin/plugin.json`. Creating `skills/lfx-<name>/SKILL.md` is not enough; Claude plugin users only get skills listed in that manifest.
+- If the new skill is user-facing and should be available to Claude plugin users, treat the plugin allowlist entry as required, not optional.
 - Give the user this validation command to run from their normal terminal:
 
   ```bash
@@ -129,7 +130,7 @@ If they say yes:
 - Do not add co-author trailers.
 - Do not push unless explicitly asked.
 
-For releases, explain that after the PR merges they can ask their coding agent to help choose the next SemVer version, update `.claude-plugin/marketplace.json`, run validation, and draft the `gh release create` command. The user should review before committing or creating the release.
+For plugin versioning, explain that Claude Code picks up plugin changes when `.claude-plugin/plugin.json` gets a new SemVer `version` and the change reaches `main`. Offer to help choose the next patch/minor/major version and include the plugin version bump in the signed commit. If the skill is Claude-facing, include both the `skills` allowlist entry and the version bump in the commit.
 
 ## Boundaries
 

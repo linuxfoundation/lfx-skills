@@ -1,6 +1,7 @@
 {
   "name": "lfx-skills",
   "description": "Claude Code skills for LFX. Start with the lfx skill and describe what you want in plain language.",
+  "version": "0.1.0",
   "author": {
     "name": "The Linux Foundation"
   },

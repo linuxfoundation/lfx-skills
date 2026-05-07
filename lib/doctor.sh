@@ -19,6 +19,11 @@ _emit() {
   printf '%s|%s|%s|%s|%s|%s|%s\n' "$1" "$2" "$3" "$4" "$5" "$6" "${7:-}"
 }
 
+_doctor_skill_filter_matches() {
+  local skill_name="$1"
+  [ -z "${DOCTOR_SKILL_FILTER:-}" ] || [ "$skill_name" = "$DOCTOR_SKILL_FILTER" ]
+}
+
 # ─── Category 1: Symlinks ────────────────────────────────────────────────
 check_symlinks() {
   if ! config_exists; then
@@ -142,10 +147,12 @@ check_lfx_dev_root() {
 check_frontmatter() {
   local clone
   clone="${CLONE_ROOT:-$(probe_canonical_clone "${BASH_SOURCE[0]:-$0}")}"
-  local skill_md skill_name name_in_md desc_in_md
+  local skill_md skill_name name_in_md desc_in_md skill_issue
   for skill_md in "$clone"/skills/lfx*/SKILL.md; do
     [ -f "$skill_md" ] || continue
     skill_name="$(basename "$(dirname "$skill_md")")"
+    _doctor_skill_filter_matches "$skill_name" || continue
+    skill_issue=0
     if [ "$(head -1 "$skill_md")" != "---" ]; then
       _emit fail frontmatter-missing frontmatter \
         "$skill_name: SKILL.md missing frontmatter" \
@@ -158,18 +165,24 @@ check_frontmatter() {
     desc_in_md="$(printf '%s\n' "$fm" | awk -F': *' '/^description: */ {print $2; exit}')"
 
     if [ -z "$name_in_md" ]; then
+      skill_issue=1
       _emit fail frontmatter-no-name frontmatter \
         "$skill_name: missing required \`name\` field" "$skill_md" no
     elif [ "$name_in_md" != "$skill_name" ]; then
+      skill_issue=1
       _emit fail frontmatter-name-mismatch frontmatter \
         "$skill_name: name field is \`$name_in_md\`, expected \`$skill_name\`" \
         "$skill_md" no
     fi
     if [ -z "$desc_in_md" ]; then
       if ! printf '%s\n' "$fm" | awk '/^description:/{f=1; next} f && /^[a-z_-]+:/{exit} f && /^ +./{print; exit}' | grep -q '.'; then
+        skill_issue=1
         _emit warn frontmatter-no-description frontmatter \
           "$skill_name: missing or empty \`description\` field" "$skill_md" no
       fi
+    fi
+    if [ "${DOCTOR_EMIT_FORMATTING_PASS:-0}" = "1" ] && [ "$skill_issue" -eq 0 ]; then
+      _emit pass frontmatter-ok frontmatter "$skill_name frontmatter OK" "$skill_md" no
     fi
   done
 }
@@ -229,6 +242,7 @@ check_license_headers() {
   for skill_md in "$clone"/skills/lfx*/SKILL.md; do
     [ -f "$skill_md" ] || continue
     skill_name="$(basename "$(dirname "$skill_md")")"
+    _doctor_skill_filter_matches "$skill_name" || continue
     if head -4 "$skill_md" | grep -qF "Copyright The Linux Foundation"; then
       _emit pass license-ok license_headers "$skill_name has license header" "$skill_md" no
     else
@@ -246,6 +260,13 @@ doctor_run_all() {
   check_lfx_dev_root
   check_frontmatter
   check_routing
+  check_license_headers
+}
+
+# doctor_run_skill_formatting → only content-format checks. Used by
+# /lfx-new-skill so scaffolding validation does not require an agents.md install.
+doctor_run_skill_formatting() {
+  DOCTOR_EMIT_FORMATTING_PASS=1 check_frontmatter
   check_license_headers
 }
 

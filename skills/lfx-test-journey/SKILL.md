@@ -62,10 +62,36 @@ If a subcommand requires a journey name and the user didn't provide one, run **L
 
 ## Create Journey
 
+### Dev Root
+
+Resolve the LFX dev root:
+
+```bash
+if [ -f "$HOME/.lfx-skills/dev-root" ]; then
+  LFX_DEV_ROOT="$(cat "$HOME/.lfx-skills/dev-root")"
+else
+  LFX_DEV_ROOT="$HOME/lf"
+fi
+printf '%s\n' "$LFX_DEV_ROOT"
+```
+
+If `~/.lfx-skills/dev-root` already exists, use it without asking and continue. Do not list or scan repos during setup.
+
+If `~/.lfx-skills/dev-root` is missing, ask a quick question: whether the user wants to set an LFX dev root now or use the default `~/lf`. Explain that journey testing needs a parent directory containing local LFX repos so it can create worktrees from their branches. Suggest likely locations: `~/lf`, `~/lfx`, `~/src/lfx`, or the parent directory containing their LFX clones.
+
+If they accept, ask for the path, then write it:
+
+```bash
+mkdir -p ~/.lfx-skills
+printf '%s\n' "<chosen-dev-root>" > ~/.lfx-skills/dev-root
+```
+
+If they choose the default, continue with `~/lf`. If no repos are found there, stop and tell them journey testing needs local LFX repo clones.
+
 ### Step 1: Discover Repos
 
 Scan the LFX dev root for git repositories. The first line resolves
-`LFX_DEV_ROOT` from a one-line text file written by `lfx-skills install`,
+`LFX_DEV_ROOT` from a one-line text file written by `lfx-skills install` in `~/.lfx-skills/dev-root`,
 falling back to `~/lf` when not installed. No shell rc / env var required.
 
 ```bash

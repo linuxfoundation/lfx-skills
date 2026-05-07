@@ -73,6 +73,32 @@ Step 7: Summary — report results, suggest /lfx-preflight
 
 Read the relevant reference before planning work that involves query service usage, indexing changes, or adding fields to indexed resources.
 
+## Dev Root Setup
+
+Before relying on local upstream service repos, resolve the LFX dev root:
+
+```bash
+if [ -f "$HOME/.lfx-skills/dev-root" ]; then
+  LFX_DEV_ROOT="$(cat "$HOME/.lfx-skills/dev-root")"
+else
+  LFX_DEV_ROOT="$HOME/lf"
+fi
+printf '%s\n' "$LFX_DEV_ROOT"
+```
+
+If `~/.lfx-skills/dev-root` already exists, use it without asking and continue. Do not list or scan repos during setup.
+
+If `~/.lfx-skills/dev-root` is missing, ask a quick question: whether the user wants to set an LFX dev root now or use the default `~/lf`. Explain that setting it lets skills read local LFX repos directly, which is faster and more reliable than falling back to GitHub API calls. Suggest likely locations: `~/lf`, `~/lfx`, `~/src/lfx`, or the parent directory containing their LFX clones.
+
+If they accept, ask for the path, then write it:
+
+```bash
+mkdir -p ~/.lfx-skills
+printf '%s\n' "<chosen-dev-root>" > ~/.lfx-skills/dev-root
+```
+
+If they choose the default, continue with `~/lf` and use GitHub fallbacks when local repos are unavailable.
+
 ## Step 3: Research (do this inline — NOT via Skill delegation)
 
 Use your Read, Glob, Grep, and Bash tools to quickly check:

@@ -14,7 +14,7 @@ The CLI itself is at `cli/lfx-skills`. Run `cli/lfx-skills help` for the full co
 
 ## Claude vs agents.md
 
-- Claude Code install/update happens through the plugin marketplace: `/plugin marketplace add linuxfoundation/lfx-plugins`, then `/plugin install lfx-skills@lfx`.
+- Claude Code install/update happens through the in-repo plugin marketplace: `/plugin marketplace add linuxfoundation/lfx-skills`, then `/plugin install lfx-skills@lfx-skills`.
 - agents.md install/update happens through `cli/lfx-skills`.
 - The CLI has no platform picker anymore. It installs agents.md symlinks only.
 - To remove old Claude symlink installs from before the plugin pivot, run `cli/lfx-skills uninstall --legacy-claude-only`.
@@ -34,6 +34,7 @@ The CLI itself is at `cli/lfx-skills`. Run `cli/lfx-skills help` for the full co
 - `lib/*.sh` — sourced by the CLI (probe, config, symlinks, doctor, ui, targets).
 - `skills/lfx*/` — each directory is one skill, with `SKILL.md` and optional `references/`.
 - `.claude-plugin/plugin.json` — Claude Code plugin manifest. It explicitly lists Claude-facing runtime skills and intentionally excludes `lfx-install`, `lfx-doctor`, `lfx-skills-helper`, and `lfx-new-skill`.
+- `.claude-plugin/marketplace.json` — Claude Code marketplace manifest. It lists the `lfx-skills` plugin, points its source at the released `linuxfoundation/lfx-skills` tag, and carries the published plugin version.
 - `install.sh` — thin shim that execs `cli/lfx-skills install "$@"`.
 - `~/.lfx-skills/config.json` — agents.md install manifest written by the CLI (not in this repo). New installs do not record a platform.
 - `~/.lfx-skills/dev-root` — single-line text file the 3 dev-root-aware skills `cat` to resolve `LFX_DEV_ROOT` without depending on shell env.
@@ -54,8 +55,8 @@ The skill bodies in this repo use Claude Code's tool vocabulary by default (Bash
 - Releases use GitHub Releases with `vMAJOR.MINOR.PATCH`, like `lfx-mcp`.
 - One skill change or a batch of skill changes can ship in the same release.
 - Create releases through GitHub Releases or `gh release create`; GitHub creates the tag.
-- After release, manually update `../lfx-plugins/.claude-plugin/marketplace.json` so `lfx-skills` points at the new tag.
-- `.claude-plugin/plugin.json` must not contain `version`; the `lfx-plugins` marketplace entry owns the published plugin version.
+- Before release, update `.claude-plugin/marketplace.json` so `plugins[].source.ref` equals the release tag and `plugins[].version` equals the release without the leading `v`.
+- `.claude-plugin/plugin.json` must not contain `version`; Anthropic resolves `plugin.json` version before marketplace version, so keep the explicit version in the marketplace only.
 
 Version bump guidelines:
 
@@ -77,16 +78,14 @@ gh release create "$NEXT" \
   --latest
 ```
 
-After creating the GitHub Release, update the sibling marketplace repo:
+Before creating the GitHub Release, update and commit the plugin version plus marketplace tag reference:
 
 ```bash
-cd ../lfx-plugins
 # Edit .claude-plugin/marketplace.json:
 # - plugins[].source.ref = "$NEXT"
 # - plugins[].version = "${NEXT#v}"
 git add .claude-plugin/marketplace.json
-git commit -s -S -m "chore: publish lfx-skills plugin $NEXT"
-git push
+git commit -s -S -m "chore: release lfx-skills plugin $NEXT"
 ```
 
-After the marketplace update, Claude users update with `/plugin marketplace update lfx` and `/plugin update lfx-skills@lfx`. agents.md users update with `lfx-skills update --pull` and `lfx-skills doctor`.
+After the release, Claude users update with `/plugin marketplace update lfx-skills` and `/plugin update lfx-skills@lfx-skills`. agents.md users update with `lfx-skills update --pull` and `lfx-skills doctor`.

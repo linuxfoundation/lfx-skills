@@ -12,21 +12,13 @@ A collection of AI coding skills that encode the full development workflow for t
 Install the Claude Code plugin from the LFX marketplace:
 
 ```text
-/plugin marketplace add linuxfoundation/lfx-plugins
-/plugin install lfx-skills@lfx
+/plugin marketplace add linuxfoundation/lfx-skills
+/plugin install lfx-skills@lfx-skills
 ```
 
 After installation, start with the `lfx` skill. In Claude Code that command is namespaced as `/lfx-skills:lfx`; describe what you want in plain language and it will route you to the right workflow.
 
-The marketplace metadata lives in the separate `linuxfoundation/lfx-plugins` repo. That lets LFX publish multiple Claude Code plugins from one marketplace. This repo owns the `lfx-skills` plugin source; the marketplace repo owns the published plugin version and source tag.
-
-For local plugin development from this checkout:
-
-```bash
-git clone https://github.com/linuxfoundation/lfx-skills.git
-cd lfx-skills
-claude --plugin-dir .
-```
+The marketplace metadata lives in `.claude-plugin/marketplace.json` in LFX Skills. The marketplace points the plugin source at the released `linuxfoundation/lfx-skills` tag and carries the published plugin version.
 
 The Claude Code plugin is skills-only: it exposes the runtime skills listed in `.claude-plugin/plugin.json` and does not install or expose the CLI.
 
@@ -79,7 +71,7 @@ New to LFX development? Type `/lfx` and say **"show me an example"** for a walkt
 
 - An AI coding assistant that supports skill-based workflows. Claude Code uses the plugin path; Codex, Gemini CLI, OpenCode, and similar tools use the CLI installer. See [docs/overview.md](docs/overview.md) for details.
 - Access to LFX repositories (for the skills to operate on)
-- **Optional: `LFX_DEV_ROOT`** — environment variable pointing to the directory where you keep your LFX repo clones. Defaults to `~/lf/`. The CLI records the chosen path in `~/.lfx-skills/dev-root` so skills can discover local repos without shell rc edits.
+- **Optional: `LFX_DEV_ROOT`** — environment variable pointing to the directory where you keep your LFX repo clones. Defaults to `~/lf/`. The CLI records the chosen path in `~/.lfx-skills/dev-root` so skills can discover local repos without shell rc edits. Skills that use this will prompt the user to either set it or use default.
 
 ## CLI Safety
 
@@ -89,7 +81,7 @@ The only PATH-related write it attempts is creating an `lfx-skills` symlink in a
 
 ## Verify
 
-Restart your AI coding assistant (or open a new session) in any LFX repo and type `/lfx` — agents.md installs should see these commands in autocomplete:
+Restart your AI coding assistant (or open a new session) in any LFX repo and type `/lfx`.
 
 ```
 /lfx                              ← start here (plain-language entry point)
@@ -113,35 +105,19 @@ Restart your AI coding assistant (or open a new session) in any LFX repo and typ
 
 ## Releases and Updates
 
-Releases follow the same GitHub Release pattern used by LFX service repos such as `lfx-mcp`.
+Releases follow the same tag-first GitHub Release pattern used by LFX service repos such as `lfx-mcp`.
 
-You can ship one skill change or a batch of skill changes in the same release. Merge the skill changes first, then create a GitHub Release using `vMAJOR.MINOR.PATCH`; GitHub creates the tag.
+You can ship one skill change or a batch of skill changes in the same release. Merge the skill changes first, bump the plugin version and marketplace tag reference, then create a GitHub Release using `vMAJOR.MINOR.PATCH`; GitHub creates the tag.
 
 ### Version bump guidelines
 
-| Change type | Version component |
-|---|---|
-| Typo fixes, prompt wording tweaks, docs, installer fixes, CI fixes | **patch** |
-| New skills, substantial skill behavior updates, new supported platform behavior | **minor** |
+| Change type                                                                                     | Version component                           |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Typo fixes, prompt wording tweaks, docs, installer fixes, CI fixes                              | **patch**                                   |
+| New skills, substantial skill behavior updates, new supported platform behavior                 | **minor**                                   |
 | Breaking command names, plugin name changes, removing or renaming skills, install layout breaks | **major** (only when explicitly instructed) |
 
-```bash
-LATEST=$(git tag --sort=-v:refname | head -1)
-echo "Latest tag: $LATEST"
-NEXT=v0.1.0
-
-gh release create "$NEXT" \
-  --generate-notes \
-  --latest
-```
-
-Then update the self-hosted Claude marketplace in the sibling `lfx-plugins` repo. The marketplace can host multiple LFX plugins; update only the `lfx-skills` entry for an LFX Skills release. The entry must point at the released `lfx-skills` tag, and `version` must be the same tag without the leading `v`:
-
-```bash
-cd ../lfx-plugins
-```
-
-Update `.claude-plugin/marketplace.json`:
+Before creating the release, update the marketplace entry in `.claude-plugin/marketplace.json`:
 
 ```json
 {
@@ -154,21 +130,32 @@ Update `.claude-plugin/marketplace.json`:
 }
 ```
 
-Commit the marketplace bump with DCO and cryptographic signing:
+Commit the version bump with DCO and cryptographic signing before creating the GitHub Release:
 
 ```bash
 git add .claude-plugin/marketplace.json
-git commit -s -S -m "chore: publish lfx-skills plugin v0.1.0"
-git push
+git commit -s -S -m "chore: release lfx-skills plugin v0.1.0"
 ```
 
-Do not put `version` in `.claude-plugin/plugin.json`; Claude resolves manifest versions before marketplace versions, so the marketplace repo owns the published plugin version.
+Do not set `version` in `.claude-plugin/plugin.json`. Anthropic's version-resolution order checks `plugin.json` first, then marketplace `version`, then the git commit SHA. Keeping the explicit version only in the marketplace avoids duplicate version sources while still pinning the plugin source to the release tag.
+
+Create the GitHub Release after the version bump commit is merged:
+
+```bash
+LATEST=$(git tag --sort=-v:refname | head -1)
+echo "Latest tag: $LATEST"
+NEXT=v0.1.0
+
+gh release create "$NEXT" \
+  --generate-notes \
+  --latest
+```
 
 Claude Code users then update from Claude:
 
 ```text
-/plugin marketplace update lfx
-/plugin update lfx-skills@lfx
+/plugin marketplace update lfx-skills
+/plugin update lfx-skills@lfx-skills
 ```
 
 For agents.md-compatible installs, update from the terminal or ask your coding agent to update LFX Skills:
@@ -222,23 +209,23 @@ The skills form a layered system where each skill has a clear responsibility and
 
 ## Skill Overview
 
-| Skill | Purpose | Mode | Tools |
-|-------|---------|------|-------|
-| **`/lfx`** | **Start here.** Describe what you want in plain language — auto-detects context and routes to the right skill | Router | Bash, Read, Glob, Grep, AskUserQuestion, **Skill** |
-| `/lfx-coordinator` | Orchestrates full feature development — researches, plans, delegates to builders in parallel, validates | Read + delegate | Bash, Read, Glob, Grep, AskUserQuestion, **Skill** |
-| `/lfx-research` | Explores upstream APIs, discovers code patterns, reads architecture docs, validates contracts via MCP | Read-only | Bash, Read, Glob, Grep, AskUserQuestion, **WebFetch** |
-| `/lfx-backend-builder` | Generates Express.js proxy endpoints, Go microservice code, shared types. Encodes three-file pattern, logging, Goa DSL, NATS messaging | Code gen | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion |
-| `/lfx-ui-builder` | Generates Angular 20 components, services, drawers, pagination UI, styling. Encodes signal patterns, PrimeNG wrappers | Code gen | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion |
-| `/lfx-product-architect` | Answers "where should this go?", traces data flows, makes placement decisions, explains design patterns | Read-only | Bash, Read, Glob, Grep, AskUserQuestion |
-| `/lfx-preflight` | Pre-PR validation — Phase 1 auto-fixes (format, license, lint, build), Phase 2 code review (15 report-only checks for Angular). Pass `--skip-review` to skip Phase 2 | Validate + review | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion |
-| `/lfx-pr-catchup` | Morning PR dashboard — unresolved comments, status changes, stale PRs, approved-but-not-merged across all your open PRs | Read-only | Bash, Read, Glob, Grep, AskUserQuestion |
-| `/lfx-pr-resolve` | Address PR review feedback end-to-end — fetches threads, makes changes, commits, responds per-thread, resolves, posts summary | Audit + fix | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion, **Skill** |
-| `/lfx-setup` | Environment setup — prerequisites, clone, install, env vars, dev server. Adapts to Angular or Go repos | Interactive guide | Bash, Read, Glob, Grep, AskUserQuestion |
-| `/lfx-test-journey` | Combine branches from multiple repos into worktrees for journey testing | Interactive | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
-| `/lfx-git-setup` | Interactive setup for DCO sign-off and GPG-signed commits. Use when commits aren't showing as Verified or onboarding to LFX | Interactive guide | Bash, Read, Glob, Grep, AskUserQuestion, **WebFetch** |
-| `/lfx-intercom` | Add or fix Intercom integration against the LFX canonical pattern — audits JWT setup, shutdown, Auth0 claim, app IDs, CSP | Audit + fix | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion |
-| `/lfx-snowflake-access` | Guide users requesting Snowflake access — generates Terraform HCL for `users.tf` or `service_accounts.tf` and walks through the PR | Interactive guide | Bash, Read, Glob, Grep, AskUserQuestion, **WebFetch** |
-| `/lfx-cdp-snowflake-connectors` | Streamlines adding a new Snowflake connector to CDP — requires knowledge of the source specs. Requires LFX BI Layer MCP server | Interactive and guided | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, **MCP (LFX BI Layer)** |
+| Skill                           | Purpose                                                                                                                                                              | Mode                   | Tools                                                                        |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------- |
+| **`/lfx`**                      | **Start here.** Describe what you want in plain language — auto-detects context and routes to the right skill                                                        | Router                 | Bash, Read, Glob, Grep, AskUserQuestion, **Skill**                           |
+| `/lfx-coordinator`              | Orchestrates full feature development — researches, plans, delegates to builders in parallel, validates                                                              | Read + delegate        | Bash, Read, Glob, Grep, AskUserQuestion, **Skill**                           |
+| `/lfx-research`                 | Explores upstream APIs, discovers code patterns, reads architecture docs, validates contracts via MCP                                                                | Read-only              | Bash, Read, Glob, Grep, AskUserQuestion, **WebFetch**                        |
+| `/lfx-backend-builder`          | Generates Express.js proxy endpoints, Go microservice code, shared types. Encodes three-file pattern, logging, Goa DSL, NATS messaging                               | Code gen               | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion                     |
+| `/lfx-ui-builder`               | Generates Angular 20 components, services, drawers, pagination UI, styling. Encodes signal patterns, PrimeNG wrappers                                                | Code gen               | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion                     |
+| `/lfx-product-architect`        | Answers "where should this go?", traces data flows, makes placement decisions, explains design patterns                                                              | Read-only              | Bash, Read, Glob, Grep, AskUserQuestion                                      |
+| `/lfx-preflight`                | Pre-PR validation — Phase 1 auto-fixes (format, license, lint, build), Phase 2 code review (15 report-only checks for Angular). Pass `--skip-review` to skip Phase 2 | Validate + review      | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion                     |
+| `/lfx-pr-catchup`               | Morning PR dashboard — unresolved comments, status changes, stale PRs, approved-but-not-merged across all your open PRs                                              | Read-only              | Bash, Read, Glob, Grep, AskUserQuestion                                      |
+| `/lfx-pr-resolve`               | Address PR review feedback end-to-end — fetches threads, makes changes, commits, responds per-thread, resolves, posts summary                                        | Audit + fix            | Bash, Read, **Write, Edit**, Glob, Grep, AskUserQuestion, **Skill**          |
+| `/lfx-setup`                    | Environment setup — prerequisites, clone, install, env vars, dev server. Adapts to Angular or Go repos                                                               | Interactive guide      | Bash, Read, Glob, Grep, AskUserQuestion                                      |
+| `/lfx-test-journey`             | Combine branches from multiple repos into worktrees for journey testing                                                                                              | Interactive            | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion                         |
+| `/lfx-git-setup`                | Interactive setup for DCO sign-off and GPG-signed commits. Use when commits aren't showing as Verified or onboarding to LFX                                          | Interactive guide      | Bash, Read, Glob, Grep, AskUserQuestion, **WebFetch**                        |
+| `/lfx-intercom`                 | Add or fix Intercom integration against the LFX canonical pattern — audits JWT setup, shutdown, Auth0 claim, app IDs, CSP                                            | Audit + fix            | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion                         |
+| `/lfx-snowflake-access`         | Guide users requesting Snowflake access — generates Terraform HCL for `users.tf` or `service_accounts.tf` and walks through the PR                                   | Interactive guide      | Bash, Read, Glob, Grep, AskUserQuestion, **WebFetch**                        |
+| `/lfx-cdp-snowflake-connectors` | Streamlines adding a new Snowflake connector to CDP — requires knowledge of the source specs. Requires LFX BI Layer MCP server                                       | Interactive and guided | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, **MCP (LFX BI Layer)** |
 
 > **Note:** Tool names in the table above follow Claude Code conventions. See [docs/tool-mapping.md](docs/tool-mapping.md) for equivalents on other platforms.
 
@@ -251,6 +238,7 @@ The skills form a layered system where each skill has a clear responsibility and
 The top-level orchestrator for any feature development. It **never writes code directly** — instead, it researches the codebase, builds a delegation plan, and invokes `/lfx-backend-builder` and `/lfx-ui-builder` in parallel.
 
 **Workflow:**
+
 1. **Setup** — detects repo type (Angular or Go), checks/creates feature branch
 2. **Plan** — determines scope, build order (upstream Go → shared types → Express proxy → frontend)
 3. **Research** — inline exploration (5–10 tool calls) to find existing patterns, upstream APIs, file paths
@@ -260,6 +248,7 @@ The top-level orchestrator for any feature development. It **never writes code d
 7. **Summary** — structured completion report with files changed, validation results, and next steps
 
 **Key behaviors:**
+
 - Identifies the upstream Go service by reading Express proxy code API paths (e.g., `/committees/...` → `lfx-v2-committee-service`)
 - Includes upstream Go service changes when the data model needs modification
 - Handles validation failures by re-invoking only the skill that owns the broken file
@@ -272,6 +261,7 @@ The top-level orchestrator for any feature development. It **never writes code d
 A **read-only** exploration agent that gathers all context needed before code generation. Returns structured, compact findings (under 30 lines) that the coordinator consumes.
 
 **Research tasks:**
+
 - **Upstream API validation** — reads OpenAPI specs via `gh api` or local files to check if endpoints/fields exist
 - **Codebase exploration** — finds existing services, components, controllers, domain models
 - **Architecture doc reading** — checks placement rules, protected files, dependencies
@@ -280,16 +270,16 @@ A **read-only** exploration agent that gathers all context needed before code ge
 
 **Upstream service mapping:**
 
-| Domain | Repo |
-|--------|------|
-| Committees | `lfx-v2-committee-service` |
-| Meetings | `lfx-v2-meeting-service` |
-| Voting | `lfx-v2-voting-service` |
+| Domain        | Repo                          |
+| ------------- | ----------------------------- |
+| Committees    | `lfx-v2-committee-service`    |
+| Meetings      | `lfx-v2-meeting-service`      |
+| Voting        | `lfx-v2-voting-service`       |
 | Mailing Lists | `lfx-v2-mailing-list-service` |
-| Members | `lfx-v2-member-service` |
-| Projects | `lfx-v2-project-service` |
-| Surveys | `lfx-v2-survey-service` |
-| Queries | `lfx-v2-query-service` |
+| Members       | `lfx-v2-member-service`       |
+| Projects      | `lfx-v2-project-service`      |
+| Surveys       | `lfx-v2-survey-service`       |
+| Queries       | `lfx-v2-query-service`        |
 
 ---
 
@@ -298,6 +288,7 @@ A **read-only** exploration agent that gathers all context needed before code ge
 Generates **PR-ready backend code** for both the Express.js proxy layer (in `lfx-v2-ui`) and Go microservices (in `lfx-v2-*-service` repos). Always reads target files before generating code — never works from memory alone.
 
 **Express.js proxy (Angular repo):**
+
 - Follows the **three-file pattern**: service → controller → route
 - Services use `MicroserviceProxyService` for all upstream calls (never raw `fetch`/`axios`)
 - Controllers use `logger.startOperation()` / `logger.success()` / `logger.error()` lifecycle
@@ -305,6 +296,7 @@ Generates **PR-ready backend code** for both the Express.js proxy layer (in `lfx
 - Encodes logging conventions, error handling (`next(error)`, never `res.status(500)`), pagination (`page_size`), and auth defaults (user bearer token)
 
 **Go microservices:**
+
 - Goa v3 DSL for API design (`cmd/{service}/design/`) with `make apigen` for code generation
 - Domain models in `internal/domain/model/` with `Tags()` method for OpenSearch indexing
 - NATS messaging — publish index + access messages on every write operation
@@ -313,18 +305,18 @@ Generates **PR-ready backend code** for both the Express.js proxy layer (in `lfx
 
 **Reference docs included:**
 
-| Reference | Content |
-|-----------|---------|
-| `getting-started.md` | Repo map, deployment overview, local dev setup |
-| `goa-patterns.md` | Goa DSL conventions, `make apigen`, ETag/If-Match optimistic locking |
-| `nats-messaging.md` | Subject naming, service-to-service communication, KV storage |
+| Reference             | Content                                                               |
+| --------------------- | --------------------------------------------------------------------- |
+| `getting-started.md`  | Repo map, deployment overview, local dev setup                        |
+| `goa-patterns.md`     | Goa DSL conventions, `make apigen`, ETag/If-Match optimistic locking  |
+| `nats-messaging.md`   | Subject naming, service-to-service communication, KV storage          |
 | `indexer-patterns.md` | IndexerMessageEnvelope, IndexingConfig, OpenSearch document structure |
-| `fga-patterns.md` | OpenFGA tuples, permission inheritance, debugging access |
-| `service-types.md` | Native vs wrapper services, which template to follow |
-| `query-service.md` | Query service API, OpenSearch queries, FGA-based filtering |
-| `helm-chart.md` | Deployment, HTTPRoute, Heimdall rules, KV buckets, secrets |
-| `new-service.md` | End-to-end checklist for building a new resource service |
-| `backend-endpoint.md` | Three-file pattern, authentication, pagination, error handling |
+| `fga-patterns.md`     | OpenFGA tuples, permission inheritance, debugging access              |
+| `service-types.md`    | Native vs wrapper services, which template to follow                  |
+| `query-service.md`    | Query service API, OpenSearch queries, FGA-based filtering            |
+| `helm-chart.md`       | Deployment, HTTPRoute, Heimdall rules, KV buckets, secrets            |
+| `new-service.md`      | End-to-end checklist for building a new resource service              |
+| `backend-endpoint.md` | Three-file pattern, authentication, pagination, error handling        |
 
 ---
 
@@ -333,6 +325,7 @@ Generates **PR-ready backend code** for both the Express.js proxy layer (in `lfx
 Generates **PR-ready Angular 20 frontend code** — components, services, drawers, pagination, and styling. Only activates in Angular repos.
 
 **Components:**
+
 - Standalone with direct imports (no barrel exports)
 - Strict 11-section class structure: injections → inputs → forms → model signals → writable signals → computed/toSignal → constructor → public methods → protected methods → private init functions → private helpers
 - Signal-based reactivity: `signal()`, `input()`, `output()`, `computed()`, `model()`, `toSignal()`
@@ -340,25 +333,28 @@ Generates **PR-ready Angular 20 frontend code** — components, services, drawer
 - PrimeNG components wrapped with `lfx-` prefix and `descendants: false` on `@ContentChild`
 
 **Services:**
+
 - `@Injectable({ providedIn: 'root' })` with `inject(HttpClient)`
 - GET requests: `catchError(() => of(default))` for graceful degradation
 - POST/PUT/DELETE: `take(1)`, let errors propagate
 - Interfaces from `@lfx-one/shared/interfaces`, relative API paths (`/api/...`)
 
 **Drawers:**
+
 - `model<boolean>(false)` for visibility
 - Lazy data loading via `toObservable(visible).pipe(skip(1), switchMap(...))`
 - `forkJoin` for parallel API calls, responsive width classes
 
 **Pagination:**
+
 - Infinite scroll with `page_token`, `scan()` accumulator, separate first-page and next-page streams
 
 **Reference docs included:**
 
-| Reference | Content |
-|-----------|---------|
+| Reference               | Content                                                                                |
+| ----------------------- | -------------------------------------------------------------------------------------- |
 | `frontend-component.md` | Component placement, class structure, signal types, template rules, drawer conventions |
-| `frontend-service.md` | Service patterns, state management, signals vs RxJS guidance |
+| `frontend-service.md`   | Service patterns, state management, signals vs RxJS guidance                           |
 
 ---
 
@@ -367,6 +363,7 @@ Generates **PR-ready Angular 20 frontend code** — components, services, drawer
 A **read-only** advisory skill that answers architectural questions without generating code. Provides decision trees, data flow traces, and placement recommendations.
 
 **Decision trees:**
+
 - "Where does my component go?" — route vs module-specific vs shared vs PrimeNG wrapper
 - "Do I need a new module?" — distinct domain + own routes + enough isolation
 - "Where does my type go?" — shared package vs local definition
@@ -375,6 +372,7 @@ A **read-only** advisory skill that answers architectural questions without gene
 - "User token or M2M token?" — default to user bearer, M2M only for public/privileged calls
 
 **Data flow tracing:**
+
 - Frontend → Backend → Upstream: Angular component → HttpClient → Express proxy → MicroserviceProxyService → Go microservice
 - Write flow: HTTP → Heimdall auth → Goa handler → Storage → concurrent NATS publish (index + FGA)
 - Read flow: query-service → OpenSearch → batch FGA check → filtered results
@@ -388,6 +386,7 @@ A **read-only** advisory skill that answers architectural questions without gene
 Runs a two-phase **pre-PR validation**. Adapts all checks to the repo type.
 
 **Phase 1: Validation (auto-fix):**
+
 1. **Working tree status** — uncommitted changes, commits ahead of main, JIRA references, `--signoff`
 2. **License headers** — verifies and auto-fixes missing headers on `.ts`, `.html`, `.scss`, `.go` files
 3. **Formatting** — `yarn format` (Angular) or `gofmt -w .` (Go), reports which files changed
@@ -410,6 +409,7 @@ Runs a two-phase **pre-PR validation**. Adapts all checks to the repo type.
 A **read-only** morning dashboard that shows all your open PRs across repos, classified by urgency.
 
 **Workflow:**
+
 1. **Auth check** — verifies `gh auth status`
 2. **Config** — uses defaults immediately (org filter and stale threshold can be passed inline, e.g., `/lfx-pr-catchup linuxfoundation`)
 3. **Fetch** — `gh search prs --author=@me --state=open` (up to 50)
@@ -427,16 +427,20 @@ A **read-only** morning dashboard that shows all your open PRs across repos, cla
 Combines feature branches from one or more repos into isolated git worktrees for end-to-end journey testing. Use this when you have a user journey spread across multiple PRs/branches and need to test everything together before merging.
 
 **Quick start:**
+
 ```
 /lfx-test-journey
 ```
+
 This starts the interactive create flow:
+
 1. Select which repos are involved (auto-discovers repos in `$LFX_DEV_ROOT`, defaults to `~/lf/`)
 2. Pick branches to include per repo (shows your unmerged branches)
 3. Name the journey
 4. The skill creates worktrees, merges branches, and tells you exactly where to `cd` and how to run the app
 
 **After creating a journey:**
+
 ```bash
 # Go to the worktree and run the app as usual
 cd ~/.lfx-journeys/<journey-name>/<repo-name>/
@@ -444,6 +448,7 @@ yarn start    # (Angular) or go run cmd/*/main.go (Go)
 ```
 
 **Managing journeys:**
+
 ```
 /lfx-test-journey list                          # See all active journeys
 /lfx-test-journey status                        # Check if branches have new commits
@@ -461,6 +466,7 @@ yarn start    # (Angular) or go run cmd/*/main.go (Go)
 An **interactive setup guide** that walks through environment configuration step by step, verifying each step before proceeding.
 
 **Angular repo setup (lfx-v2-ui):**
+
 1. Prerequisites: Node.js v22+, Yarn v4.9.2+, Git
 2. Clone the repository
 3. Environment variables from `.env.example` + 1Password credentials
@@ -469,6 +475,7 @@ An **interactive setup guide** that walks through environment configuration step
 6. Verification with HTTP status check
 
 **Go microservice setup:**
+
 1. Prerequisites: Go 1.22+, Git, Make (optional: Helm, Docker)
 2. Clone the repository
 3. Environment variables for local or shared dev stack
@@ -484,6 +491,7 @@ An **interactive setup guide** that walks through environment configuration step
 ## Typical Workflows
 
 ### Start here — just describe what you want
+
 ```
 /lfx → "Add a bio field to committee members" → auto-routes to coordinator → builds → validates → PR
 /lfx → "How does meeting data work?" → auto-routes to product architect → explains architecture
@@ -491,32 +499,38 @@ An **interactive setup guide** that walks through environment configuration step
 ```
 
 ### Build a new feature end-to-end
+
 ```
 /lfx-coordinator → researches → plans → delegates to /lfx-backend-builder + /lfx-ui-builder → validates → /lfx-preflight → PR
 ```
 
 ### Understand the architecture before coding
+
 ```
 /lfx-product-architect → "where should this component go?" / "how does the data flow?"
 ```
 
 ### Explore what exists before planning
+
 ```
 /lfx-research → upstream API contract + codebase patterns + example files
 ```
 
 ### Quick backend-only or frontend-only change
+
 ```
 /lfx-backend-builder → generates Express proxy + shared types
 /lfx-ui-builder → generates Angular component + service
 ```
 
 ### Morning PR catch-up
+
 ```
 /lfx-pr-catchup → fetches open PRs → enriches via GraphQL → renders attention dashboard → drill-down
 ```
 
 ### Test a multi-branch user journey
+
 ```
 /lfx-test-journey → pick repos → pick branches → creates worktrees → cd into worktree → yarn start
 /lfx-test-journey status → shows which branches have new commits → /lfx-test-journey refresh <name>
@@ -524,12 +538,14 @@ An **interactive setup guide** that walks through environment configuration step
 ```
 
 ### Validate before submitting a PR
+
 ```
 /lfx-preflight → Phase 1 (license, format, lint, build, protected files) → Phase 2 (15 code review checks, Angular only) → PR
 /lfx-preflight --skip-review → Phase 1 only (useful during dev)
 ```
 
 ### Set up a new developer environment
+
 ```
 /lfx-setup → prerequisites → clone → env vars → install → dev server
 ```

@@ -85,6 +85,32 @@ gh api repos/linuxfoundation/<repo-name>/contents/design/<file>.go \
 | Surveys | `lfx-v2-survey-service` |
 | Members | `lfx-v2-member-service` |
 
+**Dev root setup:**
+
+Before checking local repos, resolve the LFX dev root:
+
+```bash
+if [ -f "$HOME/.lfx-skills/dev-root" ]; then
+  LFX_DEV_ROOT="$(cat "$HOME/.lfx-skills/dev-root")"
+else
+  LFX_DEV_ROOT="$HOME/lf"
+fi
+printf '%s\n' "$LFX_DEV_ROOT"
+```
+
+If `~/.lfx-skills/dev-root` already exists, use it without asking and continue. Do not list or scan repos during setup.
+
+If `~/.lfx-skills/dev-root` is missing, ask a quick question: whether the user wants to set an LFX dev root now or use the default `~/lf`. Explain that setting it lets research read local LFX repos directly, which is faster and more reliable than falling back to `gh api`. Suggest likely locations: `~/lf`, `~/lfx`, `~/src/lfx`, or the parent directory containing their LFX clones.
+
+If they accept, ask for the path, then write it:
+
+```bash
+mkdir -p ~/.lfx-skills
+printf '%s\n' "<chosen-dev-root>" > ~/.lfx-skills/dev-root
+```
+
+If they choose the default, continue with `~/lf` and use GitHub fallbacks when local repos are unavailable.
+
 **If the upstream Go repo exists locally**, read the files directly instead of using `gh api`. Local reads are faster and more reliable. Resolve the path at the start of your bash commands by reading the dev-root file written by `lfx-skills install`:
 
 ```bash

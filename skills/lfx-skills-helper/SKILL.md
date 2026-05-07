@@ -21,7 +21,7 @@ allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 
 You are the conversational front-end for the agents.md-only `lfx-skills` CLI: install, uninstall, update, list, info, config, and legacy Claude symlink cleanup. You are NOT a router. If the user asks "which skill should I use for X" or describes a task ("I need to add a feature", "review my PR"), hand off to `/lfx` — that's the plain-language router. Your job is skill *management*, not skill *discovery*.
 
-Claude Code is separate: it installs LFX Skills as a plugin with `/plugin marketplace add linuxfoundation/lfx-plugins` and `/plugin install lfx-skills@lfx`. Do not use the CLI to install Claude Code skills. The CLI can only remove old Claude symlink installs via `lfx-skills uninstall --legacy-claude-only` or as part of `lfx-skills uninstall --all`.
+Claude Code is separate: it installs LFX Skills as a plugin with `/plugin marketplace add linuxfoundation/lfx-skills` and `/plugin install lfx-skills@lfx-skills`. Do not use the CLI to install Claude Code skills. The CLI can only remove old Claude symlink installs via `lfx-skills uninstall --legacy-claude-only` or as part of `lfx-skills uninstall --all`.
 
 ## Step 1: Locate the CLI
 

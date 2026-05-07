@@ -62,8 +62,8 @@ If you detected only one CLI installed, default to it but still confirm.
 If the user picks Claude Code only, explain that Claude installs this repo as a plugin and does not use the CLI symlink installer:
 
 ```text
-/plugin marketplace add linuxfoundation/lfx-plugins
-/plugin install lfx-skills@lfx
+/plugin marketplace add linuxfoundation/lfx-skills
+/plugin install lfx-skills@lfx-skills
 ```
 
 If they are testing from a local checkout, tell them to run Claude Code with the local plugin directory or add the local marketplace per the Claude Code plugin docs. Stop after explaining the plugin path; do not run `./cli/lfx-skills install` for Claude-only installs.

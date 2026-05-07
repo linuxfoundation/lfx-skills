@@ -190,10 +190,13 @@ _help_doctor() {
   cat <<'EOF'
 USAGE
   lfx-skills doctor [--json] [--fix]
+  lfx-skills doctor --skill-formatting-only --skill=lfx-name [--json]
 
 FLAGS
-  --json   Emit results as a JSON array (for scripts / skills)
-  --fix    Interactive fix: walk through fixable issues and prompt per issue
+  --json                    Emit results as a JSON array (for scripts / skills)
+  --fix                     Interactive fix: walk through fixable issues
+  --skill-formatting-only   Check only SKILL.md frontmatter and license header
+  --skill=NAME              Limit formatting checks to one skill directory
 EOF
 }
 
@@ -378,19 +381,41 @@ cmd_check() {
 # ─── doctor ──────────────────────────────────────────────────────────────
 cmd_doctor() {
   require_jq
-  local emit_json=0 do_fix=0
+  local emit_json=0 do_fix=0 skill_formatting_only=0 skill_filter=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --json) emit_json=1 ;;
       --fix)  do_fix=1 ;;
+      --skill-formatting-only) skill_formatting_only=1 ;;
+      --skill=*) skill_filter="${1#--skill=}" ;;
+      --skill)
+        shift
+        [ $# -gt 0 ] || { ui_error "--skill requires a value"; exit 1; }
+        skill_filter="$1"
+        ;;
       *) ui_error "Unknown flag: $1"; exit 1 ;;
     esac
     shift
   done
 
+  if [ "$skill_formatting_only" = "1" ]; then
+    [ "$do_fix" = "0" ] || { ui_error "--fix is not supported with --skill-formatting-only"; exit 1; }
+    [ -n "$skill_filter" ] || { ui_error "--skill-formatting-only requires --skill=NAME"; exit 1; }
+    [ -d "$CLONE_ROOT/skills/$skill_filter" ] || { ui_error "Unknown skill: $skill_filter"; exit 1; }
+  elif [ -n "$skill_filter" ]; then
+    ui_error "--skill can only be used with --skill-formatting-only"
+    exit 1
+  fi
+
   # Run every check once; records flow through a shell variable.
   local results
-  results="$(doctor_run_all)"
+  if [ "$skill_formatting_only" = "1" ]; then
+    DOCTOR_SKILL_FILTER="$skill_filter"
+    results="$(doctor_run_skill_formatting)"
+    unset DOCTOR_SKILL_FILTER
+  else
+    results="$(doctor_run_all)"
+  fi
 
   if [ "$emit_json" = "1" ]; then
     printf '%s\n' "$results" | doctor_format_json

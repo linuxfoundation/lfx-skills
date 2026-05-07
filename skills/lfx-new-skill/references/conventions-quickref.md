@@ -1,90 +1,134 @@
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
 
-# Skill conventions — quick reference
+# New Skill Quick Reference
 
-Cheat sheet for `/lfx-new-skill`. The full version is `docs/skill-authoring.md` (when present). When in doubt, copy a sibling skill that does something close to what you want.
-
-## Required frontmatter
+## Frontmatter
 
 ```yaml
 ---
 # Copyright The Linux Foundation and each contributor to LFX.
 # SPDX-License-Identifier: MIT
-name: lfx-<your-skill>
+name: lfx-<name>
 description: >
-  One paragraph. Include 3–5 trigger phrases users might say.
+  One paragraph with 3-5 trigger phrases users might say.
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 ---
 ```
 
-- The `---` MUST be line 1. No blank lines or comments above it. Skill loaders refuse anything else.
-- The two `#` lines on lines 2–3 are valid YAML comments and satisfy the CI license-header check.
-- `name:` MUST equal the directory basename.
-- `description:` is YAML folded scalar (`>`), so newlines in source become spaces at parse time.
+- `---` must be line 1.
+- License comments must be lines 2-3 inside frontmatter.
+- `name:` must match the directory basename.
+- `description:` should use `>`.
 
-## Allowed tools — common shapes
+## Input Modes
 
-| Use case                                  | Tools                                                                 |
-|-------------------------------------------|-----------------------------------------------------------------------|
-| Read-only research/exploration             | `Bash, Read, Glob, Grep, AskUserQuestion`                             |
-| Read + URLs                                | `Bash, Read, Glob, Grep, AskUserQuestion, WebFetch`                   |
-| Code generation / file edits               | `Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion`                |
-| Orchestrator that delegates to other skills | `Bash, Read, Glob, Grep, AskUserQuestion, Skill`                     |
-| MCP-dependent (e.g. Snowflake, Atlassian)  | Above + the specific `mcp__*` tool names                              |
+- **Complete skill:** preserve the supplied body; normalize only frontmatter, license, path, and repo-specific placeholders.
+- **Idea:** ask enough questions to draft concrete runtime instructions. Cover triggers, inputs, steps, allowed tools, output, and explicit non-goals.
 
-If you list any `mcp__*` tools, add a `## Prerequisites` section to the body so users without that MCP server configured know what to set up. Otherwise they'll hit cryptic errors when the skill tries to invoke a tool that doesn't exist.
+## Tool Defaults
 
-## Body structure (suggested)
+| Use case | Tools |
+|---|---|
+| Read-only research | `Bash, Read, Glob, Grep, AskUserQuestion` |
+| Reads external URLs | `Bash, Read, Glob, Grep, AskUserQuestion, WebFetch` |
+| Edits files | `Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion` |
+| Delegates to skills | `Bash, Read, Glob, Grep, AskUserQuestion, Skill` |
+| MCP-dependent | Add the specific `mcp__*` tools |
+
+MCP-dependent skills should include `## Prerequisites`.
+
+## Body Shape
+
+Use this as the default body structure when drafting:
 
 ```markdown
-# <Title-cased name>
+# <Title>
 
-<One paragraph: who this helps, what it does.>
+<Who this helps and what it does.>
 
-## Step 1: <verb-noun>
+## Step 1: <Action>
 
-<Concrete instructions. Use `AskUserQuestion` for any user input.>
+<Concrete instructions. Ask for user input when needed.>
 
-## Step 2: <verb-noun>
+## Step 2: <Action>
 
-...
+<Concrete instructions.>
 
 ## What this skill does NOT do
 
-- <bound 1>
-- <bound 2>
+- <Boundary>
 
 ## Reference files
 
-- (linked references/*.md)
+- (none yet)
 ```
 
-## Naming the directory
+## References
 
-- All skill directories start with `lfx-`. The exception is `lfx/` itself (the plain-language router).
-- The directory name becomes the slash command (`/lfx-foo`). Pick something the user will type.
-
-## When to use `references/`
-
-Use `references/` for content that's:
-
-- Too long to inline (tables, JSON config, checklists, recipe libraries).
-- Read selectively by the LLM at runtime (rather than always-loaded with the skill).
-
-Reference files don't need frontmatter. Just markdown (or JSON / YAML / etc.). Add the LFX HTML license header at the top of markdown reference files for CI.
+Use `references/` for long tables, checklists, examples, JSON/YAML snippets, or content the model should load only when needed.
 
 ## Routing
 
-`lfx/SKILL.md` is the plain-language router. If your new skill is **user-facing** (someone might describe a problem and want it routed), add a row to the routing table in `lfx/SKILL.md`. Internal skills (only invoked by another skill, like `/lfx-backend-builder` invoked by `/lfx-coordinator`) can stay out — `lfx-skills doctor`'s `routing-uncovered` warning for them is acceptable.
+User-facing skills should usually be mentioned in `skills/lfx/SKILL.md` so `/lfx` can route to them. Internal-only skills can stay unrouted.
 
 ## Validation
 
-After creating, run:
+Run:
 
 ```bash
-./cli/lfx-skills update      # install the new skill at every configured target
-./cli/lfx-skills doctor      # validate frontmatter, license header, routing
+./cli/lfx-skills doctor --skill-formatting-only --skill=lfx-<name>
 ```
 
-Fix anything the doctor flags before opening a PR.
+This checks only the new skill's frontmatter and license header.
+
+## Claude Code Local Test
+
+If the skill should ship in the Claude plugin, add it to `.claude-plugin/plugin.json`.
+
+Give the user:
+
+```bash
+cd "<absolute-path-to-lfx-skills>"
+claude plugin validate .
+```
+
+Then ask which LFX repo they want to test in, resolve it under `~/.lfx-skills/dev-root` if they gave a repo name, and give:
+
+```bash
+LFX_SKILLS_CLONE="<absolute-path-to-lfx-skills>"
+cd "<resolved-target-repo-path>"
+claude --plugin-dir "$LFX_SKILLS_CLONE"
+```
+
+They should test:
+
+```text
+/lfx-skills:lfx-<name>
+```
+
+## agents.md Local Test
+
+Run:
+
+```bash
+./cli/lfx-skills update
+```
+
+Then tell the user to restart their agents.md-compatible coding agent and run:
+
+```text
+/lfx-<name>
+```
+
+## Commit And Release
+
+After validation, ask if the user wants help committing. If yes:
+
+- Review `git diff` and `git status`.
+- Commit only intended files.
+- Use `git commit -s -S`.
+- Do not add co-author trailers.
+- Do not push unless explicitly asked.
+
+For releases, the user can ask an agent to prepare the release bump: choose SemVer, update `.claude-plugin/marketplace.json`, run validation, and draft `gh release create`.

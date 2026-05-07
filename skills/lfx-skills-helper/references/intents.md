@@ -37,7 +37,7 @@ Always confirm via `AskUserQuestion` before running. Show the exact command firs
 |-------------------------------------------------|--------------------------------------------------------------------------------------|
 | "Add lfx skills to this repo"                   | Confirm, then `lfx-skills install --yes --scope=repo --repos="$(pwd)"`. Suggest `/lfx-doctor` after. |
 | "Remove lfx skills from this repo"              | Confirm, then `lfx-skills uninstall --yes --scope=repo --repos="$(pwd)"`              |
-| "Install lfx skills globally for Claude"        | Explain the Claude Code plugin path: `/plugin marketplace add linuxfoundation/lfx-plugins`, then `/plugin install lfx-skills@lfx` |
+| "Install lfx skills globally for Claude"        | Explain the Claude Code plugin path: `/plugin marketplace add linuxfoundation/lfx-skills`, then `/plugin install lfx-skills@lfx-skills` |
 | "Add agents.md support"                         | Confirm, then `lfx-skills install --yes --scope=global`                              |
 | "Install everything everywhere"                 | Confirm. Don't assume `--repos=`; ask the user which repos.                          |
 | "Uninstall lfx skills"                          | Confirm, then `lfx-skills uninstall --yes --all`                                     |

@@ -15,8 +15,8 @@ Start with the `lfx` skill in either setup. It is the plain-language entry point
 Claude Code users should install LFX Skills from the LFX plugin marketplace:
 
 ```text
-/plugin marketplace add linuxfoundation/lfx-plugins
-/plugin install lfx-skills@lfx
+/plugin marketplace add linuxfoundation/lfx-skills
+/plugin install lfx-skills@lfx-skills
 ```
 
 After installation, start with:
@@ -29,15 +29,15 @@ The Claude Code plugin is only for Claude Code. It does not install the CLI and 
 
 ## LFX Plugin Marketplace
 
-The marketplace lives separately from LFX Skills:
+The marketplace lives in LFX Skills:
 
 ```text
-linuxfoundation/lfx-plugins
+linuxfoundation/lfx-skills
 ```
 
-That separate marketplace lets LFX publish multiple Claude Code plugins from one place. Today it publishes the `lfx-skills` plugin, and future LFX Claude Code plugins can be added there as separate plugin entries.
+The marketplace publishes the `lfx-skills` Claude Code plugin. Its source points at the released LFX Skills tag, so Claude Code users install a tagged release rather than an arbitrary branch commit.
 
-LFX Skills owns the skill source. The marketplace owns the published plugin listing, version, and release tag reference.
+LFX Skills also owns the plugin manifest. The marketplace carries both the published plugin version and the release tag reference.
 
 ## Legacy Claude Symlink Cleanup
 
@@ -103,11 +103,11 @@ The CLI installer is only for agents.md-compatible tools. It installs the skills
 Claude Code users update from Claude:
 
 ```text
-/plugin marketplace update lfx
-/plugin update lfx-skills@lfx
+/plugin marketplace update lfx-skills
+/plugin update lfx-skills@lfx-skills
 ```
 
-Auto-updating can also be enabled in claude code.
+Auto-updating can also be enabled in Claude Code.
 
 agents.md-compatible users can ask their coding agent:
 
@@ -147,7 +147,23 @@ Version bump guide:
 | New skills or substantial skill behavior updates                                                | **minor**         |
 | Breaking command names, plugin name changes, removing or renaming skills, install layout breaks | **major**         |
 
-Create tag releases with the same `gh release create`:
+Before creating the release, update the marketplace entry in `.claude-plugin/marketplace.json`.
+
+Do not set `version` in `.claude-plugin/plugin.json`. Anthropic's version-resolution order checks `plugin.json` first, then marketplace `version`, then the git commit SHA. Keeping the explicit version only in the marketplace avoids duplicate version sources while still pinning the plugin source to the release tag.
+
+This follows Anthropic's Claude Code marketplace guidance:
+
+- [Create and distribute a plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces)
+- [Plugins reference](https://code.claude.com/docs/en/plugins-reference)
+
+Commit the version bump with DCO and cryptographic signing:
+
+```bash
+git add .claude-plugin/marketplace.json
+git commit -s -S -m "chore: release lfx-skills plugin v0.1.0"
+```
+
+After the version bump commit is merged, create the tag release with the same `gh release create` flow used by LFX MCP:
 
 ```bash
 LATEST=$(git tag --sort=-v:refname | head -1)
@@ -160,18 +176,6 @@ gh release create "$NEXT" \
 ```
 
 The `gh release create` command creates the release tag. The tag is the canonical LFX Skills version.
-
-Then update the `lfx-skills` entry in the LFX plugin marketplace so it points at the new release tag and version.
-
-Commit the marketplace update with DCO and cryptographic signing:
-
-```bash
-git add .claude-plugin/marketplace.json
-git commit -s -S -m "chore: publish lfx-skills plugin v0.1.0"
-git push
-```
-
-Do not add a version to the LFX Skills Claude plugin manifest. The marketplace owns the published Claude plugin version.
 
 ## Removing agents.md Installs
 

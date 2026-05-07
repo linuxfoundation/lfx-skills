@@ -3,12 +3,9 @@
 # SPDX-License-Identifier: MIT
 name: lfx-new-skill
 description: >
-  Scaffold a new skill in the lfx-skills repo under skills/. Walks the
-  contributor through picking a name, description, and tool list; generates the
-  SKILL.md with the correct frontmatter shape; sets up references/ if needed;
-  chains into `lfx-skills update` and `lfx-skills doctor` so it can be tried
-  immediately. Use whenever someone wants to add a new lfx skill, scaffold a
-  new SKILL.md, or asks "how do I create a new skill".
+  Scaffold a new skill in the lfx-skills repo under skills/. Use when someone
+  wants to add a new lfx skill, provides a complete SKILL.md to import, has an
+  idea for a skill and wants help drafting it, or asks how to create a skill.
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
@@ -16,180 +13,127 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 
 # LFX New Skill — Scaffolder
 
-You help a contributor scaffold a new skill in the `lfx-skills` repo. Your job ends when there's a well-formed `lfx-<name>/SKILL.md` on disk, the new skill is installed locally, and `lfx-skills doctor` verifies it loads. You do not handle the rest of the contribution flow (DCO, PR, review) — for that, point at `CONTRIBUTING.md`.
+You help contributors add a skill under `skills/lfx-<name>/`. Read [`references/conventions-quickref.md`](references/conventions-quickref.md) before writing files.
 
-## Step 1: Verify you're in the clone
+Use two modes:
 
-This skill only works inside the `lfx-skills` clone. Verify:
+- **Complete skill provided:** if the user pastes or points to a complete `SKILL.md`, use it as the source of truth. Preserve the body. Only normalize frontmatter, license header, directory name, and repo-specific placeholders when needed.
+- **Draft from idea:** if the user only has an idea, help write the body. Ask targeted questions about trigger phrases, inputs, steps, tools, outputs, and boundaries. Draft concrete step-by-step instructions from the answers.
+
+## Step 1: Verify Location
+
+Run:
 
 ```bash
 [ -x ./cli/lfx-skills ] && [ -d ./skills/lfx ] && echo OK || echo NOT_IN_CLONE
 ```
 
-If `NOT_IN_CLONE`:
+If `NOT_IN_CLONE`, tell the user to `cd` to the `lfx-skills` clone and stop.
 
-> "I only run inside the `lfx-skills` clone. `cd` to your clone and ask again."
+## Step 2: Gather Inputs
 
-Stop.
+Ask whether the user has a complete `SKILL.md` or wants help drafting one.
 
-## Step 2: Q1 — Skill name
+For a complete skill:
 
-Use `AskUserQuestion`:
+- Read the supplied file/content.
+- Extract `name`, `description`, and `allowed-tools` when present.
+- Ask only for missing required fields.
 
-> "What's the skill name? It must:
->  - start with `lfx-`
->  - be lowercase with hyphens (kebab-case)
->  - be a noun-phrase or verb-phrase short enough to type as `/lfx-<name>`
->
-> Examples: `lfx-release-notes`, `lfx-onboarding-checklist`, `lfx-search-jira`."
+For a draft:
 
-Validate the answer:
-- Must match `^lfx-[a-z0-9-]+$`
-- Must NOT collide with an existing directory: check `[ -d "skills/lfx-<name>" ]` — if exists, ask for another.
-- Must NOT collide with `lfx` itself or any reserved prefix.
+- Ask for the skill name. It must match `^lfx-[a-z0-9-]+$` and not already exist under `skills/`.
+- Ask for a frontmatter description with 3-5 trigger phrases.
+- Ask which tools it needs. Default: `Bash, Read, Glob, Grep, AskUserQuestion`.
+- Ask what the skill should do, what inputs it needs, what it may inspect or modify, what output it should produce, and what it must not do.
 
-Re-ask until you get a valid name.
+Ask whether it needs `references/`.
 
-## Step 3: Q2 — Description
+## Step 3: Write Files
 
-> "Describe the skill in one paragraph. The description is what your AI tool reads to decide *when* to invoke this skill — so include 3–5 trigger phrases users might say (e.g., 'Use for "release notes for X", "what changed in Y", "draft an announcement"').
->
-> Aim for 2–4 sentences."
+Create:
 
-Don't auto-generate this. The contributor knows their intent better than you do. Wait for their answer.
-
-## Step 4: Q3 — Allowed tools
-
-> "Which tools should the skill have access to?
->
-> The typical default is: `Bash, Read, Glob, Grep, AskUserQuestion`.
->
-> Add `Write, Edit` if the skill will modify files.
-> Add `Skill` if the skill will delegate to other lfx skills.
-> Add `WebFetch` if the skill reads external URLs.
-> Add specific MCP tool names (formatted `mcp__SERVER__TOOL`) if the skill depends on MCP servers.
->
-> Type the comma-separated list, or just press Enter for the default."
-
-Validate: tools should be a comma-separated list of identifiers. If the user includes MCP tools, remind them they'll need a Prerequisites section in the body (see Step 7).
-
-## Step 5: Q4 — references/ directory?
-
-> "Will this skill have reference docs alongside `SKILL.md`? (e.g., a long table, a JSON config, a checklist that's too big to inline.) — yes / no."
-
-If yes: create `skills/lfx-<name>/references/` with a `.gitkeep` so the directory is tracked even when empty.
-
-## Step 6: Generate SKILL.md
-
-Use the `Write` tool with the absolute path `<clone>/skills/lfx-<name>/SKILL.md`. Template:
-
-```markdown
----
-# Copyright The Linux Foundation and each contributor to LFX.
-# SPDX-License-Identifier: MIT
-name: <skill-name>
-description: >
-  <user's description, joined into a YAML folded scalar>
-allowed-tools: <comma-separated list>
----
-
-<!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
-
-# <Title-cased name>
-
-<One-paragraph intro: who this skill helps and what it does. Pull from the description but expand.>
-
-## Step 1: <verb-noun>
-
-<Concrete instructions for the LLM running the skill. Use code fences for shell snippets and tool invocations. Be specific.>
-
-## Step 2: <verb-noun>
-
-<...>
-
-## What this skill does NOT do
-
-- <bound 1>
-- <bound 2>
-
-## Reference files
-
-- (none yet — add as needed)
+```text
+skills/lfx-<name>/SKILL.md
 ```
 
-**Critical formatting rules** (mirror the rest of the lfx-skills repo):
+If requested, also create:
 
-- Frontmatter MUST start at line 1 with `---`. No blank lines, no comments above.
-- The license header is two YAML comment lines (`# Copyright…`, `# SPDX-License-Identifier:`) **inside** the frontmatter, lines 2–3. Plain `#` comments are valid YAML — they pass `head -4 | grep` for the CI license check without breaking frontmatter parsing.
-- `name:` value must equal the directory basename (the `lfx-<name>` you picked in Step 2).
-- `description:` uses YAML folded scalar (`>`) so it can wrap nicely in source while staying a single string at parse time.
+```text
+skills/lfx-<name>/references/.gitkeep
+```
 
-## Step 7: Prerequisites section (if MCP tools)
+Ensure:
 
-If the user listed any MCP tools in Step 4, add a `## Prerequisites` section to the body listing them, with a one-line note about how to set up the MCP server (or a link to the right docs). Without it, users without the MCP server configured will hit cryptic errors when the skill tries to invoke a tool that doesn't exist.
+- frontmatter starts on line 1
+- license comments are lines 2-3 inside the frontmatter
+- `name:` equals the directory basename
+- `description:` uses a YAML folded scalar
+- `allowed-tools:` is present
+- MCP-dependent skills include a `## Prerequisites` section
 
-## Step 8: Install locally + verify
+If the skill is user-facing, ask whether to add routing guidance to `skills/lfx/SKILL.md`. Internal-only skills can remain unrouted.
 
-Chain into the CLI to make the new skill available immediately:
+## Step 4: Validate
+
+Run only the new skill formatting check:
 
 ```bash
-./cli/lfx-skills update
+./cli/lfx-skills doctor --skill-formatting-only --skill=lfx-<name>
 ```
 
-This re-applies the manifest and detects the new `skills/lfx-<name>/` directory. The CLI will list it as a new skill not in the manifest and prompt to install it everywhere already configured.
+Fix `frontmatter-*` and `license-missing` issues, then rerun until clean. Do not run the full doctor for this scaffolding check; full doctor includes agents.md install/setup checks.
 
-Then verify:
+## Step 5: Explain Local Testing
 
-```bash
-./cli/lfx-skills doctor
-```
+Ask which runtime they want to test: Claude Code plugin, agents.md, or both.
 
-If the doctor flags `frontmatter-no-name`, `frontmatter-name-mismatch`, `license-missing`, `routing-uncovered`, or any other content issue with your new skill, fix it (use Edit) and re-run `doctor` until clean.
+For Claude Code plugin testing:
 
-The `routing-uncovered` warning is a reminder to add an entry to `lfx/SKILL.md` (the plain-language router) so `/lfx` knows when to route to your new skill. Decide whether your skill is user-facing (add to routing) or internal-only-invoked-by-another-skill (skip routing — the warning is acceptable). Ask the user if you're unsure.
+- If the skill should ship in the Claude plugin, add it to `.claude-plugin/plugin.json`.
+- Give the user this validation command to run from their normal terminal:
 
-## Step 9: Tell the user how to try it
+  ```bash
+  cd "<absolute-path-to-lfx-skills>"
+  claude plugin validate .
+  ```
 
-> "All set. To try `/lfx-<name>`:
->
-> 1. Restart your AI tool (or open a new session).
-> 2. Type `/lfx-<name>` — it should show in autocomplete and load with the description you wrote.
->
-> Iterate on the body as you go: every time you save the SKILL.md, your tool picks it up on the next invocation."
+- Ask which target LFX repo they want to test in. Resolve a repo name under `~/.lfx-skills/dev-root` or use the absolute path they provide.
+- Give the user a ready-to-run command:
 
-## Step 10: Explain release/update flow
+  ```bash
+  LFX_SKILLS_CLONE="<absolute-path-to-lfx-skills>"
+  cd "<resolved-target-repo-path>"
+  claude --plugin-dir "$LFX_SKILLS_CLONE"
+  ```
 
-> "When you're ready to ship this skill upstream:
->
-> - Read `CONTRIBUTING.md` for the DCO, sign-off, and review flow.
-> - Run `/lfx-preflight` to validate your changes.
-> - Open a PR against `main`.
-> - After the PR is merged, ship either this skill alone or a batch of skill changes with a GitHub Release:
->
->   | Change type | Version component |
->   |---|---|
->   | Typo fixes, prompt wording tweaks, docs, installer fixes, CI fixes | patch |
->   | New skills, substantial skill behavior updates, new supported platform behavior | minor |
->   | Breaking command names, plugin name changes, removing or renaming skills, install layout breaks | major (only when explicitly instructed) |
->
->   ```bash
->   LATEST=$(git tag --sort=-v:refname | head -1)
->   echo "Latest tag: $LATEST"
->   NEXT=v0.1.0
->
->   gh release create "$NEXT" \
->     --generate-notes \
->     --latest
->   ```
->
-> The release tag is the canonical version. After creating the GitHub Release, manually update `../lfx-plugins/.claude-plugin/marketplace.json` so `lfx-skills` points at the new tag and the marketplace `version` is the tag without the leading `v`; commit that marketplace bump with `git commit -s -S`. Claude users update with `/plugin marketplace update lfx` and `/plugin update lfx-skills@lfx`; agents.md users update with `lfx-skills update --pull` and `lfx-skills doctor`.
->
-> Welcome to lfx-skills."
+- Tell them to run `/lfx-skills:lfx-<name>` in that Claude Code session.
 
-## What this skill does NOT do
+For agents.md testing:
 
-- **Install or set up the lfx-skills install** — that's `/lfx-install`.
-- **Diagnose existing install problems** — that's `/lfx-doctor`.
-- **Manage the install (list, uninstall, update)** — that's `/lfx-skills-helper`.
-- **Open PRs or push to a remote** — point at `CONTRIBUTING.md` and stop.
-- **Author the body of the skill for the contributor** — you scaffold the structure, they write the substance. Don't fabricate steps that match a guess at intent; ask if you don't know.
+- Run `./cli/lfx-skills update`.
+- Tell the user to restart their agents.md-compatible coding agent and run `/lfx-<name>`.
+- If LFX Skills is not installed for agents.md, point them to `/lfx-install` or `./install.sh`.
+
+Keep the two paths separate: the CLI is for agents.md installs; Claude Code uses the plugin path.
+
+## Step 6: Offer Commit And Release Help
+
+After validation, ask whether the user wants help committing the scaffolded skill.
+
+If they say yes:
+
+- Review `git diff` and `git status`.
+- Commit only the intended files.
+- Use `git commit -s -S`.
+- Do not add co-author trailers.
+- Do not push unless explicitly asked.
+
+For releases, explain that after the PR merges they can ask their coding agent to help choose the next SemVer version, update `.claude-plugin/marketplace.json`, run validation, and draft the `gh release create` command. The user should review before committing or creating the release.
+
+## Boundaries
+
+- Do not install or repair the user's LFX Skills setup; route that to `/lfx-install` or `/lfx-doctor`.
+- Do not use the CLI to install Claude Code skills.
+- Do not run Claude Code plugin commands for agents.md testing.
+- Do not invent unclear behavior. Ask when scope, inputs, outputs, or safety boundaries are unclear.

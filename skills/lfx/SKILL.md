@@ -82,6 +82,7 @@ Listen to what the user says and classify their intent. **Do not ask technical q
 | "Fix Intercom", "Audit Intercom", "Add Intercom integration", "JWT setup for Intercom", "Intercom CSP" | Intercom integration in an LFX Angular app | `/lfx-intercom` |
 | "Add a Snowflake connector", "Scaffold a CDP source", "New crowd.dev data source", "snowflake-connector platform" | Scaffold a new CDP Snowflake connector | `/lfx-cdp-snowflake-connectors` |
 | "I need Snowflake access", "Add me to Snowflake", "Need a service account", "Request Snowflake permissions" | Request Snowflake access via Terraform PR | `/lfx-snowflake-access` |
+| "Can we add a new skill?", "How do I create a skill?", "We need another skill", "This workflow should be a skill" | Skill authoring guidance | See "Need Another Skill?" below |
 | "Show me an example", "How do I use this?", "Help" | Guidance | Show quickstart examples |
 
 ## Step 3: Translate and Route
@@ -252,6 +253,18 @@ Once the delegated skill completes, check back with the user:
 - If they researched something → "Would you like to go ahead and build this, or do you have more questions?"
 - If they validated → "Everything looks good! Want me to help create the pull request?"
 - If they addressed PR feedback → "Review comments are addressed and pushed! Run /lfx-pr-catchup to monitor for any follow-up."
+
+## Need Another Skill?
+
+If the user asks how to add a new skill, says this workflow needs its own skill, or wonders whether another skill should exist, explain that LFX Skills has a dedicated authoring workflow in the source repository.
+
+Give concise guidance:
+
+```text
+To add a new LFX skill, clone https://github.com/linuxfoundation/lfx-skills, start your coding agent in that repo, and ask it to help create the skill. The repo includes /lfx-new-skill, which can scaffold from scratch or adapt an existing SKILL.md, apply the repo conventions, validate formatting, and explain how to publish the skill through agents.md and the Claude Code plugin.
+```
+
+Do not try to author the new skill from a product repo. The canonical authoring flow lives in `linuxfoundation/lfx-skills`.
 
 ## Scope Boundaries
 

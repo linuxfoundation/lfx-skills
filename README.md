@@ -22,7 +22,13 @@ The marketplace metadata lives in `.claude-plugin/marketplace.json` in LFX Skill
 
 The Claude Code plugin is skills-only: it exposes the runtime skills listed in `.claude-plugin/plugin.json` and does not install or expose the CLI.
 
-If you previously installed LFX Skills into Claude Code with symlinks, clone this repo, start your coding agent here, and ask it to uninstall the legacy Claude setup. Manual fallback:
+If you previously installed LFX Skills into Claude Code with symlinks:
+
+- Clone this repo.
+- Start your coding agent in the clone.
+- Ask it: `Uninstall the legacy Claude setup for LFX Skills.`
+
+Manual fallback:
 
 ```bash
 ./cli/lfx-skills uninstall --legacy-claude-only
@@ -55,7 +61,11 @@ If you prefer to run the installer manually:
 The CLI installs skill symlinks into agents.md skill directories outside this repo and records the install in `~/.lfx-skills/config.json`.
 agents.md installs include the 15 runtime skills plus `/lfx-doctor` and `/lfx-skills-helper`. `/lfx-install` and `/lfx-new-skill` stay clone-only.
 
-Then restart your AI coding assistant, open any LFX repo, and type `/lfx` to get started.
+After setup:
+
+- Restart your AI coding assistant.
+- Open any LFX repo.
+- Type `/lfx` to get started.
 
 ## How It Works
 
@@ -152,31 +162,42 @@ After the change is on `main`, Claude Code users update from Claude:
 
 They can also enable auto-update.
 
-For agents.md-compatible installs, update from the terminal or ask your coding agent to update LFX Skills:
+For agents.md-compatible installs:
 
-```bash
-lfx-skills update --pull
-lfx-skills doctor
-```
+- Ask your coding agent to update LFX Skills, or run:
 
-If `lfx-skills` is not on `PATH`, run the CLI from the clone:
+  ```bash
+  lfx-skills update --pull
+  lfx-skills doctor
+  ```
 
-```bash
-/path/to/lfx-skills/cli/lfx-skills update --pull
-/path/to/lfx-skills/cli/lfx-skills doctor
-```
+- If `lfx-skills` is not on `PATH`, run the CLI from the clone:
 
-To remove old Claude symlink installs from before the plugin pivot, use the CLI's legacy cleanup mode:
+  ```bash
+  /path/to/lfx-skills/cli/lfx-skills update --pull
+  /path/to/lfx-skills/cli/lfx-skills doctor
+  ```
 
-```bash
-lfx-skills uninstall --legacy-claude-only
-```
+To remove old Claude symlink installs from before the plugin pivot:
 
-To remove the whole agents.md installation, CLI symlink, config, and any legacy Claude symlinks owned by this clone:
+- Use the legacy cleanup mode.
+- It removes only LFX Skills-owned legacy Claude symlinks.
+- It does not remove the Claude Code plugin.
 
-```bash
-lfx-skills uninstall --all
-```
+  ```bash
+  lfx-skills uninstall --legacy-claude-only
+  ```
+
+To remove the whole agents.md installation:
+
+- Removes agents.md skill symlinks.
+- Removes the `lfx-skills` CLI symlink.
+- Removes `~/.lfx-skills` config for this install.
+- Also removes any legacy Claude symlinks owned by this clone.
+
+  ```bash
+  lfx-skills uninstall --all
+  ```
 
 ## Architecture
 

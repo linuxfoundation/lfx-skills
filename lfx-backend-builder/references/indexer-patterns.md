@@ -48,10 +48,7 @@ constants.ActionDeleted  // "deleted"
 ## IndexingConfig — the Current Pattern
 
 `IndexingConfig` is how a resource service provides all the metadata the indexer needs to
-build a well-structured OpenSearch document. **All new services must include it.**
-
-Without `IndexingConfig`, the indexer falls back to resource-specific "enrichers" — that
-is the old, deprecated pattern still used by `project-service`. Do not follow it.
+build a well-structured OpenSearch document. **All services must include it — messages without it are rejected by the indexer.**
 
 ```go
 type IndexingConfig struct {
@@ -113,7 +110,7 @@ msg := indexerTypes.IndexerMessageEnvelope{
 
 1. Parses the `IndexerMessageEnvelope` from the NATS payload
 2. If `IndexingConfig` is present: builds the OpenSearch document directly from it (generic path)
-3. If `IndexingConfig` is absent: looks up a resource-specific enricher by object type (deprecated path)
+3. If `IndexingConfig` is absent: rejects the message with an error
 4. Inserts a new document with `latest: true`
 5. A background janitor later sets `latest: false` on old versions
 
@@ -145,3 +142,21 @@ a `flat_object` and OpenSearch handles new keys dynamically.
 If the new field should also be **searchable**, update the `IndexingConfig` construction in
 the resource service's NATS publisher to include it in the appropriate search field
 (`NameAndAliases`, `Tags`, or `Fulltext`).
+
+## Indexer Contract — Per-Service Documentation
+
+Services that follow the indexer contract pattern keep a `docs/indexer-contract.md` at the
+root of their repo. This is the authoritative reference for that service's data schemas,
+tags, access control config, parent references, and fulltext fields — derived directly from
+the source code.
+
+**Read this before writing or modifying indexing code for an existing service.** It tells
+you what is already indexed and how, so you don't duplicate tags, miss required fields, or
+break existing query patterns.
+
+**Update it in the same PR as any indexing change.** The doc must stay in sync with the
+code.
+
+The [committee-service](https://github.com/linuxfoundation/lfx-v2-committee-service/blob/main/docs/indexer-contract.md)
+is the reference implementation of this pattern. Use it as a template when adding a
+contract to a new service.

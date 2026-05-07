@@ -1,0 +1,16 @@
+{
+  "name": "lfx-skills",
+  "owner": {
+    "name": "The Linux Foundation"
+  },
+  "metadata": {
+    "description": "Claude Code marketplace for LFX Skills."
+  },
+  "plugins": [
+    {
+      "name": "lfx-skills",
+      "source": "./",
+      "description": "Claude Code skills for LFX. Start with the lfx skill and describe what you want in plain language."
+    }
+  ]
+}

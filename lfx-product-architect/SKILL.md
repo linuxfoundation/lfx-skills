@@ -91,7 +91,7 @@ The LFX Self-Service platform consists of:
 | Repo | Resource | Type |
 |------|----------|------|
 | `lfx-v2-committee-service` | Committee | Native (template for new native services) |
-| `lfx-v2-project-service` | Project | Native (deprecated enricher — do NOT use as template) |
+| `lfx-v2-project-service` | Project | Native |
 | `lfx-v2-meeting-service` | Meeting | Wrapper -> ITX |
 | `lfx-v2-voting-service` | Vote | Wrapper -> ITX (template for new wrapper services) |
 | `lfx-v2-survey-service` | Survey | Wrapper -> ITX |

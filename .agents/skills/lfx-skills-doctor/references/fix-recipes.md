@@ -3,7 +3,7 @@
 
 # Fix Recipes
 
-Per-issue narrative for `/lfx-doctor`. The CLI's `--fix` flag handles the mechanical cases; this file covers everything else, plus extra context the JSON output doesn't include.
+Per-issue narrative for `/lfx-skills-doctor`. The CLI's `--fix` flag handles the mechanical cases; this file covers everything else, plus extra context the JSON output doesn't include.
 
 Each entry follows the same shape:
 
@@ -58,7 +58,7 @@ Each entry follows the same shape:
 **What:** A symlink target exists, but the directory has no `SKILL.md`.
 **Why it matters:** the skill won't load (the loader requires `SKILL.md`). Usually means someone created an empty `lfx-foo/` directory by accident, or pulled an in-progress branch.
 **Fix:** either delete the empty directory, or scaffold a real skill via `/lfx-new-skill`.
-**Auto-fixable?** no by CLI; the `/lfx-doctor` skill can hand off to `/lfx-new-skill`.
+**Auto-fixable?** no by CLI; the `/lfx-skills-doctor` skill can hand off to `/lfx-new-skill`.
 
 ---
 
@@ -137,7 +137,7 @@ git clone https://github.com/linuxfoundation/lfx-v2-meeting-service.git
 **What:** A `SKILL.md` doesn't start with `---` on line 1.
 **Why it matters:** the skill loader will refuse to load it. The loader requires frontmatter as the very first thing in the file (no blank lines, no comments above).
 **Fix:** insert a frontmatter block at the top with the skill `name`, `description`, and `allowed-tools`. Use `/lfx-new-skill` as a template, or copy the shape from a sibling skill.
-**Auto-fixable?** no by CLI; the `/lfx-doctor` skill can guide the rewrite.
+**Auto-fixable?** no by CLI; the `/lfx-skills-doctor` skill can guide the rewrite.
 
 ---
 
@@ -145,7 +145,7 @@ git clone https://github.com/linuxfoundation/lfx-v2-meeting-service.git
 
 **What:** Frontmatter present but the `name:` field is missing or empty.
 **Fix:** add `name: <skill-directory-basename>` to the frontmatter. Loader will fail without it.
-**Auto-fixable?** no by CLI; the `/lfx-doctor` skill can patch it via Edit.
+**Auto-fixable?** no by CLI; the `/lfx-skills-doctor` skill can patch it via Edit.
 
 ---
 
@@ -154,7 +154,7 @@ git clone https://github.com/linuxfoundation/lfx-v2-meeting-service.git
 **What:** `name:` in the SKILL.md doesn't match the directory basename.
 **Why it matters:** loaders use the directory name to register the slash command, but read the frontmatter for description and tools. A mismatch is confusing and may cause routing issues.
 **Fix:** make `name:` equal `basename "$skill_dir"`.
-**Auto-fixable?** no by CLI; the `/lfx-doctor` skill can patch via Edit.
+**Auto-fixable?** no by CLI; the `/lfx-skills-doctor` skill can patch via Edit.
 
 ---
 
@@ -163,7 +163,7 @@ git clone https://github.com/linuxfoundation/lfx-v2-meeting-service.git
 **What:** No `description:` field, or it's empty.
 **Why it matters:** the loader uses `description` to decide when to surface the skill. Missing description means the model has no context for *when* to invoke it.
 **Fix:** write a one-paragraph description that includes 3–5 trigger phrases users might say.
-**Auto-fixable?** no by CLI; the `/lfx-doctor` skill can draft one from the SKILL.md body.
+**Auto-fixable?** no by CLI; the `/lfx-skills-doctor` skill can draft one from the SKILL.md body.
 
 ---
 
@@ -181,7 +181,7 @@ name: ...
 ```
 
 (The `#` comments are valid YAML comments. They satisfy the license check without breaking frontmatter parsing.)
-**Auto-fixable?** no by CLI; the `/lfx-doctor` skill can patch via Edit.
+**Auto-fixable?** no by CLI; the `/lfx-skills-doctor` skill can patch via Edit.
 
 ---
 
@@ -200,4 +200,4 @@ name: ...
 **Why it matters:** users typing `/lfx` won't find the skill via the plain-language router. They can still invoke it directly with `/lfx-foo`.
 **Fix:** add an entry to `lfx/SKILL.md`'s routing table for the skill, including 1–2 example trigger phrases.
 **Caveat:** internal-only skills (like `lfx-backend-builder` and `lfx-ui-builder`, which are only invoked by `/lfx-coordinator`) can legitimately stay out of the routing table. Use judgment.
-**Auto-fixable?** no by CLI; the `/lfx-doctor` skill can patch via Edit.
+**Auto-fixable?** no by CLI; the `/lfx-skills-doctor` skill can patch via Edit.

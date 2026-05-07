@@ -8,21 +8,5 @@
   "homepage": "https://github.com/linuxfoundation/lfx-skills",
   "repository": "https://github.com/linuxfoundation/lfx-skills",
   "license": "MIT",
-  "skills": [
-    "./skills/lfx/",
-    "./skills/lfx-backend-builder/",
-    "./skills/lfx-cdp-snowflake-connectors/",
-    "./skills/lfx-coordinator/",
-    "./skills/lfx-git-setup/",
-    "./skills/lfx-intercom/",
-    "./skills/lfx-pr-catchup/",
-    "./skills/lfx-pr-resolve/",
-    "./skills/lfx-preflight/",
-    "./skills/lfx-product-architect/",
-    "./skills/lfx-research/",
-    "./skills/lfx-setup/",
-    "./skills/lfx-snowflake-access/",
-    "./skills/lfx-test-journey/",
-    "./skills/lfx-ui-builder/"
-  ]
+  "skills": ["./skills/"]
 }

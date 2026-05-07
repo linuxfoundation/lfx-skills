@@ -20,7 +20,7 @@ After installation, start with the `lfx` skill. In Claude Code that command is n
 
 The marketplace metadata lives in `.claude-plugin/marketplace.json` in LFX Skills. It lists the local plugin source as `"./"`; the Claude plugin version is tracked in `.claude-plugin/plugin.json`.
 
-The Claude Code plugin is skills-only: it exposes the runtime skills listed in `.claude-plugin/plugin.json` and does not install or expose the CLI.
+The Claude Code plugin is skills-only: it exposes the runtime LFX Skills suite from `skills/` and does not install or expose the CLI.
 
 If you previously installed LFX Skills into Claude Code with symlinks:
 
@@ -43,14 +43,14 @@ git clone https://github.com/linuxfoundation/lfx-skills.git
 cd lfx-skills
 ```
 
-Start your coding agent in the cloned repo and ask it to set up LFX Skills. This repo ships four bootstrap helper skills out of the box through committed `.agents/skills/` and `.claude/skills/` wrappers, so agents can use them inside this repo without running the installer first:
+Start your coding agent in the cloned repo and ask it to set up LFX Skills. This repo ships four local helper skills out of the box through committed `.agents/skills/` and `.claude/skills/` files, so agents can work on and contribute to this repository without running the installer first:
 
 - `lfx-install` — guided first-time setup
-- `lfx-doctor` — install health checks and repair guidance
+- `lfx-skills-doctor` — install health checks and repair guidance
 - `lfx-skills-helper` — list, update, uninstall, and inspect the setup
 - `lfx-new-skill` — scaffold a new skill in this repo
 
-The canonical source for those helpers still lives under `skills/`; the `.agents/skills/` and `.claude/skills/` files are repo-local bootstrap wrappers.
+These helpers are local to this source repo. They are not part of the published LFX Skills suite.
 
 If you prefer to run the installer manually:
 
@@ -59,7 +59,7 @@ If you prefer to run the installer manually:
 ```
 
 The CLI installs skill symlinks into agents.md skill directories outside this repo and records the install in `~/.lfx-skills/config.json`.
-agents.md installs include the 15 runtime skills plus `/lfx-doctor` and `/lfx-skills-helper`. `/lfx-install` and `/lfx-new-skill` stay clone-only.
+agents.md installs include the runtime suite from `skills/` plus `/lfx-skills-doctor` and `/lfx-skills-helper` from `.agents/skills/`. `/lfx-install` and `/lfx-new-skill` stay local to this clone.
 
 After setup:
 
@@ -87,11 +87,11 @@ Use `/lfx-new-skill` whether you are starting from an idea or from a fully writt
 
 The authoring helper keeps Claude Code plugin testing separate from agents.md testing. For Claude Code, it points you at plugin validation and local `--plugin-dir` testing. For agents.md-compatible tools, it points you at the CLI update flow. It also offers to help prepare a signed commit with `git commit -s -S`.
 
-New user-facing skills that should be available through the Claude Code plugin must be added to the `skills` allowlist in `.claude-plugin/plugin.json`. Creating `skills/lfx-<name>/SKILL.md` is not enough for Claude plugin users; the plugin exposes only the skill paths listed in that manifest.
+All new LFX Skills suite skills go under `skills/`. Note that Repo/install/meta helpers that are not part of the LFX Skills suite, i.e. used only for working on this repository go under `.agents/skills/` and `.claude/skills/`.
 
 ## Prerequisites
 
-- An AI coding assistant that supports skill-based workflows. Claude Code uses the plugin path; Codex, Gemini CLI, OpenCode, and similar tools use the CLI installer. See [docs/overview.md](docs/overview.md) for details.
+- An AI coding assistant that supports skill-based workflows. Claude Code uses the plugin path; Codex, Gemini CLI, OpenCode, and similar tools use the CLI installer.
 - Access to LFX repositories (for the skills to operate on)
 - **Optional: `LFX_DEV_ROOT`** — environment variable pointing to the directory where you keep your LFX repo clones. Defaults to `~/lf/`. The CLI records the chosen path in `~/.lfx-skills/dev-root` so skills can discover local repos without shell rc edits. Skills that use this will prompt the user to either set it or use default.
 
@@ -115,7 +115,12 @@ Restart your AI coding assistant (or open a new session) in any LFX repo and typ
 /lfx-intercom
 /lfx-snowflake-access
 /lfx-cdp-snowflake-connectors
-/lfx-doctor                       ← health check + auto-fix for the install
+```
+
+agents.md CLI installs also include:
+
+```
+/lfx-skills-doctor                       ← health check + auto-fix for the install
 /lfx-skills-helper                ← manage what's installed where (install/uninstall/update/list)
 ```
 
@@ -125,10 +130,7 @@ Skill changes can be shipped one at a time or batched together. For Claude Code 
 
 The marketplace follows the LFX Skills default branch. Because `.claude-plugin/plugin.json` defines `version`, Claude Code uses that value for cache and update detection. If skill content changes but the plugin version stays the same, Claude Code will keep using the already cached plugin version.
 
-For new Claude-facing skills, update both parts of `.claude-plugin/plugin.json`:
-
-- Add the new skill path to the `skills` allowlist, for example `"./skills/lfx-example/"`.
-- Bump `version` using the patch/minor/major guidance below.
+For Claude Code users to receive suite changes, bump `version` using the patch/minor/major guidance below.
 
 ### Version bump guidelines
 
@@ -169,34 +171,6 @@ For agents.md-compatible installs:
   ```bash
   lfx-skills update --pull
   lfx-skills doctor
-  ```
-
-- If `lfx-skills` is not on `PATH`, run the CLI from the clone:
-
-  ```bash
-  /path/to/lfx-skills/cli/lfx-skills update --pull
-  /path/to/lfx-skills/cli/lfx-skills doctor
-  ```
-
-To remove old Claude symlink installs from before the plugin pivot:
-
-- Use the legacy cleanup mode.
-- It removes only LFX Skills-owned legacy Claude symlinks.
-- It does not remove the Claude Code plugin.
-
-  ```bash
-  lfx-skills uninstall --legacy-claude-only
-  ```
-
-To remove the whole agents.md installation:
-
-- Removes agents.md skill symlinks.
-- Removes the `lfx-skills` CLI symlink.
-- Removes `~/.lfx-skills` config for this install.
-- Also removes any legacy Claude symlinks owned by this clone.
-
-  ```bash
-  lfx-skills uninstall --all
   ```
 
 ## Architecture
@@ -589,18 +563,14 @@ An **interactive setup guide** that walks through environment configuration step
     ├── lfx-git-setup/               # DCO sign-off and GPG-signed commit setup
     ├── lfx-intercom/                # Intercom integration — add or fix
     ├── lfx-snowflake-access/        # Request Snowflake access via Terraform PR
-    ├── lfx-cdp-snowflake-connectors/# Snowflake connector scaffolding for CDP
-    ├── lfx-doctor/                  # Install health checks and repair guidance
-    ├── lfx-skills-helper/           # CLI management front-end
-    ├── lfx-install/                 # CLI install guide for agents.md tools
-    └── lfx-new-skill/               # Contributor scaffolder
-├── .agents/skills/                  # Repo-local bootstrap wrappers for agents.md tools
-│   ├── lfx-doctor/
+    └── lfx-cdp-snowflake-connectors/# Snowflake connector scaffolding for CDP
+├── .agents/skills/                  # Repo-local helpers for agents.md tools
+│   ├── lfx-skills-doctor/
 │   ├── lfx-skills-helper/
 │   ├── lfx-install/
 │   └── lfx-new-skill/
-├── .claude/skills/                  # Repo-local bootstrap wrappers for Claude Code
-│   ├── lfx-doctor/
+├── .claude/skills/                  # Repo-local helpers for Claude Code
+│   ├── lfx-skills-doctor/
 │   ├── lfx-skills-helper/
 │   ├── lfx-install/
 │   └── lfx-new-skill/

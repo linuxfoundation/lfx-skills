@@ -84,8 +84,6 @@ This checks only the new skill's frontmatter and license header.
 
 ## Claude Code Local Test
 
-If the skill should ship in the Claude plugin, add its path to the `skills` allowlist in `.claude-plugin/plugin.json`. Creating `skills/lfx-<name>/SKILL.md` is not enough; Claude plugin users only get skills listed in that manifest.
-
 Give the user:
 
 ```bash
@@ -131,4 +129,4 @@ After validation, ask if the user wants help committing. If yes:
 - Do not add co-author trailers.
 - Do not push unless explicitly asked.
 
-For Claude Code plugin updates, bump the SemVer `version` in `.claude-plugin/plugin.json` with the skill changes. Claude Code will keep using the cached plugin if the version is unchanged. For new Claude-facing skills, commit both the `skills` allowlist entry and the version bump.
+For Claude Code plugin updates, bump the SemVer `version` in `.claude-plugin/plugin.json` with the skill changes when plugin-visible behavior changed. Claude Code will keep using the cached plugin if the version is unchanged.

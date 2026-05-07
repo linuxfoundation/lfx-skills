@@ -3,10 +3,12 @@
 
 # LFX Skills repo
 
-You are inside the LFX Skills source repository. Claude Code users install the runtime skills through the `.claude-plugin/plugin.json` plugin manifest; agents.md-compatible tools use the `cli/lfx-skills` CLI. Claude Code does not use the CLI installer. The four helper skills live under `skills/` for clone/agent workflows and are intentionally not in the Claude plugin.
+You are inside the LFX Skills source repository. Claude Code users install the runtime skills through the `.claude-plugin/plugin.json` plugin manifest; agents.md-compatible tools use the `cli/lfx-skills` CLI. Claude Code does not use the CLI installer.
+
+The four repo helper skills live under `.agents/skills/` and `.claude/skills/` so agents can work on and contribute to this repository locally. They are not part of the published LFX Skills suite.
 
 - **`/lfx-install`** — guides users through agents.md setup after clone. Walks them through scope, config dirs, repos, and dev root, then runs the CLI installer.
-- **`/lfx-doctor`** — diagnoses problems with an existing install. Use when the user reports skills not loading, missing autocomplete entries, or unexpected behavior.
+- **`/lfx-skills-doctor`** — diagnoses problems with an existing install. Use when the user reports skills not loading, missing autocomplete entries, or unexpected behavior.
 - **`/lfx-skills-helper`** — manages the install: lists what's installed, installs/uninstalls in this repo, updates from upstream, shows config. Skill management only — *not* a router.
 - **`/lfx-new-skill`** — scaffolds a new skill in this repo. Use when the contributor wants to add a new lfx skill or asks "how do I create a new skill".
 
@@ -23,7 +25,7 @@ The CLI itself is at `cli/lfx-skills`. Run `cli/lfx-skills help` for the full co
 ## When to use which
 
 - "How do I install this?" / "I just cloned, what now?" → `/lfx-install`
-- "Skills aren't loading" / "is my setup OK?" → `/lfx-doctor`
+- "Skills aren't loading" / "is my setup OK?" → `/lfx-skills-doctor`
 - "What's installed?" / "add to this repo" / "what does X do?" → `/lfx-skills-helper`
 - "Create a new skill called …" → `/lfx-new-skill`
 - Anything else (modifying an existing skill, writing docs, reviewing changes): proceed normally — use the existing user-facing skills (`/lfx`, `/lfx-coordinator`, `/lfx-preflight`, etc.) as you would in any LFX repo.
@@ -32,10 +34,10 @@ The CLI itself is at `cli/lfx-skills`. Run `cli/lfx-skills help` for the full co
 
 - `cli/lfx-skills` — multi-subcommand bash CLI.
 - `lib/*.sh` — sourced by the CLI (probe, config, symlinks, doctor, ui, targets).
-- `skills/lfx*/` — each directory is one skill, with `SKILL.md` and optional `references/`.
-- `.agents/skills/{lfx-install,lfx-doctor,lfx-skills-helper,lfx-new-skill}/` — committed bootstrap wrappers so agents.md-compatible tools can use the repo helper skills before installation. These are real files, not symlinks; canonical bodies live under `skills/`.
-- `.claude-plugin/plugin.json` — Claude Code plugin manifest. Its `skills` array is an allowlist: only listed skill paths are exposed through the Claude plugin. New user-facing Claude skills must be added here. It intentionally excludes `lfx-install`, `lfx-doctor`, `lfx-skills-helper`, and `lfx-new-skill`.
-- `.claude/skills/{lfx-install,lfx-doctor,lfx-skills-helper,lfx-new-skill}/` — committed bootstrap wrappers so Claude Code can use the repo helper skills in this source repo without installing the published plugin. These are not part of the distributed plugin.
+- `skills/lfx*/` — runtime LFX Skills suite. Each directory is one skill, with `SKILL.md` and optional `references/`. Everything here is exposed by the Claude plugin and installed by the agents.md CLI.
+- `.agents/skills/{lfx-install,lfx-skills-doctor,lfx-skills-helper,lfx-new-skill}/` — committed repo-local helpers for agents.md-compatible tools working inside this source repo. The CLI installs only `lfx-skills-doctor` and `lfx-skills-helper` from here outside the repo.
+- `.claude-plugin/plugin.json` — Claude Code plugin manifest. It exposes `./skills/` as the runtime suite and intentionally does not include repo/install/meta helpers.
+- `.claude/skills/{lfx-install,lfx-skills-doctor,lfx-skills-helper,lfx-new-skill}/` — committed repo-local helpers for Claude Code working inside this source repo. These are not part of the distributed plugin.
 - `.claude-plugin/marketplace.json` — Claude Code marketplace manifest. It lists the `lfx-skills` plugin and points its source at `"./"`.
 - `install.sh` — thin shim that execs `cli/lfx-skills install "$@"`.
 - `~/.lfx-skills/config.json` — agents.md install manifest written by the CLI (not in this repo). New installs do not record a platform.
@@ -52,7 +54,7 @@ The CLI itself is at `cli/lfx-skills`. Run `cli/lfx-skills help` for the full co
 
 - One skill change or a batch of skill changes can ship in the same release.
 - Claude Code plugin changes must bump `.claude-plugin/plugin.json` `version`; otherwise Claude Code will keep using the cached plugin version.
-- New user-facing skills that should be available through the Claude Code plugin must also be added to `.claude-plugin/plugin.json` `skills`.
+- New LFX Skills suite skills go under `skills/`; repo/install/meta helpers for this source repo go under `.agents/skills/` and `.claude/skills/`.
 - The marketplace follows the LFX Skills default branch and uses `"./"` as the local plugin source.
 
 Version bump guidelines:

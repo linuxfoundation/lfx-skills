@@ -4,31 +4,56 @@
 # Symlink create/remove logic for cli/lfx-skills. Sourced; do not execute directly.
 # 3-way create logic lifted from install.sh and battle-tested.
 
-# Skills that should NEVER be installed to user-level or per-repo targets by
-# the CLI. These are authoring/install helpers for this clone, not runtime LFX
-# workflow skills.
-SYMLINKS_CLONE_ONLY="lfx-install lfx-new-skill"
+# agents.md helper skills that should be installed alongside the runtime suite.
+# These live under .agents/skills because they are install/manage helpers for
+# this repo and are not part of the published lfx-skills runtime suite.
+SYMLINKS_AGENTS_META_INSTALL="lfx-skills-doctor lfx-skills-helper"
 
-# symlinks_eligible_skills CLONE → echo each installable skill directory name (one per line).
-# A skill is eligible if:
-#   - basename matches lfx* (catches lfx + lfx-* variants)
-#   - directory contains SKILL.md
-#   - basename is NOT in SYMLINKS_CLONE_ONLY
-symlinks_eligible_skills() {
+# symlinks_runtime_skills CLONE → echo each runtime skill directory name.
+# Runtime/user-facing skills all live under skills/. Anything placed there is
+# part of the LFX Skills suite and is installed for agents.md and exposed by
+# the Claude Code plugin.
+symlinks_runtime_skills() {
   local clone="$1"
   local skills_dir="$clone/skills"
-  local skill_path skill_name excluded
+  local skill_path skill_name
   for skill_path in "$skills_dir"/lfx*/; do
     [ -d "$skill_path" ] || continue
     [ -f "${skill_path}SKILL.md" ] || continue
     skill_name="$(basename "${skill_path%/}")"
-    excluded=0
-    for ex in $SYMLINKS_CLONE_ONLY; do
-      if [ "$skill_name" = "$ex" ]; then excluded=1; break; fi
-    done
-    [ "$excluded" -eq 1 ] && continue
     printf '%s\n' "$skill_name"
   done
+}
+
+# symlinks_agents_meta_skills CLONE → echo installable agents.md helper skills.
+# Only doctor/helper are installed outside this repo. lfx-install and
+# lfx-new-skill stay repo-local contributor helpers.
+symlinks_agents_meta_skills() {
+  local clone="$1"
+  local skill
+  for skill in $SYMLINKS_AGENTS_META_INSTALL; do
+    [ -f "$clone/.agents/skills/$skill/SKILL.md" ] || continue
+    printf '%s\n' "$skill"
+  done
+}
+
+# symlinks_eligible_skills CLONE → echo each agents.md-installable skill name.
+symlinks_eligible_skills() {
+  local clone="$1"
+  symlinks_runtime_skills "$clone"
+  symlinks_agents_meta_skills "$clone"
+}
+
+# symlinks_skill_source CLONE SKILL → echo the source directory for SKILL.
+symlinks_skill_source() {
+  local clone="$1" skill="$2"
+  if [ -f "$clone/skills/$skill/SKILL.md" ]; then
+    printf '%s/skills/%s\n' "$clone" "$skill"
+  elif [ -f "$clone/.agents/skills/$skill/SKILL.md" ]; then
+    printf '%s/.agents/skills/%s\n' "$clone" "$skill"
+  else
+    return 1
+  fi
 }
 
 # symlinks_create_one SOURCE TARGET [PREVIOUS_SOURCE] → create or update one symlink.
@@ -91,7 +116,11 @@ symlinks_install_all() {
   while IFS= read -r skill; do
     [ -z "$skill" ] && continue
     n_total=$((n_total + 1))
-    source="$clone/skills/$skill"
+    source="$(symlinks_skill_source "$clone" "$skill")" || {
+      ui_warn "  skipped    $skill  (source skill missing)"
+      n_skipped=$((n_skipped + 1))
+      continue
+    }
     target="$target_dir/$skill"
     local previous_source=""
     if config_exists; then

@@ -331,13 +331,15 @@ cmd_info() {
   require_jq
   local skill="${1:-}"
   [ -z "$skill" ] && ui_die "Usage: lfx-skills info SKILL"
-  local skill_md="$CLONE_ROOT/skills/$skill/SKILL.md"
+  local skill_source skill_md
+  skill_source="$(symlinks_skill_source "$CLONE_ROOT" "$skill" 2>/dev/null || true)"
+  skill_md="$skill_source/SKILL.md"
   if [ ! -f "$skill_md" ]; then
-    ui_error "No SKILL.md for \`$skill\` in $CLONE_ROOT/skills"
+    ui_error "No SKILL.md for \`$skill\` in $CLONE_ROOT/skills or $CLONE_ROOT/.agents/skills"
     exit 1
   fi
   ui_section "$skill"
-  printf 'Source: %s\n' "$CLONE_ROOT/skills/$skill"
+  printf 'Source: %s\n' "$skill_source"
   printf '\n'
   ui_bold "Frontmatter:"
   awk 'NR==1 && /^---$/ {start=1; next} start && /^---$/ {exit} start {print "  " $0}' "$skill_md"

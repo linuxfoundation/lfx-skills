@@ -3,7 +3,9 @@
   "owner": {
     "name": "The Linux Foundation"
   },
-  "description": "Claude Code marketplace for LFX Skills.",
+  "metadata": {
+    "description": "Claude Code marketplace for LFX Skills."
+  },
   "plugins": [
     {
       "name": "lfx-skills",

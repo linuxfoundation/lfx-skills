@@ -5,7 +5,7 @@
 
 Reference for `/lfx-skills-helper`. Maps natural-language **management** intents to the corresponding `lfx-skills` CLI invocation.
 
-This file is for agents.md skill *management*: install, uninstall, update, list, info, config, and legacy Claude symlink cleanup. It is not a recommendation engine. Routing questions ("which skill should I use for X?") belong to `/lfx`. Diagnostic questions belong to `/lfx-doctor`. Authoring belongs to `/lfx-new-skill`.
+This file is for agents.md skill *management*: install, uninstall, update, list, info, config, and legacy Claude symlink cleanup. It is not a recommendation engine. Routing questions ("which skill should I use for X?") belong to `/lfx`. Diagnostic questions belong to `/lfx-skills-doctor`. Authoring belongs to `/lfx-new-skill`.
 
 When the user's phrasing isn't an exact match, infer the closest intent and confirm the chosen command before running anything stateful.
 
@@ -35,7 +35,7 @@ Always confirm via `AskUserQuestion` before running. Show the exact command firs
 
 | User says                                       | Run                                                                                  |
 |-------------------------------------------------|--------------------------------------------------------------------------------------|
-| "Add lfx skills to this repo"                   | Confirm, then `lfx-skills install --yes --scope=repo --repos="$(pwd)"`. Suggest `/lfx-doctor` after. |
+| "Add lfx skills to this repo"                   | Confirm, then `lfx-skills install --yes --scope=repo --repos="$(pwd)"`. Suggest `/lfx-skills-doctor` after. |
 | "Remove lfx skills from this repo"              | Confirm, then `lfx-skills uninstall --yes --scope=repo --repos="$(pwd)"`              |
 | "Install lfx skills globally for Claude"        | Explain the Claude Code plugin path: `/plugin marketplace add linuxfoundation/lfx-skills`, then `/plugin install lfx-skills@lfx-skills` |
 | "Add agents.md support"                         | Confirm, then `lfx-skills install --yes --scope=global`                              |
@@ -46,7 +46,7 @@ Always confirm via `AskUserQuestion` before running. Show the exact command firs
 
 | User says                                       | Run                                                       | Notes                                                                       |
 |-------------------------------------------------|-----------------------------------------------------------|-----------------------------------------------------------------------------|
-| "Update lfx skills"                             | Ask whether they mean Claude Code plugin or agents.md CLI install. For agents.md, run `lfx-skills update --pull`. | Suggest `/lfx-doctor` after agents.md updates                              |
+| "Update lfx skills"                             | Ask whether they mean Claude Code plugin or agents.md CLI install. For agents.md, run `lfx-skills update --pull`. | Suggest `/lfx-skills-doctor` after agents.md updates                              |
 | "Update the Claude plugin" / "Update Claude skills" | Explain: `/plugin marketplace update lfx-skills`, then `/plugin update lfx-skills@lfx-skills` | Claude Code plugin updates are not handled by the CLI                       |
 | "Re-apply my install"                           | `lfx-skills update`                                       | No `--pull`; just refresh symlinks against the manifest                     |
 | "Remove old Claude symlinks"                    | Confirm, then `lfx-skills uninstall --yes --legacy-claude-only` | Removes only lfx-skills-owned legacy Claude symlinks                  |
@@ -59,9 +59,9 @@ Always confirm via `AskUserQuestion` before running. Show the exact command firs
 | User says                                       | Hand off to                                                                          |
 |-------------------------------------------------|--------------------------------------------------------------------------------------|
 | "Which skill should I use for X?" / task descriptions | `/lfx`                                                                          |
-| "Run a health check" / "is my install OK?"      | `/lfx-doctor`                                                                         |
-| "Why isn't /lfx-foo working?"                   | `/lfx-doctor`                                                                         |
-| "Fix my broken symlinks"                        | `/lfx-doctor`                                                                         |
+| "Run a health check" / "is my install OK?"      | `/lfx-skills-doctor`                                                                         |
+| "Why isn't /lfx-foo working?"                   | `/lfx-skills-doctor`                                                                         |
+| "Fix my broken symlinks"                        | `/lfx-skills-doctor`                                                                         |
 | "How do I create a new lfx skill?"              | `/lfx-new-skill` (only inside the lfx-skills clone)                                   |
 | "Scaffold a new skill called lfx-foo"           | `/lfx-new-skill`                                                                      |
 

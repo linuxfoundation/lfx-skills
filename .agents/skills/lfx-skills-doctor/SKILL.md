@@ -1,7 +1,7 @@
 ---
 # Copyright The Linux Foundation and each contributor to LFX.
 # SPDX-License-Identifier: MIT
-name: lfx-doctor
+name: lfx-skills-doctor
 description: >
   Diagnose problems with the agents.md LFX Skills installation and legacy
   Claude symlink installs: broken symlinks, missing dev root, frontmatter
@@ -121,7 +121,7 @@ Show the new counts. Celebrate if everything's green; otherwise, note what's sti
 
 End with:
 
-> "Run `/lfx-doctor` anytime to recheck. For installation changes, `/lfx-install` or `/lfx-skills-helper` is the right entry point."
+> "Run `/lfx-skills-doctor` anytime to recheck. For installation changes, `/lfx-install` or `/lfx-skills-helper` is the right entry point."
 
 ## What this skill does NOT do
 

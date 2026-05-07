@@ -52,7 +52,7 @@ check_symlinks() {
     if [ ! -f "$skill_md_target" ]; then
       # Not fixable by the CLI: the symlink itself is correct; the source skill
       # has no SKILL.md, which is a content gap, not an install issue. The Phase
-      # 4 /lfx-doctor skill can still act on this (e.g. offer to scaffold one).
+      # /lfx-skills-doctor can still act on this (e.g. offer to scaffold one).
       _emit warn symlink-no-skillmd symlinks \
         "Symlink target missing SKILL.md: $(basename "$link")" \
         "$skill_md_target does not exist" no
@@ -212,12 +212,12 @@ check_routing() {
   done <<EOF
 $routed
 EOF
-  # Inverse: every USER-FACING skill mentioned in /lfx?
+  # Inverse: every runtime/user-facing skill mentioned in /lfx?
   # Skip /lfx itself and skills that intentionally don't belong in the user-task
   # router: internal builders only invoked by /lfx-coordinator, and management
   # surfaces (doctor / skills-helper) which the user reaches by name, not via
   # plain-language routing.
-  local routing_exempt="lfx lfx-backend-builder lfx-ui-builder lfx-doctor lfx-skills-helper"
+  local routing_exempt="lfx lfx-backend-builder lfx-ui-builder"
   local skill skipped
   while IFS= read -r skill; do
     [ -z "$skill" ] && continue
@@ -231,7 +231,7 @@ EOF
         "/lfx routing table does not mention /$skill" \
         "Add an entry for /$skill in $lfx_md" no
     fi
-  done < <(symlinks_eligible_skills "$clone")
+  done < <(symlinks_runtime_skills "$clone")
 }
 
 # ─── Category 6: License headers ─────────────────────────────────────────

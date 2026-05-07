@@ -25,8 +25,8 @@ Thumbs.db
 .claude/skills/*
 !.claude/skills/lfx-install/
 !.claude/skills/lfx-install/**
-!.claude/skills/lfx-doctor/
-!.claude/skills/lfx-doctor/**
+!.claude/skills/lfx-skills-doctor/
+!.claude/skills/lfx-skills-doctor/**
 !.claude/skills/lfx-skills-helper/
 !.claude/skills/lfx-skills-helper/**
 !.claude/skills/lfx-new-skill/
@@ -41,8 +41,8 @@ Thumbs.db
 .agents/skills/*
 !.agents/skills/lfx-install/
 !.agents/skills/lfx-install/**
-!.agents/skills/lfx-doctor/
-!.agents/skills/lfx-doctor/**
+!.agents/skills/lfx-skills-doctor/
+!.agents/skills/lfx-skills-doctor/**
 !.agents/skills/lfx-skills-helper/
 !.agents/skills/lfx-skills-helper/**
 !.agents/skills/lfx-new-skill/

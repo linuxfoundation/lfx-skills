@@ -70,7 +70,7 @@ then bulk-publish when the feature ships:
 3. Save updates as drafts ahead of release
 4. Filter by tag + status "Published with pending draft" and bulk publish on ship day
 
-### 8. Write for Two Audiences: Explicit Context and Defined Terms
+### 8. Write with Explicit Context and Defined Terms
 Two principles from Fin Academy's content quality framework not covered by the community tips above:
 
 **Explicit audience context** — State who the content applies to at the top of any role-specific

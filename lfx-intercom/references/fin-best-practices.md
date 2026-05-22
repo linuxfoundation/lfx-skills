@@ -12,7 +12,7 @@ improving resolution rates. No coding required.
 
 ---
 
-## The 7 Pillars of Fin Excellence
+## The 8 Pillars of Fin Excellence
 
 These are the recurring themes from teams achieving 60-80%+ resolution rates.
 
@@ -70,6 +70,19 @@ then bulk-publish when the feature ships:
 3. Save updates as drafts ahead of release
 4. Filter by tag + status "Published with pending draft" and bulk publish on ship day
 
+### 8. Write with Explicit Context and Defined Terms
+Two principles from Fin Academy's content quality framework not covered by the community tips above:
+
+**Explicit audience context** — State who the content applies to at the top of any role-specific
+article. Example: "These steps apply to Admins on the Pro plan." Without this, Fin may surface the
+right article to the wrong user type.
+
+**Defined terms** — Spell out product-specific language and acronyms on first use.
+Example: "SLA (Service Level Agreement) determines your response time." Fin reads articles
+literally — an undefined term breaks the match between a user's question and your article.
+
+**Source:** Fin Academy — [Why Content Quality Matters](https://academy.fin.ai/why-content-quality-matters)
+
 ---
 
 ## Continuous Improvement Patterns
@@ -111,6 +124,33 @@ Beyond simple Q&A, Copilot helps human agents with:
 
 ---
 
+## Content Quality Standards (Fin Academy)
+
+**Source:** Fin Academy — [Why Content Quality Matters](https://academy.fin.ai/why-content-quality-matters)
+
+Five checks to apply when reviewing any article Fin will use. These focus on the article body
+itself — what makes an answer easy for Fin to find, understand, and reuse at scale.
+
+> "For Fin to answer reliably at scale, content must make the right answer easy to find,
+> understand, and reuse."
+
+| What to check | What it means in practice | Example |
+|---|---|---|
+| **Clear, simple language** | Write answers the way customers ask questions | "Go to Settings → Billing → Upgrade Plan" not "Upgrade via self-serve billing flow" |
+| **Scan-friendly structure** | Break up long paragraphs; use headings or numbered steps | Replace long instructional paragraphs with short numbered lists |
+| **Explicit audience context** | State who the content applies to | "These steps apply to Admins on the Pro plan." |
+| **Defined terms** | Explain acronyms on first use | "SLA (Service Level Agreement) determines your response time." |
+| **High-impact prioritization** | Improve most-used content first | Review top 10 FAQs before edge-case docs |
+
+Apply the lens in practice — for each article ask:
+1. Is the first sentence a direct answer?
+2. Are procedures in numbered steps, not prose?
+3. Does it state who it applies to if role-specific?
+4. Are all acronyms defined on first use?
+5. Does the language match how users actually phrase their questions?
+
+---
+
 ## Data Quality
 
 ### Replace Manual Tags with Fin Attributes (Sherice, Expert User)
@@ -149,8 +189,10 @@ data quality and helps Fin identify repeatable automation candidates over time.
 
 ---
 
-## Source
-All tips sourced from: https://community.intercom.com/fin-tips-and-best-practices-82
-Contributors include Intercom employees (Karl O'Sullivan, Kevin Furlong, Beth-Ann, Dawn, Fred Walton,
-Paul D, Mateusz Leszkiewicz) and community experts (Conor Pendergrast, Nathan Sudds, Trevor, Sherice,
-Nico Magbiray, Daniel Ronnberg, Lance Black, Julian Murray).
+## Sources
+
+- **Intercom Community:** https://community.intercom.com/fin-tips-and-best-practices-82
+  Contributors include Intercom employees (Karl O'Sullivan, Kevin Furlong, Beth-Ann, Dawn, Fred Walton,
+  Paul D, Mateusz Leszkiewicz) and community experts (Conor Pendergrast, Nathan Sudds, Trevor, Sherice,
+  Nico Magbiray, Daniel Ronnberg, Lance Black, Julian Murray).
+- **Fin Academy — Content Quality:** https://academy.fin.ai/why-content-quality-matters

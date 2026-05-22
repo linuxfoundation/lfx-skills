@@ -21,34 +21,45 @@ Examples:
 
 ## Access Message Format (create/update)
 
-Publish to `lfx.update_access.{resource_type}`:
+Publish to `lfx.fga-sync.update_access` using the `GenericFGAMessage` envelope:
 
 ```json
 {
-  "uid": "resource-uuid",
   "object_type": "committee",
-  "public": false,
-  "relations": {
-    "writer": ["user:alice"],
-    "auditor": ["user:bob"]
-  },
-  "references": {
-    "project": "parent-project-uuid"
+  "operation": "update_access",
+  "data": {
+    "uid": "resource-uuid",
+    "public": false,
+    "relations": {
+      "writer": ["alice"],
+      "auditor": ["bob"]
+    },
+    "references": {
+      "project": ["parent-project-uuid"]
+    }
   }
 }
 ```
 
 The `references.project` field is how fga-sync establishes the parent link in OpenFGA.
-It writes a tuple like `project:{uid}#project@committee:{uid}`, enabling permission
-inheritance from the parent project.
+It writes a tuple like `project:{project_uid}#project@committee:{committee_uid}`, enabling
+permission inheritance from the parent project.
+
+`references` values can be bare UIDs (handler prepends the map key as the type prefix,
+e.g. `"project": ["abc"]` → `project:abc`) or full `type:uid` strings — both are accepted.
 
 ## Access Message Format (delete)
 
-Publish to `lfx.delete_all_access.{resource_type}` with the plain UID as the message body
-(not JSON — just the string):
+Publish to `lfx.fga-sync.delete_access` using the `GenericFGAMessage` envelope:
 
-```text
-"abc-123-uuid"
+```json
+{
+  "object_type": "committee",
+  "operation": "delete_access",
+  "data": {
+    "uid": "abc-123-uuid"
+  }
+}
 ```
 
 fga-sync will purge all OpenFGA tuples for that object.
@@ -101,7 +112,7 @@ it, making all older cached entries stale.
 
 If you suspect stale cache results, look for `"cache invalidation failed"` in fga-sync logs.
 
-## Publishing Access Messages — Generic vs Custom Handler
+## Publishing Access Messages — Go Code Examples
 
 fga-sync has **generic handlers** that work with any resource type. You do **not** need
 to add a new handler in fga-sync for a new resource type. Publish to the generic subjects:
@@ -178,11 +189,6 @@ GenericFGAMessage{ObjectType: "committee", Operation: "member_remove",
 
 `member_put` is idempotent and supports `mutually_exclusive_with` for role transitions.
 See `lfx-v2-fga-sync/docs/client-guide.md` for the full reference.
-
-### Custom handlers
-
-Only add a resource-specific handler in fga-sync (e.g. `handler_sponsorship.go`) if the
-generic message format cannot express the required logic. Prefer the generic subjects.
 
 ### OpenFGA authorization model
 

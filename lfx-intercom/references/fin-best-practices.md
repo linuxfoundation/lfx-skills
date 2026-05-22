@@ -126,7 +126,7 @@ Beyond simple Q&A, Copilot helps human agents with:
 
 ## Content Quality Standards (Fin Academy)
 
-Source: https://academy.fin.ai/why-content-quality-matters
+**Source:** Fin Academy — [Why Content Quality Matters](https://academy.fin.ai/why-content-quality-matters)
 
 Five checks to apply when reviewing any article Fin will use. These focus on the article body
 itself — what makes an answer easy for Fin to find, understand, and reuse at scale.

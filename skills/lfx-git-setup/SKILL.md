@@ -4,9 +4,9 @@ description: >
   Interactive setup guide for LFX contributors to configure Git for DCO signoff
   and GPG-signed commits. Use this skill whenever someone asks about setting up
   Git signing, DCO signoff, GPG keys for commits, configuring `~/.gitconfig` for
-  signing, adding a GPG key to GitHub, or any variation of “how do I sign my
-  commits?”. Also trigger it when a user says their commits aren’t showing as
-  “Verified” on GitHub, when they’re onboarding to an LFX project and need to
+  signing, adding a GPG key to GitHub, or any variation of "how do I sign my
+  commits?". Also trigger it when a user says their commits aren't showing as
+  "Verified" on GitHub, when they're onboarding to an LFX project and need to
   meet contribution requirements, or when they ask about `git commit -s`,
   `--signoff`, `Signed-off-by`, or `commit.gpgSign`. This skill works for
   technical and non-technical users alike.
@@ -21,11 +21,11 @@ allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, WebFetch
 This skill walks contributors through two essential git contribution
 requirements used across linux foundation projects:
 
-1. **DCO signoff** (`--signoff` / `-s`) — adds a 
+1. **DCO signoff** (`--signoff` / `-s`), adds a 
   `Signed-off-by: your name <email>` line to every commit, certifying you wrote
   the code and have the right to contribute it under the project's license. This
   is a legal agreement, not just a formality.
-2. **GPG signed commits** (`-S`) — cryptographically signs each commit with your
+2. **GPG signed commits** (`-S`), cryptographically signs each commit with your
    personal GPG key so GitHub can display a green "verified" badge, proving the
    commit genuinely came from you.
 
@@ -38,12 +38,12 @@ Ask the user (or check their context):
 
 - **macos** → read `references/mac.md` for the full walkthrough
 - **linux** (ubuntu, fedora, debian, arch, etc.) → read `references/linux.md`
-- **windows** → read `references/windows.md` — note this is a supported but less
+- **windows** → read `references/windows.md`, note this is a supported but less
   common setup path; wsl2 (windows subsystem for linux) users should follow
   linux steps
 
 If it's unclear which platform they're on, just ask: "what operating system are
-you using — mac, linux, or windows?"
+you using, mac, linux, or windows?"
 
 ## Overall Workflow (all platforms)
 
@@ -67,14 +67,14 @@ and a GPG key that:
 - was generated with the same email address as your github account
 - has its **public key** uploaded to GitHub (settings → ssh and gpg keys)
 
-The DCO signoff (`-s`) is handled separately — see the **DCO signoff** section below.
+The DCO signoff (`-s`) is handled separately, see the **DCO signoff** section below.
 
 ### The Four Phases
 
-- **phase 1 — Prerequisites**: install gpg tools and verify git version.
-- **phase 2 — Generate GPG key**: create your personal signing key.
-- **phase 3 — Configure git**: wire the key into `~/.gitconfig`.
-- **phase 4 — Register with GitHub**: upload your public key so github can verify.
+- **phase 1, Prerequisites**: install gpg tools and verify git version.
+- **phase 2, Generate GPG key**: create your personal signing key.
+- **phase 3, Configure git**: wire the key into `~/.gitconfig`.
+- **phase 4, Register with GitHub**: upload your public key so github can verify.
 
 Each platform reference file covers all four phases with exact commands.
 
@@ -179,7 +179,7 @@ This skill serves both technical and non-technical users. Adjust your tone:
   etc.), go straight to commands with brief explanations.
 - If the user seems newer to the command line, explain what each command _does_
   before showing it, and reassure them that these are one-time setup steps.
-- Never assume the user knows what GPG, DCO, or `~/.gitconfig` are — briefly
+- Never assume the user knows what GPG, DCO, or `~/.gitconfig` are, briefly
   define each on first mention.
 - After each phase, confirm it worked before moving on. ask: "Did that complete
   without errors?" before proceeding.

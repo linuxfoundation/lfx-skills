@@ -1,7 +1,7 @@
 ---
 name: lfx-setup
 description: >
-  Environment setup for any LFX repo — prerequisites, clone, install, env vars,
+  Environment setup for any LFX repo, prerequisites, clone, install, env vars,
   and dev server. Adapts to repo type (Angular or Go). Use for getting started,
   first-time setup, broken environments, or install failures.
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
@@ -21,12 +21,12 @@ You are helping a contributor set up an LFX development environment from scratch
 
 Before diving into the technical steps, here's what you should have ready:
 
-- **Access to the LFX GitHub organization** — you need to be able to clone LFX repositories. If you can visit `github.com/linuxfoundation` and see private repos, you're good.
-- **Access to the team 1Password vault** — some configuration values (API keys, secrets) are stored in 1Password under the "LFX One Dev Environment" vault. Ask your team lead if you don't have access.
-- **About 15 minutes** — first-time setup takes a bit for downloads and installs. Subsequent setups are faster.
-- **A terminal app** — Terminal.app (macOS), iTerm2, or any terminal emulator.
+- **Access to the LFX GitHub organization**, you need to be able to clone LFX repositories. If you can visit `github.com/linuxfoundation` and see private repos, you're good.
+- **Access to the team 1Password vault**, some configuration values (API keys, secrets) are stored in 1Password under the "LFX One Dev Environment" vault. Ask your team lead if you don't have access.
+- **About 15 minutes**, first-time setup takes a bit for downloads and installs. Subsequent setups are faster.
+- **A terminal app**, Terminal.app (macOS), iTerm2, or any terminal emulator.
 
-Don't worry if you're not sure about any of these — I'll check each one as we go and help you get access if needed. Don't assume success — check.
+Don't worry if you're not sure about any of these, I'll check each one as we go and help you get access if needed. Don't assume success, check.
 
 ## Repo Type Detection
 
@@ -54,15 +54,15 @@ echo -n "Git: " && git --version 2>/dev/null || echo "NOT INSTALLED"
 ```
 
 **Required versions:**
-1. **Node.js v22+** — If wrong version: recommend `nvm install 22 && nvm use 22`
-2. **Yarn v4.9.2+** — If missing: `corepack enable && corepack prepare yarn@4.9.2 --activate`
-3. **Git** — Any recent version
+1. **Node.js v22+**, If wrong version: recommend `nvm install 22 && nvm use 22`
+2. **Yarn v4.9.2+**, If missing: `corepack enable && corepack prepare yarn@4.9.2 --activate`
+3. **Git**, Any recent version
 
 > **Docker is NOT required** for local development. All services point to the shared dev environment.
 
 **macOS-specific notes:**
 - If `corepack enable` fails with permission errors: `sudo corepack enable`
-- If using Homebrew Node: Homebrew doesn't always include corepack — `npm install -g corepack` first
+- If using Homebrew Node: Homebrew doesn't always include corepack, `npm install -g corepack` first
 - Xcode Command Line Tools must be installed: `xcode-select --install`
 
 ### Step 2: Clone the Repository
@@ -93,7 +93,7 @@ cd lfx-v2-ui
      if grep -qE "^${key}=.+" apps/lfx-one/.env 2>/dev/null; then
        echo "✓ $key"
      else
-       echo "✗ $key — MISSING"
+       echo "✗ $key, MISSING"
        missing+=("$key")
      fi
    done
@@ -160,14 +160,14 @@ echo -n "Make: " && make --version 2>/dev/null | head -1 || echo "NOT INSTALLED"
 ```
 
 **Required:**
-1. **Go 1.22+** — `go version`
-2. **Git** — `git --version`
-3. **Make** — `make --version`
-4. **Goa v3** — installed via Makefile (`make apigen` handles this)
+1. **Go 1.22+**, `go version`
+2. **Git**, `git --version`
+3. **Make**, `make --version`
+4. **Goa v3**, installed via Makefile (`make apigen` handles this)
 
 Optional for full local stack:
-- **Helm** — `helm version`
-- **OrbStack or Docker** — for running the platform locally
+- **Helm**, `helm version`
+- **OrbStack or Docker**, for running the platform locally
 
 ### Step 2: Clone the Repository
 
@@ -243,7 +243,7 @@ helm dependency update charts/lfx-platform
 
 # Create local values
 cp charts/lfx-platform/values.local.example.yaml charts/lfx-platform/values.local.yaml
-# Edit values.local.yaml — secrets are in 1Password
+# Edit values.local.yaml, secrets are in 1Password
 
 # Install
 helm install -n lfx lfx-platform ./charts/lfx-platform \
@@ -280,6 +280,7 @@ Running at: [URL]
 ```
 
 Suggest next steps:
-- Explore the codebase: use `/lfx-product-architect` to understand how things work
-- Build or modify a feature: use `/lfx-coordinator`
-- Start focused code generation: use `/lfx-backend-builder` or `/lfx-ui-builder`
+- Find the owning repo or peer repos: use `/lfx-skills:lfx`
+- Understand platform shape: use `/lfx-skills:lfx-platform-architecture`
+- Understand V2 service shape and Go conventions: use `/lfx-skills:lfx-v2-service-patterns`
+- Build or modify a feature: use the owning repo's local skills and `CLAUDE.md`

@@ -2,7 +2,22 @@
 # Copyright The Linux Foundation and each contributor to LFX.
 # SPDX-License-Identifier: MIT
 name: intercom-app-integration
-description: Use for any Intercom work at LFX. Two paths. (1) Code integration: add the Intercom widget to a consumer app, fix an existing app-side integration, or standardize the boot/identity/shutdown lifecycle. Current code consumers are `insights` (Vue/Nuxt) and `crowd.dev` (Vue/Vite); `lfx-self-serve` is NOT a code consumer. Code path covers JWT identity verification via the http://lfx.dev/claims/intercom Auth0 claim, anonymous + identified boot, CSP origin list, environment variables, and coordination with auth0-terraform, identity-cookie-helper, and lfx-v2-argocd. Angular reference kept for future consumers. (2) Fin AI optimization (support/CX, no code): Fin Guidance writing, Help Center content quality, resolution rate, escalation patterns, Topics Explorer, Fin Attributes, Copilot tips, daily review rituals, content quality framework, benchmarks. Triggers include "add Intercom", "Intercom widget", "Intercom boot", "intercomSettings", "intercom_user_jwt", "fix Intercom integration", "Intercom identity verification", "Fin tips", "improve Fin", "Fin guidance", "Fin resolution rate", "Help Center optimization", "Copilot tips", "Fin re-engagement", "Fin handoff", "Fin Attributes".
+description: >
+  Use for any Intercom work at LFX. Two paths. (1) Code integration: add the
+  Intercom widget to a consumer app, fix an app-side integration, or
+  standardize the boot/identity/shutdown lifecycle. Code consumers are
+  `insights` (Vue/Nuxt) and `crowd.dev` (Vue/Vite); `lfx-self-serve` is NOT a
+  code consumer. Covers JWT identity verification via the
+  http://lfx.dev/claims/intercom Auth0 claim, anonymous + identified boot,
+  CSP origin list, environment variables, and coordination with
+  auth0-terraform, identity-cookie-helper, and lfx-v2-argocd. Angular
+  reference kept for future consumers. (2) Fin AI optimization (support/CX,
+  no code): Fin Guidance writing, Help Center content quality, resolution
+  rate, escalation patterns, Fin Attributes, Copilot tips, daily review
+  rituals. Triggers include "add Intercom", "Intercom widget",
+  "intercomSettings", "intercom_user_jwt", "fix Intercom integration",
+  "improve Fin", "Fin resolution rate", "Help Center optimization",
+  "Copilot tips".
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
@@ -19,8 +34,8 @@ This skill covers both Intercom workflows at LFX. Pick the path based on what th
 You are adding or fixing the Intercom widget in an LFX consumer app. The pattern is the same regardless of framework: load the Intercom script, set `window.intercomSettings`, boot anonymously for public-page apps, upgrade to identified using the Auth0-issued JWT claim, and shut down cleanly on logout.
 
 **Current consumers (verified):**
-- `insights` — Vue/Nuxt, plugin at `frontend/app/plugins/intercom.ts`.
-- `crowd.dev` — Vue/Vite, utility at `frontend/src/utils/intercom/index.ts`.
+- `insights`, Vue/Nuxt, plugin at `frontend/app/plugins/intercom.ts`.
+- `crowd.dev`, Vue/Vite, utility at `frontend/src/utils/intercom/index.ts`.
 
 **Not a consumer:** `lfx-self-serve` was verified to have no Intercom integration. Do not add Intercom to lfx-self-serve unless explicitly requested as a new feature.
 
@@ -48,7 +63,7 @@ This skill is intentionally central. Consuming apps are not required to vendor a
 2. **Pick the framework reference.**
    - **Vue/Nuxt (current consumer: `insights`)** → use `insights/frontend/app/plugins/intercom.ts` as the working reference. It is the current canonical Vue/Nuxt implementation (anonymous boot via `requestIdleCallback` for CLS safety, upgrade on `useAuth` watch, full shutdown on logout). Adapt the same lifecycle: stub, load script, set `intercomSettings` with the JWT, call `Intercom('boot', { app_id, user_id, name, email })`, call `Intercom('shutdown')` on logout.
    - **Vue/Vite (current consumer: `crowd.dev`)** → use `crowd.dev/frontend/src/utils/intercom/index.ts` as the working reference. Same lifecycle; auth wiring lives in `src/modules/auth/store/auth.actions.ts`; config in `src/config.js`.
-   - **Angular (for future consumers; no current Angular consumer)** → read `references/angular-template.md` and follow Steps 1-7. Covers Angular service shape, app-component wiring, anonymous→identified upgrade, public vs auth-only apps. Note: `lfx-self-serve` is the only LFX Angular app and currently does NOT use Intercom; this reference is preserved for future Angular consumers.
+   - **Angular (for future consumers; no current Angular consumer)** → read `references/angular-template.md` and follow Steps 1-7. Covers Angular service shape, app-component wiring, anonymous→identified upgrade, public vs auth-only apps. Note: `lfx-self-serve` is the only LFX Angular app and is not a code consumer; this reference is preserved for future Angular consumers.
 
 3. **Audit the existing integration before writing code.** Search the repo and produce a gap report. The Angular template Step 2 has a complete checklist that translates 1:1 to Vue. Key checks regardless of framework:
 
@@ -110,10 +125,10 @@ media-src    https://js.intercomcdn.com
 
 ## References
 
-- Fin AI optimization (support/CX, no code): `references/fin-best-practices.md` — Fin Guidance writing, Help Center content quality, escalation patterns, Topics Explorer, Fin Attributes, Copilot tips, content quality framework, real-world benchmarks.
+- Fin AI optimization (support/CX, no code): `references/fin-best-practices.md`, Fin Guidance writing, Help Center content quality, escalation patterns, Topics Explorer, Fin Attributes, Copilot tips, content quality framework, real-world benchmarks.
 - Current Vue/Nuxt working reference (insights): `insights/frontend/app/plugins/intercom.ts`.
 - Current Vue/Vite working reference (crowd.dev): `crowd.dev/frontend/src/utils/intercom/index.ts`.
-- Angular template (for future consumers; no current Angular consumer): `references/angular-template.md` — complete Angular service + app-component wiring, audit checklist, lifecycle for public-pages and auth-only apps.
+- Angular template (for future consumers; no current Angular consumer): `references/angular-template.md`, complete Angular service + app-component wiring, audit checklist, lifecycle for public-pages and auth-only apps.
 - Auth0 control-plane mechanics: `auth0-terraform/docs/agent-guidance/intercom-auth0-claims.md`.
 - Identity bridge: `identity-cookie-helper/docs/agent-guidance/intercom-identity-bridge.md`.
 - Deployed values: `lfx-v2-argocd/docs/agent-guidance/auth0-intercom-deployed-values.md`.

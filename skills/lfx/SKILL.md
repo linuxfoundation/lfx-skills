@@ -9,13 +9,15 @@ description: >
   from inside a single repo. Loads per-repo configs when invoked from the
   LFX workspace root with a full task prompt; gives targeted cross-repo
   guidance when invoked from inside a single repo. Also answers LFX glossary
-  and topology questions. Do not fire for single-repo implementation tasks
+  and topology questions, and performs read-only discovery when the user asks
+  whether a contract, API, event, field, workflow, or repo capability exists.
+  Do not fire for single-repo implementation tasks
   where the active repo's own CLAUDE.md already governs (those belong to
   the repo's local skills). Do not fire for V2 platform composition (use
-  `/lfx-platform-architecture`), V2 Go conventions
-  (`/lfx-service-conventions`), ITX wrapper plumbing
-  (`/lfx-itx-integration`), or app-side Intercom integration
-  (`/intercom-app-integration`).
+  `/lfx-skills:lfx-platform-architecture`), V2 Go service patterns and conventions
+  (`/lfx-skills:lfx-v2-service-patterns`), ITX wrapper plumbing
+  (`/lfx-skills:lfx-itx-integration`), or app-side Intercom integration
+  (`/lfx-skills:intercom-app-integration`).
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 ---
 
@@ -24,20 +26,34 @@ allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 Find which LFX repos are needed for a task, load their configs, give
 cross-repo guidance, or answer LFX questions.
 
-Three scenarios:
+Four scenarios:
 
 1. **Load configs** for multi-repo work (workspace-root invocation with a
    full task prompt or JIRA ticket).
 2. **Give guidance** when an agent inside a single repo needs cross-repo
    knowledge.
 3. **Answer questions** about LFX when no edits are coming.
+4. **Research before implementation** when the user asks what exists, what a
+   task would touch, or whether an upstream contract supports a change.
 
 ## Finding the LFX workspace root
 
 The workspace root (parent directory containing all LFX repo checkouts)
 varies per user (`~/lfx/`, `~/lf/`, etc.). Find it before referencing
-peer-repo paths. Ask the user if unsure (and offer `/lfx-setup` to persist).
+peer-repo paths. Ask the user if unsure (and offer `/lfx-skills:lfx-setup` to persist).
 Use `$LFX_DEV_ROOT` throughout this skill's paths.
+
+If a required repo is not present at `$LFX_DEV_ROOT/<repo>`, read its
+`GitHub:` URL from `references/repo-map.md` and clone it into the workspace
+root:
+
+```bash
+git clone <github-url> "$LFX_DEV_ROOT/<repo>"
+```
+
+If the clone fails because of auth, network, or missing access, report that
+repo as blocked. Do not replace the missing repo with central implementation
+guesses.
 
 ## How LFX fits together (high-level)
 
@@ -48,8 +64,8 @@ LFX is the Linux Foundation's project-management platform. Three main layers:
 - **V2 platform** (~14 Go services): resource services own domain (project,
   committee, meeting, vote, survey, mailing-list, member); platform services
   compose (fga-sync, indexer, query, access-check, auth). Built on Goa + NATS
-  + KV + OpenFGA. Writes publish contracts to fga-sync (access tuples) and
-  indexer (search documents).
+  - KV + OpenFGA. Writes publish contracts to fga-sync (access tuples) and
+    indexer (search documents).
 - **Deployment**: GitOps via ArgoCD. Service-local Helm charts per repo;
   umbrella chart + OpenFGA model in `lfx-v2-helm`; values, image tags, and
   ApplicationSets in `lfx-v2-argocd`. Auth0 emits JWTs, Heimdall enforces
@@ -68,18 +84,24 @@ Three steps apply to every scenario:
 3. **Identify peer repos** (if any) via `repo-map.md` plus (when ambiguous)
    `routing-playbook.md`. Add peers only for contracts, generated APIs,
    FGA/indexer data, deployment values, or product consumption that matter.
+4. **Resolve missing checkouts** by cloning the `GitHub:` URL listed in
+   `repo-map.md` when a primary or required peer repo is absent locally.
 
 Then, depending on context:
 
 ### Workspace-root invocation (full task prompt, JIRA ticket, etc.)
 
 The primary mode for multi-repo work. Load configs for the primary repo and
-each peer:
+each peer.
 
-- Read `$LFX_DEV_ROOT/<repo>/CLAUDE.md` (or `AGENTS.md` if that's the real file)
-- Browse `$LFX_DEV_ROOT/<repo>/.claude/rules/` for path-scoped conventions
-- Browse `$LFX_DEV_ROOT/<repo>/.claude/skills/` for available workflows
-- Browse `$LFX_DEV_ROOT/<repo>/docs/agent-guidance/` (or `docs/architecture/`
+For each repo:
+
+- If `$LFX_DEV_ROOT/<repo>` is missing, clone the repo from the `GitHub:` URL
+  in `references/repo-map.md`, then continue with local reads.
+- Load `$LFX_DEV_ROOT/<repo>/CLAUDE.md`
+- Load `$LFX_DEV_ROOT/<repo>/.claude/rules/` for path-scoped conventions
+- Load `$LFX_DEV_ROOT/<repo>/.claude/skills/` for available workflows
+- If needed, browse `$LFX_DEV_ROOT/<repo>/docs/agent-guidance/` (or `docs/architecture/`
   for Self Serve)
 
 Work continues in the same session with the loaded context.
@@ -97,6 +119,36 @@ relaunching from `$LFX_DEV_ROOT`.
 Use references plus forward to sibling skills for depth. Skip the full
 config load.
 
+### Research before implementation
+
+Use this mode for read-only discovery before an implementation starts. It
+preserves the useful research workflow without adding another central skill.
+
+1. Route the task to the primary repo and required peers using the repo map.
+2. Ensure the required repos are available locally; clone missing repos from
+   their `GitHub:` URLs if needed.
+3. Read the owning repo's local truth: `CLAUDE.md` or `AGENTS.md`, relevant
+   `.claude/skills/`, `.claude/rules/`, `docs/agent-guidance/`,
+   `docs/architecture/`, generated contracts, chart templates, or event docs.
+4. Validate whether the needed API, event, field, relation, index document,
+   query shape, chart value, or deployment reference exists.
+5. Find the closest existing example in the owning repo first. Use peer repos
+   only when the owner points to them as canonical examples.
+6. Return concise findings:
+
+```markdown
+## Research Findings
+
+**Primary repo:** <repo> - <why it owns the work>
+**Peers:** <repo list or none> - <why each matters>
+**Contract status:** <exists / partial / missing>. <path, method, subject, field, relation, value>
+**Local truth read:** <CLAUDE/rules/skills/docs paths>
+**Closest example:** <path> - <why it matches>
+**Likely files:** <paths or "implementation belongs in repo-local workflow">
+**Blockers:** <none or concrete missing contract/access/repo issue>
+**Next step:** <repo-local skill or central skill to use next>
+```
+
 ## How to use the references
 
 - **`references/glossary.md`**: read FIRST if an LFX term is unclear (Goa,
@@ -109,9 +161,11 @@ config load.
 - **`references/deployment-routing.md`**: read INSTEAD of `repo-map.md` for
   deployment-related tasks (charts, ApplicationSets, image tags, environment
   values). It's the deployment-specific decision tree.
-- **`references/topology.md`** and **`references/service-types.md`**: thin
-  routing stubs. For platform-shape or service-classification depth, forward
-  to `/lfx-platform-architecture` instead of expanding these.
+- **`references/topology.md`**: thin routing stub. For platform-shape depth,
+  forward to `/lfx-skills:lfx-platform-architecture` instead of expanding it.
+- **`references/service-types.md`**: thin routing stub. For native, wrapper,
+  proxy, or V2 Go service-pattern depth, forward to
+  `/lfx-skills:lfx-v2-service-patterns`.
 
 Never load all references by default. Start with the smallest one.
 
@@ -120,26 +174,27 @@ Never load all references by default. Start with the smallest one.
 Each auto-fires on its own triggers; can also be invoked explicitly. These
 ship in this same `lfx-skills` plugin.
 
-| Topic | Skill |
-|---|---|
-| Platform shape, service taxonomy, NATS naming, Heimdall coordination | `/lfx-platform-architecture` |
-| V2 Go service code conventions (logger, pagination, errors, context) | `/lfx-service-conventions` |
-| ITX wrapper patterns (OAuth2 M2M, ID mapping, v1 KV sync) | `/lfx-itx-integration` |
-| Intercom widget in consumer apps (Vue/Nuxt, Vue/Vite, Angular) | `/intercom-app-integration` |
+| Topic                                                                | Skill                        |
+| -------------------------------------------------------------------- | ---------------------------- |
+| Platform composition, write/read/access-check flows, cross-repo owners | `/lfx-skills:lfx-platform-architecture` |
+| V2 Go service classes, architecture, and platform handoffs            | `/lfx-skills:lfx-v2-service-patterns`   |
+| Go coding conventions after routing to a service repo                 | That repo's `/development-conventions`  |
+| ITX wrapper plumbing (OAuth2 M2M, ID mapping, v1 KV sync)             | `/lfx-skills:lfx-itx-integration`       |
+| Intercom widget in consumer apps (Vue/Nuxt, Vue/Vite, Angular)        | `/lfx-skills:intercom-app-integration`  |
 
 ## Workflow skills (this plugin)
 
 Six workflow skills ship alongside the architecture skills in this same
 `lfx-skills` plugin. Forward to them by name when relevant.
 
-| Topic | Skill |
-|---|---|
-| Onboarding and first-time setup | `/lfx-setup` |
-| DCO and GPG signing | `/lfx-git-setup` |
-| Cross-repo personal PR dashboard | `/lfx-pr-catchup` |
-| GitHub PR review threads | `/lfx-pr-resolve` |
-| Local multi-branch journey worktrees | `/lfx-test-journey` |
-| Snowflake access requests | `/lfx-snowflake-access` |
+| Topic                                | Skill                   |
+| ------------------------------------ | ----------------------- |
+| Onboarding and first-time setup      | `/lfx-skills:lfx-setup`            |
+| DCO and GPG signing                  | `/lfx-skills:lfx-git-setup`        |
+| Cross-repo personal PR dashboard     | `/lfx-skills:lfx-pr-catchup`       |
+| GitHub PR review threads             | `/lfx-skills:lfx-pr-resolve`       |
+| Local multi-branch journey worktrees | `/lfx-skills:lfx-test-journey`     |
+| Snowflake access requests            | `/lfx-skills:lfx-snowflake-access` |
 
 ## Cross-repo path convention
 

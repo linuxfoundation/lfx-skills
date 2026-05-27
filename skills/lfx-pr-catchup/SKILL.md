@@ -1,7 +1,7 @@
 ---
 name: lfx-pr-catchup
 description: >
-  Morning PR catch-up dashboard — shows unresolved comments, status changes,
+  Morning PR catch-up dashboard, shows unresolved comments, status changes,
   stale PRs, and approved-but-not-merged PRs across all your open PRs.
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 ---
@@ -12,7 +12,7 @@ allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 
 # PR Catch-Up Dashboard
 
-You generate a compact terminal dashboard of the user's open pull requests, highlighting what needs attention — unresolved comments, status changes, stale PRs, and approved-but-not-merged PRs.
+You generate a compact terminal dashboard of the user's open pull requests, highlighting what needs attention, unresolved comments, status changes, stale PRs, and approved-but-not-merged PRs.
 
 **This skill is read-only. It never modifies code, creates branches, or pushes commits.**
 
@@ -39,8 +39,8 @@ Then try /lfx-pr-catchup again.
 **Do NOT ask the user for preferences. Proceed immediately with defaults.**
 
 Defaults:
-- `ORG_FILTER` — empty string (all orgs)
-- `STALE_DAYS` — 7
+- `ORG_FILTER`, empty string (all orgs)
+- `STALE_DAYS`, 7
 
 The user can override these by including preferences in their initial message when invoking the skill (e.g., "/lfx-pr-catchup linuxfoundation" or "/lfx-pr-catchup stale=14"). If the user's message includes an org name, set `ORG_FILTER` to `--owner <org>`. If it includes a number for stale days, set `STALE_DAYS` accordingly. Otherwise, use defaults and move straight to Step 3.
 
@@ -61,7 +61,7 @@ gh search prs --author=@me --state=open --limit=50 --json repository,number,titl
 
 - **50 PRs returned** (hit the limit): Warn the user:
   ```
-  You have 50+ open PRs — showing the first 50. Consider filtering by org to narrow results.
+  You have 50+ open PRs, showing the first 50. Consider filtering by org to narrow results.
   ```
 
 ## Step 4: Enrich Each PR via GraphQL
@@ -122,7 +122,7 @@ If `remaining` is below 100:
 - Stop enrichment immediately
 - Display partial results with a warning:
   ```
-  GitHub API rate limit approaching — showing partial results.
+  GitHub API rate limit approaching, showing partial results.
   Rate limit resets at [reset time].
   ```
 
@@ -130,7 +130,7 @@ If `remaining` is below 100:
 
 If a GraphQL call fails for a specific PR (403/404), skip it and add a note:
 ```
-  (skipped — repo not accessible)
+  (skipped, repo not accessible)
 ```
 Do not fail the entire dashboard.
 
@@ -144,21 +144,21 @@ gh pr view $NUMBER --repo $OWNER/$REPO --json reviews,reviewDecision,reviewReque
 
 Note: REST fallback loses `isResolved` accuracy for review threads. Mention this in output:
 ```
-  (Note: using REST fallback — unresolved comment counts may be approximate)
+  (Note: using REST fallback, unresolved comment counts may be approximate)
 ```
 
 ## Step 5: Classify Signals
 
 For each PR, classify zero or more signals. A PR can have multiple signals.
 
-### HIGH priority (action needed — prefix with `!!`)
+### HIGH priority (action needed, prefix with `!!`)
 
 | Signal | Condition |
 |--------|-----------|
 | Unresolved comments | `reviewThreads` has nodes where `isResolved == false` |
 | Changes requested | `reviews` contains a review with `state == "CHANGES_REQUESTED"` that is not superseded by a newer review from the same author |
 
-### MEDIUM priority (informational — prefix with `**`)
+### MEDIUM priority (informational, prefix with `**`)
 
 | Signal | Condition |
 |--------|-----------|
@@ -184,7 +184,7 @@ Output the dashboard directly as text. Use box-drawing characters for visual str
 
 ```
 ═══════════════════════════════════════════════════════════
-PR CATCH-UP — [current date, e.g., March 17, 2026]
+PR CATCH-UP, [current date, e.g., March 17, 2026]
 ═══════════════════════════════════════════════════════════
 
 [N] open PRs across [M] repos  |  [X] need attention  |  [Y] all clear
@@ -204,8 +204,8 @@ PR CATCH-UP — [current date, e.g., March 17, 2026]
 ─── ALL CLEAR ─────────────────────────────────────────────
 
 [owner/repo]
-  #[number]  [title] — [short status summary]
-  #[number]  [title] — [short status summary]
+  #[number]  [title], [short status summary]
+  #[number]  [title], [short status summary]
 
 ═══════════════════════════════════════════════════════════
 ```
@@ -214,7 +214,7 @@ PR CATCH-UP — [current date, e.g., March 17, 2026]
 
 - Group PRs by `owner/repo`
 - "Needs attention" section comes first with full details and URLs
-- "All clear" section is compact — one line per PR, no URLs
+- "All clear" section is compact, one line per PR, no URLs
 - `!!` prefix = action needed (HIGH signals)
 - `**` prefix = informational (MEDIUM signals)
 - Short status summaries for "All Clear" PRs: "approved, CI passing", "review in progress", "just opened", "no reviewers yet"

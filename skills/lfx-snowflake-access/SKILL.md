@@ -2,12 +2,12 @@
 name: lfx-snowflake-access
 description: >
   Guide users through requesting Snowflake access at the Linux Foundation. Handles two request
-  types: (1) individual user access — adding or modifying an entry in users.tf in the
-  lfx-snowflake-terraform repo, and (2) service account creation — adding an entry in
+  types: (1) individual user access, adding or modifying an entry in users.tf in the
+  lfx-snowflake-terraform repo, and (2) service account creation, adding an entry in
   service_accounts.tf. For each, the skill collects the necessary details, generates the exact
   Terraform HCL block to add, explains where to place it, and guides the user through the PR
   process. Use this skill any time someone asks about Snowflake access, permissions, user
-  provisioning, service accounts, or making changes to the lfx-snowflake-terraform repo —
+  provisioning, service accounts, or making changes to the lfx-snowflake-terraform repo,
   including phrases like "get access to Snowflake", "add me to Snowflake", "need a service account",
   "request Snowflake permissions", "I need to query Snowflake", or "how do I get Snowflake access".
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, WebFetch
@@ -20,13 +20,13 @@ allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, WebFetch
 # Snowflake Access Request Guide
 
 Snowflake access at the Linux Foundation is controlled through a configuration file that the
-platform engineering team manages. Requesting access means submitting a small change to that file for review
-— once approved, access is automatically applied within minutes.
+platform engineering team manages. Requesting access means submitting a small change to that file for review.
+Once approved, access is automatically applied within minutes.
 
 > **For the AI**: The underlying mechanism is Terraform in the
 > [lfx-snowflake-terraform](https://github.com/linuxfoundation/lfx-snowflake-terraform) repo,
 > provisioned via pull request. Use technical terms freely with engineers. With everyone else,
-> say "access configuration", "change request", and "submit for review" — avoid "Terraform",
+> say "access configuration", "change request", and "submit for review", avoid "Terraform",
 > "HCL", "PR", "commit", and "branch" unless the user introduces those terms first.
 
 There are two types of access requests:
@@ -57,10 +57,10 @@ There are two types of access requests:
 
 Ask the user for:
 
-1. **Email address** — must be `@linuxfoundation.org` or `@contractor.linuxfoundation.org`
-2. **Full name** — e.g., "Jane Smith"
-3. **Team or function** — use this to recommend roles (see Role Guide below)
-4. **Web UI only, or also command-line / programmatic access?** — Most people only need the
+1. **Email address**, must be `@linuxfoundation.org` or `@contractor.linuxfoundation.org`
+2. **Full name**, e.g., "Jane Smith"
+3. **Team or function**, use this to recommend roles (see Role Guide below)
+4. **Web UI only, or also command-line / programmatic access?**, Most people only need the
    Snowflake web dashboard (accessible via single sign-on). Ask this in plain terms:
    *"Will you be using Snowflake through a web browser, or do you also need to connect
    through code or a command-line tool (for example, dbt, SnowSQL, or a script)?"*
@@ -97,7 +97,7 @@ Use the team/function to recommend an appropriate role set. These map to existin
 | --- | --- |
 | `VIEWER` | Read-only access to analytics data in Snowflake |
 | `DATA_ADMIN` | Full administrative access to data pipelines and schemas |
-| `DATA_DEV` | Data production access — read/write to data schemas |
+| `DATA_DEV` | Data production access, read/write to data schemas |
 | `DBT_TRANSFORM_DEV` | Access to run and develop dbt transformations in the ANALYTICS_DEV database |
 | `PRODUCT_DEV` | Product engineering data access |
 | `LF_DEVELOPER_R_ROLE` | Read access to LFX developer-facing data |
@@ -107,7 +107,7 @@ Use the team/function to recommend an appropriate role set. These map to existin
 | `TRAINING_TEAM_ROLE` | Access for the training/certification team datasets |
 | `COMMUNITY_MANAGEMENT_USER` | Community management platform data access |
 | `HUBSPOT_INTEGRATION_ROLE` | HubSpot marketing tool integration access |
-| `ACCOUNTADMIN` | Full Snowflake account administration — CloudOps only |
+| `ACCOUNTADMIN` | Full Snowflake account administration, CloudOps only |
 
 ### HCL block to generate
 
@@ -142,23 +142,23 @@ The `users` map is organized by team sections with `#` comments. Tell the user:
 
 ## Type 2: Service Account (`service_accounts.tf`)
 
-Service accounts are for applications, automation scripts, CI/CD pipelines, or integrations —
+Service accounts are for applications, automation scripts, CI/CD pipelines, or integrations,
 not for humans logging in. They are given an IP allowlist and specific role grants.
 
 ### Information to collect
 
 Ask the user for:
 
-1. **Service account name** — uppercase, underscore-separated, e.g., `MY_SERVICE`
+1. **Service account name**, uppercase, underscore-separated, e.g., `MY_SERVICE`
    (this becomes the Snowflake username)
-2. **Purpose** — what system or integration is this for?
-3. **Required data access** — what data does it need to read or write? Use this to suggest roles.
-4. **IP address(es)** — the outbound IP(s) of the service. Required for network policy enforcement.
+2. **Purpose**, what system or integration is this for?
+3. **Required data access**, what data does it need to read or write? Use this to suggest roles.
+4. **IP address(es)**, the outbound IP(s) of the service. Required for network policy enforcement.
    - If this is an internal LF system on the API gateway, they can use `local.ip_list_api_gw`
    - If this is on the shared k8s clusters, they can use `local.ip_list_k8s_clusters`
    - Otherwise, collect the specific IP(s) or CIDR ranges
-5. **Default warehouse** — which Snowflake warehouse should it use? (optional; leave out if unsure)
-6. **Default role** — should the account default to a specific role?
+5. **Default warehouse**, which Snowflake warehouse should it use? (optional; leave out if unsure)
+6. **Default role**, should the account default to a specific role?
    (optional; usually the account name itself or leave out)
 
 ### Common service account roles
@@ -168,7 +168,7 @@ Ask the user for:
 | Read analytics data | `DB_ANALYTICS_RO` (or `DB_ANALYTICS_PLATINUM_RO`, `DB_ANALYTICS_GOLD_RO` for tiered access) |
 | Read all ingested data | `DB_INGEST_ALL_RO` |
 | Write ingested data | A specific `DB_*_INGEST_RW` role (coordinate with CloudOps) |
-| Use a dedicated warehouse | `WH_<NAME>_USAGE` (CloudOps creates warehouses — see note below) |
+| Use a dedicated warehouse | `WH_<NAME>_USAGE` (CloudOps creates warehouses, see note below) |
 | Read raw data | `DB_RAW_RO` or `DB_RAW_RW` |
 
 > **Warehouse note**: If the service needs its own warehouse (e.g., `WH_MY_SERVICE_USAGE`), that
@@ -197,7 +197,7 @@ Minimal example (no dedicated warehouse, no default role override):
 },
 ```
 
-A network policy will be **automatically created** from the `ip_list` — no additional changes needed.
+A network policy will be **automatically created** from the `ip_list`, no additional changes needed.
 
 ### Placement instruction
 
@@ -248,7 +248,7 @@ After generating the configuration, walk the user through submitting it for revi
      provision it alongside the access change
 6. **Submit the change request to**:
    `https://github.com/linuxfoundation/lfx-snowflake-terraform`
-7. **Reviewers**: The CloudOps team is automatically notified — no need to manually assign anyone
+7. **Reviewers**: The CloudOps team is automatically notified, no need to manually assign anyone
 
 > Once the change is approved and merged, access is applied automatically within a few minutes.
 > New users will receive an activation email from Snowflake. Anyone who also needs command-line
@@ -265,7 +265,7 @@ Once the PR is merged and Terraform applies (usually within minutes):
 1. From the [Okta dashboard](https://okta.linuxfoundation.org/app/UserHome),
    launch the **Snowflake** application for the Linux Foundation.
 2. When prompted, choose the **Okta SSO** option and sign in with your LF email
-3. After authentication completes, you'll be redirected to the Snowflake landing page — you're in.
+3. After authentication completes, you'll be redirected to the Snowflake landing page, you're in.
 
 > If your account isn't active yet, wait a few minutes for CI/CD to complete and try again.
 > If it still doesn't work after 15 minutes, reach out in the `#lfx-devops` Slack channel.
@@ -277,7 +277,7 @@ SnowSQL, or other programmatic access), they must set up RSA keypair authenticat
 This replaces password/MFA for CLI connections and is required for `dbt build` to work
 without repeated Duo push prompts.
 
-Full instructions: [lf-dbt README — SnowSQL Keypair Authentication Setup](https://github.com/linuxfoundation/lf-dbt/blob/main/README.md#snowsql-keypair-authentication-setup)
+Full instructions: [lf-dbt README, SnowSQL Keypair Authentication Setup](https://github.com/linuxfoundation/lf-dbt/blob/main/README.md#snowsql-keypair-authentication-setup)
 
 **Summary of steps:**
 
@@ -302,7 +302,7 @@ Full instructions: [lf-dbt README — SnowSQL Keypair Authentication Setup](http
    ```
 
 4. **Copy the public key contents** (`cat ~/.sf/rsa_key.pub`, strip the header/footer lines,
-   remove line breaks) and **send it to CloudOps** — they will run:
+   remove line breaks) and **send it to CloudOps**, they will run:
 
    ```sql
    ALTER USER DEV_YOUR_USERNAME SET RSA_PUBLIC_KEY='<your public key>';
@@ -311,7 +311,7 @@ Full instructions: [lf-dbt README — SnowSQL Keypair Authentication Setup](http
    The CLI username format is `DEV_` + your email prefix in uppercase, e.g.,
    `DEV_JSMITH` for `jsmith@linuxfoundation.org`.
 
-5. **Verify the key was registered** by comparing fingerprints — see the full README for the
+5. **Verify the key was registered** by comparing fingerprints, see the full README for the
    verification commands.
 
 6. **Connect via SnowSQL** using your private key:
@@ -329,20 +329,20 @@ Full instructions: [lf-dbt README — SnowSQL Keypair Authentication Setup](http
 
 ### Adapting to non-technical users
 
-Many people requesting Snowflake access — in marketing, sales, finance, leadership, and product —
+Many people requesting Snowflake access (in marketing, sales, finance, leadership, and product)
 will not be familiar with git, Terraform, or pull requests. Adjust your language to match:
 
-- **Don't say**: "I'll generate an HCL block for your PR" — **Do say**: "I'll put together the
+- **Don't say**: "I'll generate an HCL block for your PR", **Do say**: "I'll put together the
   access configuration and walk you through submitting it for CloudOps review."
-- **Don't say**: "Add this to `users.tf` and commit it" — **Do say**: "Open the file, paste
+- **Don't say**: "Add this to `users.tf` and commit it", **Do say**: "Open the file, paste
   this entry in, then save and submit the change."
-- **Don't say**: "Create a feature branch" — **Do say**: "Start a new working copy of the file
+- **Don't say**: "Create a feature branch", **Do say**: "Start a new working copy of the file
   so your change doesn't affect others until it's reviewed."
 - If someone looks confused or asks "what's a pull request?", explain: *"It's a way of proposing
-  a change so someone can review it before it takes effect — like a tracked edit waiting for
+  a change so someone can review it before it takes effect, like a tracked edit waiting for
   approval."*
 - If the user is clearly non-technical and not comfortable submitting the change themselves,
-  offer the handoff path: *"No problem — I can give you a summary to share with a technical
+  offer the handoff path: *"No problem, I can give you a summary to share with a technical
   teammate or post in `#lfx-devops`, and they can submit it on your behalf."*
 
 ### Role and access guidance
@@ -359,4 +359,4 @@ will not be familiar with git, Terraform, or pull requests. Adjust your language
 ### Escalation
 
 - If the request involves new roles, new warehouses, or infrastructure not covered here, don't
-  guess — direct them to open a GitHub issue or reach out in the `#lfx-devops` Slack channel.
+  guess, direct them to open a GitHub issue or reach out in the `#lfx-devops` Slack channel.

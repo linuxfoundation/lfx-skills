@@ -1,0 +1,74 @@
+<!-- Copyright The Linux Foundation and each contributor to LFX. -->
+<!-- SPDX-License-Identifier: MIT -->
+
+# Routing Playbook
+
+Use this file when you need a concrete primary/peer repo answer. The primary
+repo is where most editing should happen and whose repo-local guidance controls
+the session. Peer repos are read or edited only when their contracts, data
+flows, generated APIs, product consumption, or deployment context are in scope.
+
+## Routing algorithm
+
+1. Map the nouns in the request to a product surface or domain resource.
+2. Pick the repo that owns the code/contract/deployment layer being changed.
+3. Add peers for consumers and platform effects.
+4. Add `lfx-v2-argocd` only when deployed environment values, chart pins, image
+   tags, ApplicationSets, previews, or promotion are part of the task.
+5. Add `lfx-v2-helm` only when shared platform chart behavior, local platform
+   stack, or OpenFGA model topology changes.
+6. If two primary owners would both need substantial edits, recommend sequential
+   primary-repo sessions instead of one overloaded session.
+
+## Common routes
+
+| Task | Primary repo | Peer repos to consider | Handoff |
+| --- | --- | --- | --- |
+| Add or change a Self Serve UI/BFF feature | `lfx-self-serve` | Owning resource service, `lfx-v2-query-service`, `lfx-v2-fga-sync`; add `lfx-v2-argocd` only for deployed values. | Start in Self Serve; local setup owns detailed Angular/BFF/shared-package guidance. |
+| Add a Self Serve meeting UI feature | `lfx-self-serve` | `lfx-v2-meeting-service`, `lfx-v2-query-service`, `lfx-v2-fga-sync`; add `lfx-v2-argocd` only for deployment values. | Self Serve owns product work; meeting service owns upstream meeting contract changes. |
+| Add or change a project API field | `lfx-v2-project-service` | `lfx-v2-indexer-service`, `lfx-v2-fga-sync`, `lfx-v2-query-service`, `lfx-self-serve`; add `lfx-v2-argocd` for environment rollout. | Project service local setup owns implementation and contract detail. |
+| Add or change a committee/member/invite/application field | `lfx-v2-committee-service` | `lfx-v2-indexer-service`, `lfx-v2-fga-sync`, `lfx-v2-query-service`, `lfx-self-serve`. | Committee service owns the resource contract; Self Serve is a consumer peer. |
+| Add or change wrapper-service behavior for meetings, mailing lists, votes, or surveys | Owning wrapper service | `lfx-v2-indexer-service`, `lfx-v2-fga-sync`, `lfx-v2-query-service`, `lfx-self-serve` if product consumption changes. | The wrapper service owns external-system mapping and emitted platform data. |
+| Debug missing resources in Self Serve search | `lfx-v2-query-service` or the owning resource service, depending on failure point | `lfx-v2-indexer-service`, `lfx-v2-fga-sync`, owning resource service, `lfx-self-serve`. | Pick the failure owner; use peers only to trace the platform path. |
+| Change authorization for a resource type | Owning resource service for emitted access data; `lfx-v2-helm` for OpenFGA model changes | `lfx-v2-fga-sync`, `lfx-v2-access-check`, `lfx-v2-query-service`, `lfx-self-serve` if consumer behavior changes. | Service owns emitted access data; Helm owns the OpenFGA model. |
+| Change query filters, pagination, count, sorting, access filtering, or OpenSearch read behavior | `lfx-v2-query-service` | Owning service for document fields, `lfx-v2-indexer-service`, `lfx-v2-fga-sync`, `lfx-self-serve` if consumer behavior changes. | Query service local setup owns generic read behavior. |
+| Change index document shape or indexing event handling | Owning resource service if it emits the document; `lfx-v2-indexer-service` if platform consumption changes | `lfx-v2-query-service`, `lfx-v2-fga-sync`, Self Serve consumer if affected. | Resource service owns document emission; indexer owns generic consumption. |
+| Change a service Kubernetes template default | Owning service/app repo | `lfx-v2-argocd` for deployed values; `lfx-v2-helm` only for shared platform chart behavior. | Service/app repo owns service-local chart behavior. |
+| Change dev/staging/prod values, image tags, chart pins, or ApplicationSets | `lfx-v2-argocd` | Owning service/app repo for chart value definitions; `lfx-v2-helm` for platform pins. | ArgoCD local setup owns deployed environment state. |
+| Change local platform infrastructure or OpenFGA model | `lfx-v2-helm` | `lfx-v2-argocd` for deployed platform values; affected service repos for contract updates. | Helm local setup owns shared platform composition. |
+| Load or reset local fixture data | `lfx-v2-mockdata` | `lfx-v2-helm`, affected service repos. | Mockdata owns fixture loading/reset behavior. |
+| Work on hosted MCP tool access or semantic tools | `lfx-mcp` or `lfx-lens` depending on the surface | `lfx-self-serve` only if product consumption changes. | Start in the repo that owns the hosted tool or Lens semantic surface. |
+| Work on UI core tokens, web components, Storybook, package exports, or release | `lfx-ui` | `lfx-self-serve` only if app consumption changes. | UI core owns package behavior; Self Serve is only a consumer peer. |
+| Work on CDP Snowflake connectors | `crowd.dev` | Snowflake/platform repos only for explicit access or deployment changes. | Connector repo owns implementation detail. |
+| Work on central reviewer-agent prompt files, central topology, or launcher classification | `lfx-dev` | Owning repo docs for any repo-specific reviewer implementation truth. | Central owns routing and shared prompt source files, not repo implementation truth. |
+| Add Intercom to a consuming app (Angular, Vue/Nuxt, Vue/Vite) | consuming app repo (use central skill) | `auth0-terraform` (claim already configured?), `identity-cookie-helper` (CSP/bridge), `lfx-v2-argocd` (deployed values) | Use the central `/intercom-app-integration` skill in `lfx-dev` — it covers all frameworks. Verify the app is in the `custom_claims` Action switch; confirm the helper hostname is allow-listed by Intercom Admin. |
+| Add or change the Auth0 Intercom JWT custom claim | `auth0-terraform` | `identity-cookie-helper` (bridge), consuming app repo (if a new app is being added), `lfx-v2-argocd` (deployed values) | Auth0 control plane owns the `custom_claims` Action mechanics; bridge and app sides consume the emitted JWT. |
+| Add or fix the Auth0-to-Intercom identity bridge | `identity-cookie-helper` | `auth0-terraform` (claim source), `lfx-v2-argocd` (deployed helper hostnames + values) | Bridge owns OAuth flow, identify-page rendering, CSP, and hostname allow-list coordination with Intercom Admin. |
+| Change v1-to-v2 replication, WAL listener, Meltano taps, or the `lfx.lookup_v1_mapping` server implementation | `lfx-v1-sync-helper` | Consuming wrapper services (`lfx-v2-meeting-service`, `lfx-v2-voting-service`, `lfx-v2-survey-service`, `lfx-v2-mailing-list-service`); sync targets (`lfx-v2-project-service`, `lfx-v2-committee-service`). | v1-sync-helper owns the v1 bridge; wrapper-side ID-mapping client patterns route to `/lfx-itx-integration`. |
+
+## Examples
+
+For a Self Serve meeting feature, route the product work to `lfx-self-serve`.
+Add `lfx-v2-meeting-service` only when the upstream meeting contract or proxy
+behavior is in scope. Add `lfx-v2-query-service` and `lfx-v2-fga-sync` only when
+the feature depends on indexed meeting reads or access filtering. Do not add
+`lfx-v2-argocd` unless deployed values or chart pins change.
+
+For a staging image-tag change, route the edit to `lfx-v2-argocd` because
+deployed image tags are GitOps environment state. Add the owning service repo
+only when you need to confirm service-owned chart defaults or value schema. Do
+not route to `lfx-v2-helm` unless the shared platform chart or platform
+dependency changes.
+
+## Launch guidance
+
+For `lfx-claude`, classify the task to a primary repo and peer list, then return
+only the shell command for the real interactive Claude session. The launcher
+starts a background `claude --print` router session; this playbook may inform
+that router, but the launcher itself does not parse these files or ask for a
+confirmation step.
+
+The returned command should start Claude from the primary repo because peer repos
+added with `--add-dir` are file-access peers and may not behave as fully native
+project roots. If the task has two independent primary owners, recommend
+sequential sessions instead of one overloaded command.

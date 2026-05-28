@@ -64,6 +64,7 @@ by agents working from another repo.
 | Access-check HTTP API and service chart behavior | `lfx-v2-access-check` | `docs/access-check-contract.md`, `docs/service-helm-chart.md` |
 | Auth/profile runtime behavior and profile events | `lfx-v2-auth-service` | `docs/email_lookups.md`, `docs/email_verification.md`, `docs/identity_linking.md`, `docs/impersonation.md`, `docs/password_management.md`, `docs/user_emails.md`, `docs/user_metadata.md`, `docs/username_lookups.md`, `docs/profile-events.md`, `docs/service-helm-chart.md` |
 | Auth0 tenant control plane | `auth0-terraform` | Terraform/OpenTofu resources in that repo |
+| Intercom identity bridge runtime, identify page, CSP, and hostname allow-list coordination | `identity-cookie-helper` | `CLAUDE.md`, `docs/agent-guidance/intercom-identity-bridge.md`, `.claude/skills/intercom-identity-bridge/SKILL.md` |
 | ITX wrapper plumbing and v1 ID mapping client behavior | Owning wrapper service plus central ITX skill | Wrapper repo `docs/itx-proxy-implementation.md`, `docs/event-processing.md`, `docs/api-contracts.md`, `docs/api-contracts/*.md`, and `/lfx-skills:lfx-itx-integration` |
 | v1 bridge, WAL/Dynamo stream replication, and `lfx.lookup_v1_mapping` server | `lfx-v1-sync-helper` | `AGENTS.md`, `README.md`, `cmd/lfx-v1-sync-helper/README.md`, `research/`, and repo-local code |
 | Service-local Helm chart templates/defaults | Owning service/app repo | `charts/<repo-name>/` |

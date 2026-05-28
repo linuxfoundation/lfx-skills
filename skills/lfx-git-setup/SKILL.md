@@ -21,7 +21,7 @@ allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, WebFetch
 This skill walks contributors through two essential git contribution
 requirements used across linux foundation projects:
 
-1. **DCO signoff** (`--signoff` / `-s`), adds a 
+1. **DCO signoff** (`--signoff` / `-s`), adds a
   `Signed-off-by: your name <email>` line to every commit, certifying you wrote
   the code and have the right to contribute it under the project's license. This
   is a legal agreement, not just a formality.

@@ -21,8 +21,8 @@ installed=0
 updated=0
 failed=0
 
-# Install each skill directory (lfx-* and lfx/)
-for skill_path in "$SCRIPT_DIR"/lfx-*/ "$SCRIPT_DIR"/lfx/; do
+# Install each skill directory from the Claude plugin layout.
+for skill_path in "$SCRIPT_DIR"/skills/*/; do
   [ -d "$skill_path" ] || continue
 
   skill_name="$(basename "${skill_path%/}")"
@@ -55,10 +55,10 @@ fi
 echo ""
 echo "Next steps:"
 echo "  1. Restart your AI coding assistant (or open a new session)"
-echo "  2. Type /lfx to get started"
+echo "  2. Type /lfx-skills:lfx to get started"
 echo ""
 echo "Available skills:"
-for skill_path in "$SKILLS_DIR"/lfx*; do
+for skill_path in "$SCRIPT_DIR"/skills/*/; do
   [ -e "$skill_path" ] || continue
   echo "  /$(basename "$skill_path")"
 done

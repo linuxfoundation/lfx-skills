@@ -13,11 +13,11 @@ description: >
   whether a contract, API, event, field, workflow, or repo capability exists.
   Do not fire for single-repo implementation tasks
   where the active repo's own CLAUDE.md already governs (those belong to
-  the repo's local skills). Do not fire for V2 platform composition (use
-  `/lfx-skills:lfx-platform-architecture`), V2 Go service patterns and conventions
-  (`/lfx-skills:lfx-v2-service-patterns`), ITX wrapper plumbing
-  (`/lfx-skills:lfx-itx-integration`), or app-side Intercom integration
-  (`/lfx-skills:intercom-app-integration`).
+  the repo's local skills). Do not fire for V2 platform composition, service
+  classes, or cross-service handoffs (use
+  `/lfx-skills:lfx-platform-architecture`), ITX wrapper plumbing
+  (`/lfx-skills:lfx-itx-integration`), or Intercom app/Fin workflows
+  (`/lfx-skills:lfx-intercom`).
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 ---
 
@@ -86,6 +86,9 @@ Three steps apply to every scenario:
    FGA/indexer data, deployment values, or product consumption that matter.
 4. **Resolve missing checkouts** by cloning the `GitHub:` URL listed in
    `repo-map.md` when a primary or required peer repo is absent locally.
+5. **Read owned truth from the owner repo**. Use `CLAUDE.md` for local work
+   mode and the top-level `docs/` files it names for contracts and other
+   repo-owned truth that other agents may consume.
 
 Then, depending on context:
 
@@ -101,8 +104,13 @@ For each repo:
 - Load `$LFX_DEV_ROOT/<repo>/CLAUDE.md`
 - Load `$LFX_DEV_ROOT/<repo>/.claude/rules/` for path-scoped conventions
 - Load `$LFX_DEV_ROOT/<repo>/.claude/skills/` for available workflows
-- If needed, browse `$LFX_DEV_ROOT/<repo>/docs/agent-guidance/` (or `docs/architecture/`
-  for Self Serve)
+- Read the top-level `docs/` contract files named by that repo's `CLAUDE.md`
+  when cross-repo contracts, payloads, subjects, chart handoffs,
+  integrations, or deployment surfaces matter.
+- Browse `$LFX_DEV_ROOT/<repo>/docs/agent-guidance/` only when
+  `references/repo-map.md` explicitly lists that path as a transitional owner
+  location for the repo. For Self Serve, use `docs/architecture/` when
+  `CLAUDE.md` or local skills point there.
 
 Work continues in the same session with the loaded context.
 
@@ -113,6 +121,29 @@ should read (at `$LFX_DEV_ROOT/<peer-repo>/<path>`) and any constraints to
 apply. Skip the full config load; the asking agent's session is what matters
 and may not need everything. If the work is genuinely multi-repo, recommend
 relaunching from `$LFX_DEV_ROOT`.
+
+### Cross-repo contract lookup
+
+Use this protocol when an agent in one repo needs a contract, payload, subject,
+chart surface, deployment handoff, or integration detail owned by another repo.
+Do not infer cross-repo contracts from local examples.
+
+1. Resolve the owner repo using `references/repo-map.md`.
+2. If `$LFX_DEV_ROOT/<owner-repo>` is missing, clone the `GitHub:` URL from
+   `repo-map.md` into the workspace root.
+3. Read `references/contract-ownership.md` for the exact owner files for the
+   contract, payload, subject, chart surface, deployment handoff, or integration
+   detail being checked.
+4. Read `$LFX_DEV_ROOT/<owner-repo>/CLAUDE.md` or `AGENTS.md` for that repo's
+   local context order.
+5. Read the top-level `docs/` files named by that repo's `CLAUDE.md` for the
+   relevant owned contract.
+6. Prefer stable top-level contract docs such as `docs/fga-contract.md`,
+   `docs/indexer-contract.md`, `docs/fga-sync-contract.md`,
+   `docs/query-service-contract.md`, or `docs/service-chart-patterns.md`
+   when present.
+7. Report the exact owner file read. If the path is absent, report a
+   repo-readiness gap instead of substituting central guidance.
 
 ### Pure question (no edits coming)
 
@@ -128,8 +159,10 @@ preserves the useful research workflow without adding another central skill.
 2. Ensure the required repos are available locally; clone missing repos from
    their `GitHub:` URLs if needed.
 3. Read the owning repo's local truth: `CLAUDE.md` or `AGENTS.md`, relevant
-   `.claude/skills/`, `.claude/rules/`, `docs/agent-guidance/`,
+   top-level `docs/` contract files, `.claude/skills/`, `.claude/rules/`,
    `docs/architecture/`, generated contracts, chart templates, or event docs.
+   Use `docs/agent-guidance/` only where `repo-map.md` explicitly lists it as a
+   transitional owner location.
 4. Validate whether the needed API, event, field, relation, index document,
    query shape, chart value, or deployment reference exists.
 5. Find the closest existing example in the owning repo first. Use peer repos
@@ -155,6 +188,10 @@ preserves the useful research workflow without adding another central skill.
   Heimdall, FGA, OpenFGA, OpenSearch, etc.). Skip for routing decisions.
 - **`references/repo-map.md`**: the primary tool for identifying primary
   and peer repos. Match task nouns to "route when the task mentions" phrases.
+- **`references/contract-ownership.md`**: read after `repo-map.md` when an
+  agent needs the exact owner and file path for a cross-repo contract,
+  payload, subject, chart surface, deployment handoff, integration detail, or
+  other repo-owned truth.
 - **`references/routing-playbook.md`**: read only when `repo-map.md` doesn't
   give a clear answer or when the task spans multiple repos. Contains
   concrete primary/peer examples.
@@ -164,8 +201,8 @@ preserves the useful research workflow without adding another central skill.
 - **`references/topology.md`**: thin routing stub. For platform-shape depth,
   forward to `/lfx-skills:lfx-platform-architecture` instead of expanding it.
 - **`references/service-types.md`**: thin routing stub. For native, wrapper,
-  proxy, or V2 Go service-pattern depth, forward to
-  `/lfx-skills:lfx-v2-service-patterns`.
+  proxy, or V2 Go service-class depth, forward to
+  `/lfx-skills:lfx-platform-architecture`.
 
 Never load all references by default. Start with the smallest one.
 
@@ -176,15 +213,14 @@ ship in this same `lfx-skills` plugin.
 
 | Topic                                                                | Skill                        |
 | -------------------------------------------------------------------- | ---------------------------- |
-| Platform composition, write/read/access-check flows, cross-repo owners | `/lfx-skills:lfx-platform-architecture` |
-| V2 Go service classes, architecture, and platform handoffs            | `/lfx-skills:lfx-v2-service-patterns`   |
-| Go coding conventions after routing to a service repo                 | That repo's `/development-conventions`  |
+| Platform composition, V2 service classes, write/read/access-check flows, cross-repo owners | `/lfx-skills:lfx-platform-architecture` |
+| Go coding conventions after routing to a service repo                 | That repo's path-scoped `<short-repo-name>-dev` skill |
 | ITX wrapper plumbing (OAuth2 M2M, ID mapping, v1 KV sync)             | `/lfx-skills:lfx-itx-integration`       |
-| Intercom widget in consumer apps (Vue/Nuxt, Vue/Vite, Angular)        | `/lfx-skills:intercom-app-integration`  |
+| Intercom app workflow and Fin AI optimization                         | `/lfx-skills:lfx-intercom`              |
 
 ## Workflow skills (this plugin)
 
-Six workflow skills ship alongside the architecture skills in this same
+Seven workflow skills ship alongside the architecture skills in this same
 `lfx-skills` plugin. Forward to them by name when relevant.
 
 | Topic                                | Skill                   |
@@ -195,14 +231,15 @@ Six workflow skills ship alongside the architecture skills in this same
 | GitHub PR review threads             | `/lfx-skills:lfx-pr-resolve`       |
 | Local multi-branch journey worktrees | `/lfx-skills:lfx-test-journey`     |
 | Snowflake access requests            | `/lfx-skills:lfx-snowflake-access` |
+| CDP Snowflake connector scaffolding  | `/lfx-skills:lfx-cdp-snowflake-connectors` |
 
 ## Cross-repo path convention
 
-Agent-guidance docs across LFX repos use **repo-qualified paths**, not
-relative filesystem paths:
+Cross-repo references use **repo-qualified paths**, not relative filesystem
+paths:
 
 ```
-lfx-v2-indexer-service/docs/agent-guidance/indexer-patterns.md
+lfx-v2-indexer-service/docs/indexer-contract.md
 ```
 
 That's the file inside `lfx-v2-indexer-service`, regardless of disk layout.

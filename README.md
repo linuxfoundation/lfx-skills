@@ -1,6 +1,6 @@
 # LFX Skills
 
-Central Claude Code plugin for LFX development. Bundles the canonical LFX architecture knowledge, cross-repo workflow skills, and post-commit reviewer agents that every LFX contributor needs. Each LFX repo's local setup (`CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, `docs/agent-guidance/`) calls out to this plugin for cross-repo topology, platform conventions, and review automation.
+Central Claude Code plugin for LFX development. Bundles the canonical LFX architecture knowledge, cross-repo workflow skills, and post-commit reviewer agents that every LFX contributor needs. Each LFX repo's local setup (`CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, and repo-owned `docs/`) calls out to this plugin for cross-repo topology, platform conventions, and review automation.
 
 ## Install
 
@@ -20,44 +20,46 @@ For other AI coding assistants that support skills, see [docs/platform-install.m
 Type `/lfx-skills:lfx` and describe what you want in plain language:
 
 - **"Where does the meeting data flow live?"** — the router classifies the task and points at the owning repos plus the relevant central skill.
-- **"I'm adding a new V2 resource service"** — routes you to `/lfx-skills:lfx-platform-architecture` for the platform shape and `/lfx-skills:lfx-service-conventions` for Go code conventions.
-- **"Add or fix Intercom in this app"** — routes to `/lfx-skills:intercom-app-integration`.
+- **"I'm adding a new V2 resource service"** — routes you to `/lfx-skills:lfx-platform-architecture` for platform flow, service class, and cross-service handoff points; the owning repo's path-scoped guidance handles Go conventions.
+- **"Does this API already exist?"** — `/lfx-skills:lfx` runs a read-only research pass to verify owning repos, contracts, examples, and blockers before implementation.
+- **"Add or fix Intercom in this app"** — routes to `/lfx-skills:lfx-intercom`.
+- **"Add a CDP Snowflake connector"** — routes to `/lfx-skills:lfx-cdp-snowflake-connectors`.
 - **"Catch me up on my open PRs"** — routes to `/lfx-skills:lfx-pr-catchup`.
 
-The plugin assumes you have a workspace with LFX repos checked out (typically `~/lfx/`, `~/lf/`, or similar). The `/lfx` router will ask once if it cannot find a workspace root.
+The plugin assumes you have a workspace with LFX repos checked out (typically `~/lfx/`, `~/lf/`, or similar). The `/lfx` router will ask once if it cannot find a workspace root. If a required repo is missing from that root, `/lfx` uses the GitHub URL in its repo map to clone it before reading repo-local setup.
 
 ## What's Inside
 
-### Central architecture skills (5)
+### Central architecture and integration skills (4)
 
 Canonical LFX knowledge that lives in this plugin and is referenced by every LFX repo's local setup. These are *not* implementation recipes; they hand off to the owning repo for detail.
 
 | Skill | Purpose |
 |---|---|
-| `/lfx` | Cross-repo topology and ownership router; entry point for any multi-repo task or "where does X live" question. |
-| `/lfx-platform-architecture` | V2 platform shape (Goa, NATS, KV, OpenFGA, indexer, query, Heimdall) and service taxonomy (native vs wrapper vs proxy). |
-| `/lfx-service-conventions` | V2 Go service code conventions: structured logging with slog, pagination contract, domain `ErrorType` enum, request-context propagation, test patterns. |
-| `/lfx-itx-integration` | ITX wrapper patterns: OAuth2 M2M tokens, v1 KV sync, NATS ID mapping via `lfx.lookup_v1_mapping`. |
-| `/intercom-app-integration` | Two paths: (1) Intercom widget integration for consumer apps (Vue/Nuxt, Vue/Vite, Angular); (2) Fin AI optimization (Fin Guidance, Help Center content quality, resolution rate). |
+| `/lfx-skills:lfx` | Cross-repo topology and ownership router; entry point for any multi-repo task or "where does X live" question. |
+| `/lfx-skills:lfx-platform-architecture` | V2 platform composition, service classes, and cross-repo flow: Self Serve, Goa services, NATS, KV, OpenFGA, indexer, query, Heimdall, Helm, ArgoCD. |
+| `/lfx-skills:lfx-itx-integration` | ITX wrapper patterns: OAuth2 M2M tokens, v1 KV sync, NATS ID mapping via `lfx.lookup_v1_mapping`. |
+| `/lfx-skills:lfx-intercom` | Retained central Intercom workflow from `main`, plus Fin AI optimization: Fin Guidance, Help Center content quality, and resolution rate. |
 
-### Workflow skills (6)
+### Workflow skills (7)
 
 Cross-repo developer workflows that apply across every LFX repo.
 
 | Skill | Purpose |
 |---|---|
-| `/lfx-setup` | Environment setup for any LFX repo (Angular or Go). Prerequisites, clone, install, env vars, dev server. |
-| `/lfx-git-setup` | Interactive DCO sign-off plus GPG-signed commit setup. Required for all LFX repos. |
-| `/lfx-pr-catchup` | Morning PR catch-up dashboard: unresolved comments, status changes, stale PRs, approved-but-not-merged across all your open PRs. |
-| `/lfx-pr-resolve` | Address PR review comments, post follow-up summary, dismiss stale "changes requested" reviews, re-request review. |
-| `/lfx-test-journey` | Combine feature branches across repos into git worktrees for end-to-end journey testing. |
-| `/lfx-snowflake-access` | Request Snowflake access or service accounts via the `lfx-snowflake-terraform` repo. |
+| `/lfx-skills:lfx-setup` | Environment setup for any LFX repo (Angular or Go). Prerequisites, clone, install, env vars, dev server. |
+| `/lfx-skills:lfx-git-setup` | Interactive DCO sign-off plus GPG-signed commit setup. Required for all LFX repos. |
+| `/lfx-skills:lfx-pr-catchup` | Morning PR catch-up dashboard: unresolved comments, status changes, stale PRs, approved-but-not-merged across all your open PRs. |
+| `/lfx-skills:lfx-pr-resolve` | Address PR review comments, post follow-up summary, dismiss stale "changes requested" reviews, re-request review. |
+| `/lfx-skills:lfx-test-journey` | Combine feature branches across repos into git worktrees for end-to-end journey testing. |
+| `/lfx-skills:lfx-snowflake-access` | Request Snowflake access or service accounts via the `lfx-snowflake-terraform` repo. |
+| `/lfx-skills:lfx-cdp-snowflake-connectors` | Scaffold a CDP snowflake-connector data source in `crowd.dev`; retained centrally from `main`. |
 
 ### Platform skill (1)
 
 | Skill | Purpose |
 |---|---|
-| `/lfx-v2-ticket-writer` | Create a single LFXV2 Jira ticket via guided prompts; requirement-focused descriptions, reproduction steps for bugs. |
+| `/lfx-skills:lfx-v2-ticket-writer` | Create a single LFXV2 Jira ticket via guided prompts; requirement-focused descriptions, reproduction steps for bugs. |
 
 ### Reviewer agents (3)
 
@@ -81,15 +83,15 @@ Each agent locates its owning repo at runtime and uses repo-qualified paths for 
 ├── skills/
 │   ├── lfx/                     # central topology router
 │   ├── lfx-platform-architecture/
-│   ├── lfx-service-conventions/
 │   ├── lfx-itx-integration/
-│   ├── intercom-app-integration/
+│   ├── lfx-intercom/
 │   ├── lfx-setup/
 │   ├── lfx-git-setup/
 │   ├── lfx-pr-catchup/
 │   ├── lfx-pr-resolve/
 │   ├── lfx-test-journey/
 │   ├── lfx-snowflake-access/
+│   ├── lfx-cdp-snowflake-connectors/
 │   └── lfx-v2-ticket-writer/
 ├── agents/
 │   ├── lfx-general-code-reviewer.md

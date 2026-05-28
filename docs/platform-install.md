@@ -3,7 +3,7 @@
 
 # Platform Installation Guide
 
-LFX Skills work with any AI coding assistant that can load context from Markdown files. This guide covers installation for specific platforms.
+LFX Skills work with any AI coding assistant that can load context from Markdown files. This guide covers the legacy symlink installer. Claude Code plugin installation through the marketplace is preferred when available.
 
 ## Claude Code
 
@@ -12,8 +12,8 @@ Claude Code is the reference implementation. Skills are auto-discovered from `~/
 **Automatic installation:**
 
 ```bash
-git clone https://github.com/linuxfoundation/skills.git
-cd skills
+git clone https://github.com/linuxfoundation/lfx-skills.git
+cd lfx-skills
 ./install.sh
 ```
 
@@ -21,19 +21,19 @@ cd skills
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in lfx-*/ lfx/; do
+for skill in skills/*/; do
   ln -sf "$(pwd)/$skill" ~/.claude/skills/"$(basename "$skill")"
 done
 ```
 
-**Verify:** Restart Claude Code (or open a new session) and type `/lfx`.
+**Verify:** Restart Claude Code (or open a new session) and type `/lfx-skills:lfx`.
 
 **Per-repo installation** (scoped to a single repo instead of global):
 
 ```bash
-# From inside a target repo (e.g., lfx-v2-ui)
+# From inside a target repo (e.g., lfx-self-serve)
 mkdir -p .claude/skills
-for skill in /path/to/skills/lfx-*/ /path/to/skills/lfx/; do
+for skill in /path/to/lfx-skills/skills/*/; do
   ln -sf "$skill" .claude/skills/"$(basename "$skill")"
 done
 echo '.claude/skills/' >> .gitignore
@@ -44,6 +44,8 @@ echo '.claude/skills/' >> .gitignore
 ```bash
 rm -f ~/.claude/skills/lfx-*
 rm -f ~/.claude/skills/lfx
+# Remove stale symlink from short-lived fan-out builds.
+rm -f ~/.claude/skills/intercom-app-integration
 ```
 
 ## Gemini CLI

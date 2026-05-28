@@ -7,9 +7,11 @@ This file is a routing-level surface map. Use it when the routing question is
 "which surfaces does this task touch" and you only need the owner repo per
 surface.
 
-For the **cross-cutting platform architecture** (composition, write flow,
-read flow, access-check flow, NATS and KV conventions, Heimdall coordination,
-canonical-contract pointers), use the `/lfx-platform-architecture` skill.
+For cross-cutting platform architecture (composition, service classes, write
+flow, read flow, access-check flow, Heimdall coordination, and contract
+owners), use the `/lfx-skills:lfx-platform-architecture` skill. For Go coding
+conventions, rely on the owning repo's path-scoped `<short-repo-name>-dev`
+skill after routing.
 
 After choosing surfaces here, hand off to `repo-map.md` or `routing-playbook.md`
 for primary and peer repo selection.

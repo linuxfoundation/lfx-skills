@@ -32,7 +32,7 @@ Don't worry if you're not sure about any of these, I'll check each one as we go 
 
 ```bash
 if [ -f apps/lfx-one/angular.json ] || [ -f turbo.json ]; then
-  echo "REPO_TYPE=angular"      # lfx-v2-ui
+  echo "REPO_TYPE=angular"      # lfx-self-serve
 elif [ -f go.mod ]; then
   echo "REPO_TYPE=go"           # Go microservice
 fi
@@ -40,7 +40,7 @@ fi
 
 ---
 
-## Angular Repo Setup (lfx-v2-ui)
+## Angular Repo Setup (lfx-self-serve)
 
 ### Step 1: Prerequisites
 
@@ -71,7 +71,7 @@ If not already cloned:
 
 ```bash
 git clone <repository-url>
-cd lfx-v2-ui
+cd lfx-self-serve
 ```
 
 ### Step 3: Environment Variables
@@ -282,5 +282,7 @@ Running at: [URL]
 Suggest next steps:
 - Find the owning repo or peer repos: use `/lfx-skills:lfx`
 - Understand platform shape: use `/lfx-skills:lfx-platform-architecture`
-- Understand V2 service shape and Go conventions: use `/lfx-skills:lfx-v2-service-patterns`
+- Understand V2 service shape: use `/lfx-skills:lfx-platform-architecture`
+- Understand Go conventions: rely on the owning repo's path-scoped
+  `<short-repo-name>-dev` skill
 - Build or modify a feature: use the owning repo's local skills and `CLAUDE.md`

@@ -3,80 +3,61 @@
 # SPDX-License-Identifier: MIT
 name: lfx-platform-architecture
 description: >
-  Central explainer for how the LFX V2 platform composes Goa, NATS, KV, FGA,
-  the indexer, the query service, Heimdall, and OpenFGA. Use when classifying
-  a service (native vs wrapper vs proxy), tracing request, write, read, or
-  access-check flows, deciding NATS subject and KV bucket names, or
-  coordinating a new FGA type across the OpenFGA model and Heimdall rulesets.
-  Fires on prompts like "how does FGA flow", "where does the indexer fit",
-  "what's the platform shape", "Heimdall vs FGA", "what owns the OpenFGA
-  model", "what's a native vs wrapper service", "where do NATS subjects come
-  from", "explain the V2 platform topology", "how does access-check work",
-  "which service publishes index messages".
+  Central explainer for how the LFX V2 platform components compose: Self Serve,
+  Goa services, NATS, JetStream KV, fga-sync, OpenFGA, indexer-service,
+  OpenSearch, query-service, access-check, Heimdall, Gateway API, Auth0, Helm,
+  and ArgoCD. Use when tracing platform write, read, access-check,
+  authorization, indexing, deployment, service-classification, or cross-repo
+  ownership flows. Fires on prompts like "how does FGA flow", "where does the
+  indexer fit", "what's the platform shape", "native service", "wrapper
+  service", "new V2 service", "Heimdall vs FGA", "what owns the OpenFGA
+  model", "how does query-service read resources", "how does access-check
+  work", "which repo owns deployed values", or "which service consumes index
+  messages". Do not use for V2 Go service coding conventions; the owning
+  repo's path-scoped `<short-repo-name>-dev` skill should attach after routing.
 allowed-tools: Read, Glob, Grep
 ---
 
 # LFX Platform Architecture
 
-Cross-cutting architecture explainer for the LFX V2 platform. The one place
-that holds the composition of the V2 pieces and the cross-repo coordination
-rules for FGA. Read-only; routes implementation work to the owning repos.
+Cross-cutting architecture explainer for how the LFX V2 platform fits together.
+Use this skill to understand component relationships, V2 service classes, and
+cross-repo ownership before handing implementation work to the owning repo.
 
-Does not replace `/lfx` (topology router), per-repo `CLAUDE.md`, or the
-canonical contract docs owned by each platform repo. Use it to understand
-the shape; then hand off.
+Clean split:
+
+- `/lfx-skills:lfx-platform-architecture`: platform composition, V2 service
+  classes, cross-service responsibilities, and handoff points.
+- Owning repo path-scoped `<short-repo-name>-dev` skill: Go coding conventions
+  such as generated-code boundaries, logging, errors, request context, tests,
+  formatting, and linting.
+- Owning repos: concrete implementation truth, contracts, subjects, payloads,
+  chart values, and domain behavior.
 
 ## When to invoke
 
-- The user asks how the V2 pieces fit together (Goa, NATS, KV, FGA, indexer,
-  query, Heimdall, OpenFGA, OpenSearch, auth, access-check).
-- The user needs the service taxonomy: is this a native service, a wrapper,
-  or a proxy/consumer, and which template to follow.
-- The user is tracing a request, write, read, or access-check flow before
-  designing a change.
-- The user is about to add or change an OpenFGA type or relation and needs
-  the coordination order between `lfx-v2-helm` (model) and the owning
-  service (ruleset, emitted access data).
-- The user is naming new NATS subjects or KV buckets and needs the platform
-  convention.
-- The user wants to know which repo owns which canonical contract.
+- The user asks how platform pieces fit together.
+- The user is tracing a request, write, read, authorization, access-check, or
+  indexing flow.
+- The user is classifying a V2 service as native, wrapper, proxy/consumer, or
+  platform.
+- The user is starting a new V2 service or deciding which repo owns a NATS
+  subject family, KV bucket, indexer contract, FGA contract, query behavior,
+  chart template, or deployed value.
+- The user is changing an OpenFGA type or relation and needs the repo
+  coordination order.
+- The user is deciding which repo owns a platform contract.
+- The user is routing deployment, chart, values, Auth0, ExternalSecret, or
+  ApplicationSet work.
 
-If the task is single-repo and the answer is in a repo-local doc, do not
-invoke this skill; defer to that repo's `CLAUDE.md` and `docs/agent-guidance/`.
-
-## Service taxonomy
-
-V2 services fall into three classes. Classify before reaching for a template.
-
-**Native resource service.** Owns its data in NATS JetStream KV buckets.
-Exposes full CRUD via a Goa HTTP API. Publishes both an indexer message and
-an FGA-sync access message on every write. Examples: `lfx-v2-project-service`
-(canonical template), `lfx-v2-committee-service`. Template doc:
-`lfx-v2-project-service/docs/agent-guidance/native-template.md`.
-
-**Wrapper resource service.** Owns no data of its own. Proxies an external
-system (ITX, Groups.io, Zoom) for all data operations and translates between
-the LFX Self-Service API and the external system's API. Still publishes
-indexer and FGA-sync messages on writes. Examples: `lfx-v2-voting-service`
-(canonical template), `lfx-v2-meeting-service`, `lfx-v2-mailing-list-service`,
-`lfx-v2-survey-service`. Template doc:
-`lfx-v2-voting-service/docs/agent-guidance/wrapper-template.md`.
-
-**Proxy or consumer service.** Owns no resource data and publishes no
-indexer or FGA-sync messages. Thin HTTP-to-NATS wrapper around platform
-plumbing, with a bespoke contract. Examples: `lfx-v2-access-check` (HTTP
-Goa wrapper over fga-sync NATS), `lfx-v2-auth-service` (NATS RPC over Auth0
-and Authelia). Each owns its contract under its own `docs/agent-guidance/`.
-
-| Scenario | Class | Start from |
-| --- | --- | --- |
-| New service stores its own resource data | Native | `lfx-v2-project-service` |
-| New service wraps an external system | Wrapper | `lfx-v2-voting-service` |
-| New thin platform-plumbing service | Proxy/consumer | `lfx-v2-access-check` or `lfx-v2-auth-service` |
+If the task is about coding inside an individual V2 Go service, first route to
+the owning repo. The repo-local path-scoped `<short-repo-name>-dev` skill should
+attach on relevant Go/service paths, alongside the repo-owned top-level `docs/`
+files named by that repo's `CLAUDE.md`.
 
 ## Platform shape
 
-The V2 platform is a Goa-on-NATS mesh fronted by Heimdall, authorized by
+The V2 platform is a Goa-on-NATS service mesh fronted by Heimdall, authorized by
 OpenFGA, indexed into OpenSearch, and read through query-service.
 
 ```text
@@ -90,173 +71,253 @@ Gateway API + Traefik
        |
        v
 +----------------------+    +-------------------+    +-------------------+
-| Resource services    |    | query-service     |    | access-check      |
-| (Goa + NATS, native  |    | (HTTP read API    |    | (HTTP wrapper     |
-| or wrapper)          |    | over OpenSearch)  |    | over fga-sync)    |
+| V2 Go services       |    | query-service     |    | access-check      |
+| (Goa + NATS/KV,      |    | (HTTP read API    |    | (HTTP wrapper     |
+| platform contracts)  |    | over OpenSearch)  |    | over fga-sync)    |
 +----------+-----------+    +---------+---------+    +---------+---------+
            |                          |                        |
            v                          v                        v
   NATS subjects + KV          OpenSearch index         OpenFGA tuples
-  lfx.index.*    --> indexer-service  --> OpenSearch
-  lfx.fga-sync.* --> fga-sync         --> OpenFGA
-  lfx.access_check.request --> fga-sync (cached check)
+  lfx.index.*    -> indexer-service -> OpenSearch
+  lfx.fga-sync.* -> fga-sync        -> OpenFGA
+  lfx.access_check.request -> fga-sync (cached check)
 ```
 
-Auth and profile live alongside the data path:
+Auth and deployment sit alongside the data path:
 
 - `lfx-v2-auth-service` is the NATS RPC abstraction over Auth0 and Authelia
-  for identity, profile, and impersonation.
-- `auth0-terraform` owns Auth0 tenant configuration (clients, audiences,
-  grants, Actions, connections).
+  for identity, profile, and impersonation behavior.
+- `auth0-terraform` owns Auth0 tenant configuration.
+- `lfx-v2-helm` owns the shared platform chart and OpenFGA model template.
+- `lfx-v2-argocd` owns deployed values, chart pins, image tags,
+  ApplicationSets, previews, and promotion.
 
-### Write flow
+## Service classes
 
-1. HTTP request hits Heimdall via Gateway API and the service's `HTTPRoute`.
-2. Heimdall runs `oidc` authentication, then `openfga_check` against the
-   relation and object configured in the service's `ruleset.yaml`.
-3. Goa handler validates and dispatches to the service layer.
-4. Native services persist to JetStream KV with optimistic locking via the KV
-   revision. Wrapper services persist by calling the external API and storing
-   only an ID mapping locally.
-5. Service publishes concurrently:
-   - `lfx.index.{resource_type}` indexer envelope to `indexer-service` for
-     OpenSearch indexing.
-   - `lfx.fga-sync.update_access` or `lfx.fga-sync.delete_access` generic
-     access envelope to `fga-sync` when the resource has its own FGA type.
+Classify before choosing a work plan. The class determines which
+responsibilities exist and which repo-local docs should be present.
 
-### Read flow
+| Class | Quick sense | Living examples |
+| --- | --- | --- |
+| Native resource service | Owns its data in NATS JetStream KV and exposes full CRUD through a Goa API. | `lfx-v2-project-service`, `lfx-v2-committee-service` |
+| Wrapper resource service | Exposes LFX V2 APIs while an external system remains the source of truth. | `lfx-v2-voting-service`, `lfx-v2-meeting-service`, `lfx-v2-mailing-list-service`, `lfx-v2-survey-service` |
+| Supporting application service | Owns feature-specific behavior or state that is not a generic V2 resource contract. | `lfx-v2-email-service`, `lfx-v2-newsletter-service` |
+| Proxy or consumer service | Thin HTTP or NATS facade over platform plumbing. Does not own a resource type. | `lfx-v2-access-check`, `lfx-v2-auth-service`, `lfx-v2-persona-service` |
+| Platform service | Provides shared platform capability consumed by other services. | `lfx-v2-indexer-service`, `lfx-v2-fga-sync`, `lfx-v2-query-service` |
 
-1. Self Serve or another consumer calls `query-service` at
-   `/query/resources?type=...` (the platform read aggregator over
-   OpenSearch).
-2. `query-service` issues a batch FGA check via NATS to `fga-sync` on
-   `lfx.access_check.request` and drops unauthorized resources.
-3. Direct GETs on a single resource go straight to the owning service. The
-   gateway runs `openfga_check` per the service ruleset; no aggregator step.
-4. Missing or stale resources usually mean one of: indexer not consuming,
-   indexer envelope wrong, fga-sync tuples missing, or OpenFGA model wrong.
+Living examples are examples, not central owners of implementation truth.
+Concrete behavior belongs in the repo that owns the code.
 
-### Access-check flow
+## Native resource services
 
-1. Caller (query-service or `lfx-v2-access-check`) publishes a batched
-   request on `lfx.access_check.request` with a request token.
-2. `fga-sync` checks its JetStream KV cache first; on miss it asks OpenFGA
-   directly and writes the result back to the cache.
-3. Reply ordering is not guaranteed. Always match results on the request
-   token.
+A native resource service owns resource state directly in NATS JetStream KV.
 
-## NATS subject and KV naming
+Typical responsibilities:
 
-These rules apply uniformly across V2 Go services. Per-service subjects and
-KV bucket names live in each service's local `docs/agent-guidance/nats-messaging.md`.
+- Goa HTTP API for resource reads and writes.
+- One or more service-owned KV buckets.
+- Optimistic concurrency for mutable resources when backed by KV revisions.
+- Indexer publication for queryable resources.
+- FGA publication for resources with their own access model.
+- Service-owned chart templates and Heimdall `RuleSet` entries for routes.
+- Health endpoints and graceful shutdown.
 
-### Subject conventions
+Native local docs should identify owned KV buckets, request/reply subjects,
+indexed resource types, FGA object types, and any deviations from the usual
+CRUD, optimistic-locking, or health/readiness shape.
 
-- No environment prefix. Subjects are identical in all environments.
-- Subject constants live in a shared package (`pkg/constants/`) and are
-  imported by both publisher and subscriber. Never hardcode subject strings.
-- Patterns:
+## Wrapper resource services
 
-| Pattern | Purpose |
-| --- | --- |
-| `lfx.index.{resource_type}` | Publish to indexer-service for OpenSearch indexing. |
-| `lfx.v1.index.{resource_type}` | Legacy v1 indexer path. |
-| `lfx.fga-sync.update_access` | Publish generic access update to fga-sync. |
-| `lfx.fga-sync.delete_access` | Publish generic access delete to fga-sync. |
-| `lfx.fga-sync.member_put` | Add a per-user relation via fga-sync. |
-| `lfx.fga-sync.member_remove` | Remove a per-user relation via fga-sync. |
-| `lfx.access_check.request` | Batched access check (cached). |
-| `lfx.access_check.read_tuples` | Read tuples for a user + object_type. |
-| `lfx.{service-api}.{operation}` | Service-to-service request/reply RPC. |
-| `lfx.{object_type}.{action}` | Domain event emitted by indexer after a write. |
+A wrapper resource service exposes an LFX V2 API while another system remains
+the source of truth.
 
-All subscriptions, including request/reply handlers, use queue groups so a
-single instance handles each message when scaled horizontally.
+Typical responsibilities:
 
-### KV bucket conventions
+- Goa HTTP API shaped for LFX V2 consumers.
+- Translation between LFX V2 payloads and upstream payloads.
+- Outbound auth to the upstream system.
+- v2-to-v1 ID mapping when upstream resources use legacy Salesforce IDs.
+- Indexer and FGA publication after successful upstream writes when the
+  resource is queryable or access-controlled.
+- Local KV only for mapping or cache needs, not as the resource source of
+  truth.
 
-- Plural snake_case (`projects`, `committees`, `meeting_registrants`).
-- No environment prefix.
-- One service owns each bucket; no cross-service writes. Cross-service reads
-  go through NATS request/reply RPC instead of direct KV access.
-- Native services initialize their buckets at startup; the Helm chart's
-  `nats-kv-buckets.yaml` declares them with `helm.sh/resource-policy: keep`.
+Wrapper local docs should identify upstream ownership, LFX V2 to upstream field
+mappings, ID mapping requirements, local caches, emitted indexer/FGA messages,
+and upstream pagination, versioning, retry, or error quirks.
 
-The platform-wide canonical reference for these rules is
-`lfx-v2-project-service/docs/agent-guidance/nats-messaging.md`. Read it
-before defining new subjects or buckets.
+For ITX-specific plumbing such as OAuth2 M2M, `lfx.lookup_v1_mapping`, v1 KV
+sync, and `ITX_*` environment variables, use
+`/lfx-skills:lfx-itx-integration`.
 
-## Heimdall coordination
+## Supporting application services
 
-Adding or changing an OpenFGA type or relation always touches at least two
-repos. The model lives in the platform chart; the ruleset that calls
-`openfga_check` lives in each service chart; the emitted access data lives
-in the owning resource service code.
+Supporting application services own feature-specific behavior that participates
+in the platform but is not a generic resource service.
 
-| Layer | Owner repo | File |
+Typical responsibilities:
+
+- A small explicit public API, either HTTP or NATS request/reply.
+- Service-owned state only when the feature needs it, such as Postgres rows or
+  NATS KV tracking records.
+- Clear local docs for the owned contract, consumed peer contracts, chart
+  values, and deployment handoffs.
+- No default assumption of Goa, indexer publishing, or FGA tuple emission.
+
+Examples:
+
+- `lfx-v2-email-service` owns transactional email request/reply and engagement
+  tracking. It does not render templates or publish indexer/FGA messages.
+- `lfx-v2-newsletter-service` owns newsletter drafts, sent state, recipient
+  resolution orchestration, open tracking, and analytics. It consumes
+  query-service and email-service contracts.
+
+## Proxy, consumer, and platform services
+
+Proxy and consumer services do not own resource data and usually do not publish
+indexer or FGA messages.
+
+Architecture expectations:
+
+- Keep the public or RPC surface small and explicit.
+- Document the owned contract locally.
+- Route tuple semantics, index document semantics, query behavior, identity
+  provider behavior, or deployment values to the repo that owns them.
+- Avoid applying native or wrapper resource-service assumptions unless the repo
+  actually has those surfaces.
+
+Examples:
+
+- `lfx-v2-access-check` owns the HTTP access-check API. FGA tuple semantics
+  live in `lfx-v2-fga-sync`.
+- `lfx-v2-auth-service` owns auth/profile NATS RPCs. Auth0 tenant resources
+  live in `auth0-terraform`.
+- `lfx-v2-persona-service` aggregates persona summaries. It does not own KV
+  resource state, indexer emission, or FGA emission.
+- `lfx-v2-indexer-service`, `lfx-v2-fga-sync`, and `lfx-v2-query-service` own
+  platform contracts consumed by resource services.
+
+## Write flow
+
+1. HTTP request hits Gateway API and Traefik.
+2. Heimdall authenticates through OIDC and authorizes through `openfga_check`
+   rules in the service chart.
+3. The owning service validates and performs the write.
+4. The owning service publishes platform messages as required by its resource
+   contract:
+   - index messages to `indexer-service`
+   - access messages to `fga-sync`
+5. `indexer-service` writes OpenSearch documents and emits domain events after
+   successful indexing.
+6. `fga-sync` writes or deletes OpenFGA tuples and updates its cache.
+
+Service-class responsibilities live in this skill. Go coding conventions live
+in the owning service repo's path-scoped `<short-repo-name>-dev` skill.
+
+## Read flow
+
+1. Self Serve or another consumer calls `query-service` for indexed reads.
+2. `query-service` reads OpenSearch.
+3. `query-service` asks `fga-sync` for batched access checks over NATS.
+4. `query-service` removes unauthorized resources before returning results.
+5. Direct single-resource GETs go to the owning service and are authorized by
+   Heimdall route rules.
+
+Common failure owners:
+
+- Missing document: owning service publish path or `indexer-service`.
+- Missing access: owning service access emission, `fga-sync`, or OpenFGA model.
+- Resource visible in API but absent from search: indexer or query-service path.
+- Resource searchable but unauthorized: FGA tuple or access-check path.
+
+## Access-check flow
+
+1. Caller publishes a batched request on `lfx.access_check.request`.
+2. `fga-sync` checks its JetStream KV cache first.
+3. On cache miss, `fga-sync` calls OpenFGA and writes the result back to cache.
+4. Caller matches replies by request token, not by reply order.
+
+The generic access-check and tuple contracts live in `lfx-v2-fga-sync`.
+The HTTP wrapper over access checks lives in `lfx-v2-access-check`.
+
+## OpenFGA and Heimdall coordination
+
+Adding or changing an OpenFGA type or relation touches multiple repos.
+
+| Layer | Owner repo | File or surface |
 | --- | --- | --- |
 | OpenFGA authorization model | `lfx-v2-helm` | `charts/lfx-platform/templates/openfga/model.yaml` |
-| Per-service Heimdall ruleset (`openfga_check` rules per endpoint) | Owning service | `charts/<service>/templates/ruleset.yaml` |
-| Emitted access data (FGA envelope on `lfx.fga-sync.*`) | Owning resource service | service publisher code |
-| Generic tuple-write handler, cache, access-check semantics | `lfx-v2-fga-sync` | handlers in that repo |
+| Endpoint authorization rules | Owning service repo | `charts/<service>/templates/ruleset.yaml` |
+| Emitted access data | Owning service repo | service publisher code and local contract docs |
+| Generic tuple handling and access checks | `lfx-v2-fga-sync` | handlers and `docs/fga-sync-contract.md` |
+| Deployed values and promotion | `lfx-v2-argocd` | values, ApplicationSets, chart pins |
 
-### Ordering when adding a new FGA type or relation
+Coordination order:
 
-1. Edit `lfx-v2-helm/charts/lfx-platform/templates/openfga/model.yaml`. Add
-   the new type or relation, including any inheritance and the
-   `@fgadoc:jtbd` annotation.
-2. Update the owning service's emitted access envelope so its `relations`
-   and `references` use the new shape.
-3. Update the owning service's `charts/<service>/templates/ruleset.yaml`:
-   each affected Goa endpoint needs an `openfga_check` rule with the right
-   `relation` and `object` (pulled from URL captures or request body).
-4. Update the per-service `docs/fga-contract.md` if present.
-5. Ship the model change and the service changes in coordinated PRs so
-   Heimdall does not authorize against a relation that has not landed in
-   the model yet.
+1. Update the OpenFGA model in `lfx-v2-helm`.
+2. Update the owning service's emitted access envelope.
+3. Update the owning service's Heimdall ruleset.
+4. Update the owning service's local FGA contract docs.
+5. Coordinate rollout with `lfx-v2-argocd` if deployed values or chart pins are
+   part of the change.
 
-`lfx-v2-fga-sync` should not need code changes for a new type. Its handlers
-are generic. If you find yourself adding a type-specific handler in
-`lfx-v2-fga-sync`, the design is drifting; revisit the envelope instead.
+`lfx-v2-fga-sync` should not need type-specific code for a new resource type.
+If it does, the envelope design is drifting.
 
-## Canonical contract pointers
+## Contract owners
 
-This skill is intentionally a pointer, not a copy. Each contract is owned by
-exactly one repo. Read the owner doc before changing the contract shape.
-
-| Concern | Owning repo and doc |
+| Concern | Owning repo |
 | --- | --- |
-| Generic FGA envelope, tuple format, member operations, cache, access-check semantics | `lfx-v2-fga-sync/docs/agent-guidance/fga-patterns.md` |
-| Indexer envelope, OpenSearch document shape, event emission, client guide | `lfx-v2-indexer-service/docs/agent-guidance/indexer-patterns.md` |
-| Query-service contract: `/query/resources`, pagination, CEL caveats, access filtering | `lfx-v2-query-service/docs/agent-guidance/query-service-patterns.md` |
-| Native resource-service template: file structure, optimistic locking via KV revision, write flow | `lfx-v2-project-service/docs/agent-guidance/native-template.md` |
-| Wrapper resource-service template: translation flow, ID mapping, cross-cutting requirements | `lfx-v2-voting-service/docs/agent-guidance/wrapper-template.md` |
-| Canonical NATS subject and KV conventions | `lfx-v2-project-service/docs/agent-guidance/nats-messaging.md` |
-| Goa API design template for native services | `lfx-v2-project-service/docs/agent-guidance/goa-patterns.md` |
-| Cross-service Helm chart conventions (HTTPRoute, RuleSet, ExternalSecret, KV) | `lfx-v2-helm/docs/agent-guidance/service-chart-patterns.md` |
-| Shared platform chart and OpenFGA model | `lfx-v2-helm/docs/agent-guidance/platform-chart.md` |
-| Access-check HTTP contract | `lfx-v2-access-check` repo (`docs/agent-guidance/`) |
-| Identity, profile, impersonation NATS RPC | `lfx-v2-auth-service` repo (`docs/agent-guidance/`) |
+| Product app, Angular SSR, Express BFF, shared package | `lfx-self-serve` |
+| FGA tuple envelope, cache, access-check semantics | `lfx-v2-fga-sync` |
+| Indexer envelope, OpenSearch document writes, indexing events | `lfx-v2-indexer-service` |
+| Query API, OpenSearch read behavior, CEL, access filtering | `lfx-v2-query-service` |
+| Access-check HTTP API | `lfx-v2-access-check` |
+| Auth/profile/identity NATS RPC | `lfx-v2-auth-service` |
+| Shared local platform chart and OpenFGA model | `lfx-v2-helm` |
+| Deployed values, chart pins, image tags, ApplicationSets | `lfx-v2-argocd` |
+| Local fixture loading and reset | `lfx-v2-mockdata` |
+| Auth0 tenant control plane | `auth0-terraform` |
 
-Resolve cross-repo paths from `~/lfx/<repo>/<path>` or via `Glob` if the
-workspace root differs. Never assume a relative `../../<repo>/` layout.
+Use `/lfx-skills:lfx` and its repo map when deciding the primary repo for an
+actual edit.
+
+## Cross-service handoff points
+
+Read the owning repo before changing a contract shape. For exact current owner
+files, use `/lfx-skills:lfx` and `references/contract-ownership.md`; this skill
+keeps only the architectural ownership split.
+
+| Concern | Owning repo |
+| --- | --- |
+| FGA envelope, tuple format, member operations, cache, access-check semantics | `lfx-v2-fga-sync` |
+| Indexer envelope, OpenSearch document shape, event emission | `lfx-v2-indexer-service` |
+| Query API, pagination over OpenSearch, filters, CEL, access filtering | `lfx-v2-query-service` |
+| Cross-service Helm chart conventions | `lfx-v2-helm` |
+| Shared platform chart and OpenFGA model | `lfx-v2-helm` |
+| Deployed environment values, chart pins, image tags, ApplicationSets | `lfx-v2-argocd` |
+
+## Chart and deployment ownership
+
+- Service-local chart templates and defaults belong to the service repo.
+- Shared local platform composition and the OpenFGA model belong to
+  `lfx-v2-helm`.
+- Deployed environment values, chart pins, image tags, ExternalSecrets, and
+  promotion state belong to `lfx-v2-argocd`.
 
 ## What this skill is not
 
-- Not an implementation recipe. Do not copy contract content from the
-  owning repos into this skill or restate it here. Point and stop.
-- Not a deployment routing skill. Use `lfx-dev/skills/lfx/references/deployment-routing.md`
-  for chart, ApplicationSet, Argo, ExternalSecret, and Auth0 routing.
-- Not a repo-map. Use `lfx-dev/skills/lfx/references/repo-map.md` and
-  `routing-playbook.md` for primary and peer repo selection.
-- Not a per-service convention skill (logger, pagination, error handling,
-  request context). Those land in repo-local guidance.
-- Not an ITX-integration skill (OAuth2 M2M, ID mapping, v1 KV sync). That
-  lives with the wrapper services that use ITX.
+- Not a V2 Go coding rulebook. Repo-local path-scoped `<short-repo-name>-dev`
+  skills control coding conventions when Go or service files are edited.
+- Not a repo-local contract. Read the owning repo's `CLAUDE.md`,
+  top-level `docs/` contract files, and only use `docs/agent-guidance/` where
+  the `/lfx-skills:lfx` repo map explicitly lists it as a transitional owner
+  path.
+- Not an ITX integration guide. Use `/lfx-skills:lfx-itx-integration`.
+- Not a Self Serve implementation guide. Use `lfx-self-serve`.
 
 ## Handoff
 
-Once the agent knows the service class, the right flow, the relevant NATS
-subject family, and the contract owner, switch to the owning repo's
-`CLAUDE.md` and `docs/agent-guidance/`. The implementation truth lives
-there.
+After the platform flow and owners are clear, switch to the owning repo. The
+owning repo's local instructions, top-level `docs/` contract files, and
+path-scoped `<short-repo-name>-dev` skill control implementation.

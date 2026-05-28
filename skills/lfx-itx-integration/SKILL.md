@@ -28,10 +28,11 @@ protocol, the JetStream KV v1-to-v2 sync pattern, and the `ITX_*` environment
 variable contract. Read-only; routes implementation work to the owning
 wrapper repo.
 
-Does not replace `/lfx` (topology router), `lfx-platform-architecture`
-(platform composition), each wrapper's local `CLAUDE.md`, or each wrapper's
-`docs/agent-guidance/`. It is the shared baseline those services no longer
-need to restate.
+Does not replace `/lfx-skills:lfx` (topology router),
+`/lfx-skills:lfx-platform-architecture` (platform composition and wrapper
+service shape), each wrapper's local `CLAUDE.md`, top-level contract docs, or
+repo-local `<short-repo-name>-dev` skill. It is the shared ITX baseline those
+services no longer need to restate.
 
 ## When to invoke
 
@@ -60,15 +61,14 @@ Do **not** invoke for:
 
 | Service | ITX role | v1 KV sync | ID mapping |
 | --- | --- | --- | --- |
-| `lfx-v2-voting-service` | ITX voting proxy (canonical wrapper template) | yes | yes |
+| `lfx-v2-voting-service` | ITX voting proxy | yes | yes |
 | `lfx-v2-meeting-service` | ITX Zoom proxy plus past-meeting summaries | yes | yes (optional) |
 | `lfx-v2-mailing-list-service` | Groups.io / ITX proxy | yes (datastream) | yes (NATS translator) |
 | `lfx-v2-survey-service` | ITX survey-monkey proxy | yes | yes |
 
-For the canonical wrapper architecture (translation flow, layer rules, NATS
-publishing on writes), see
-`lfx-v2-voting-service/docs/agent-guidance/wrapper-template.md`. This skill
-covers only the ITX-specific plumbing on top of that template.
+For reusable wrapper architecture (translation flow, source-of-truth boundary,
+and platform publishing on writes), use `/lfx-skills:lfx-platform-architecture`.
+This skill covers only the ITX-specific plumbing on top of that service class.
 
 ## OAuth2 M2M to ITX
 
@@ -101,10 +101,11 @@ secret variable when scaffolding a new ITX wrapper.
 ### Per-service implementations
 
 ITX HTTP clients live in `internal/infrastructure/proxy/` in every wrapper.
-Token caching and renewal behavior is shared by convention; review the
-canonical client in
-`lfx-v2-voting-service/internal/infrastructure/proxy/` when starting a new
-wrapper.
+Token caching and renewal behavior is shared by convention. Existing wrapper
+implementations such as
+`lfx-v2-voting-service/internal/infrastructure/proxy/` can be used as living
+examples, but service-specific endpoint behavior stays in the owning wrapper
+repo.
 
 ## ID mapping (v2 UUID to v1 SFID)
 
@@ -134,9 +135,10 @@ The request payload is a single key string. The response is the mapped ID.
 | Committee v2 to v1 | `committee.uid.<v2-uuid>` | `projectSFID:committeeSFID` (compound) |
 | Committee v1 to v2 | `committee.sfid.<v1-sfid>` | v2 UUID |
 
-The committee compound response (`projectSFID:committeeSFID`) is required by
-ITX endpoints that key committees inside a project scope. Wrappers should
-return it unchanged to ITX, not split it.
+The committee compound response (`projectSFID:committeeSFID`) is produced by
+the v1-sync-helper for ITX endpoints that key committees inside a project
+scope. Wrapper repos own whether they forward the compound value unchanged or
+split it for a service-specific ITX endpoint.
 
 Per-service mappers may add additional keys for service-specific resource
 types (for example, mailing-list-service publishes its translator port in
@@ -147,8 +149,9 @@ subject stays the same; only the key namespace expands.
 
 Per-wrapper code lives in `internal/infrastructure/idmapper/` (voting,
 meeting, survey) or `internal/infrastructure/nats/translator.go`
-(mailing-list). The canonical implementation is
-`lfx-v2-voting-service/internal/infrastructure/idmapper/nats_mapper.go`.
+(mailing-list). Existing implementations such as
+`lfx-v2-voting-service/internal/infrastructure/idmapper/nats_mapper.go` are
+living examples, not owners of the reusable mapping pattern.
 
 ### Disabling for local dev
 
@@ -256,10 +259,10 @@ and event handler sets, read the wrapper's own docs.
 
 | Wrapper | ITX-specific docs |
 | --- | --- |
-| `lfx-v2-voting-service` | `docs/api-contracts.md`, `docs/event-processing.md`, `docs/itx-proxy-implementation.md`, `docs/agent-guidance/wrapper-template.md` |
-| `lfx-v2-meeting-service` | `docs/itx-proxy-implementation.md`, `docs/event-processing.md`, `docs/agent-guidance/itx-integration.md` (meeting-specific extras) |
+| `lfx-v2-voting-service` | `docs/api-contracts.md`, `docs/event-processing.md`, `docs/itx-proxy-implementation.md` |
+| `lfx-v2-meeting-service` | `docs/api-contracts.md`, `docs/api-contracts/*.md`, `docs/itx-proxy-implementation.md`, `docs/event-processing.md` |
 | `lfx-v2-mailing-list-service` | `docs/api-endpoints.md`, `docs/indexer-contract.md`, `docs/fga-contract.md`, plus the Groups.io sections in `CLAUDE.md` |
-| `lfx-v2-survey-service` | `docs/event-processing.md`, plus survey-monkey notes in the repo `README.md` |
+| `lfx-v2-survey-service` | `docs/api-contracts.md`, `docs/api-contracts/*.md`, `docs/itx-proxy-implementation.md`, `docs/event-processing.md`, plus survey-monkey notes in the repo `README.md` |
 
 Each wrapper's `docs/event-processing.md` lists the exact v1 event types it
 handles, the v2 indexer and FGA envelope shapes it emits, and any
@@ -269,10 +272,10 @@ survey-service, committee-association proxying in mailing-list-service).
 
 ## What this skill is not
 
-- Not a wrapper-service template. The canonical wrapper template lives in
-  `lfx-v2-voting-service/docs/agent-guidance/wrapper-template.md`.
-- Not a NATS subject catalog. Subject lists per wrapper live in each
-  wrapper's `docs/agent-guidance/nats-messaging.md`.
+- Not a wrapper-service template. Reusable wrapper service shape lives in
+  `/lfx-skills:lfx-platform-architecture`.
+- Not a NATS subject catalog. Subject lists per wrapper live in each wrapper's
+  repo-named dev skill, such as `.claude/skills/voting-service-dev/references/nats-messaging.md`.
 - Not the indexer or FGA contract. Those live in `lfx-v2-indexer-service`
   and `lfx-v2-fga-sync` agent-guidance docs.
 - Not a deployment guide. Helm chart, ExternalSecret, and Argo wiring live
@@ -284,4 +287,4 @@ survey-service, committee-association proxying in mailing-list-service).
 
 Once routed to the right wrapper repo, stop using this skill as an
 implementation guide. The wrapper's local `CLAUDE.md`, `docs/`, and
-`docs/agent-guidance/` control detail.
+repo-local skills control detail.

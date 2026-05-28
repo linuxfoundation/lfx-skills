@@ -1,20 +1,47 @@
+---
+name: lfx-intercom
+description: >
+  Everything Intercom for LFX — Angular app integration (code) and Fin AI optimization (support/CX).
+  Use this skill for: adding or fixing Intercom in an LFX Angular app, auditing integrations against
+  the LFX canonical pattern, correcting missing JWT pre-set, broken shutdown, missing Auth0 claim,
+  wrong app IDs, or absent CSP entries — AND for Fin Guidance writing, Help Center optimization,
+  resolution rate improvement, Fin escalation patterns, Copilot tips, Topics Explorer, Fin Attributes,
+  daily review rituals, and Fin best practices. Routes to the right section based on context.
+  Trigger on: any Intercom question, "Fin tips", "improve Fin", "Fin guidance", "Fin resolution rate",
+  "Help Center optimization", "Copilot tips", "Angular Intercom", "IntercomService", "JWT Intercom",
+  "Fin re-engagement", "Fin handoff", or any Intercom-related support or development question.
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
+---
+
+
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
+<!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
 
-# Intercom Angular App Integration Reference
+# LFX Intercom Skill
 
-This reference describes how an Angular application consumes the Auth0 Intercom
-JWT claim to boot Intercom with verified identity. It handles both fresh
-installs and fixing/standardizing existing integrations. Follow every step in
-order — the audit step (Step 2) determines which fixes are needed. Do not skip
-the Auth0 step; without it, identity verification will silently fail.
+This skill covers everything Intercom at LFX — both Angular app integration and Fin AI optimization.
 
-The audit checklist (Step 2) translates directly to Vue/Nuxt and Vue/Vite — the
-checks are framework-agnostic. For Vue working examples, see
-`insights/frontend/app/plugins/intercom.ts` (Nuxt 4) and
-`crowd.dev/frontend/src/utils/intercom/index.ts` (Vite). The Auth0 contract,
-JWT claim URL, payload shape, App IDs, and CSP origin list are identical
-regardless of framework.
+## Step 0 — Detect Context
+
+Before proceeding, determine what the user needs based on what they said. Only ask if genuinely ambiguous.
+
+**Code Integration (developer path)**
+Adding, fixing, or auditing Intercom in an LFX Angular app → continue with the steps below.
+
+**Fin & Content Optimization (support/CX path)**
+Writing Fin Guidance, improving resolution rates, Help Center content, escalation patterns,
+Copilot, Fin Attributes, or Fin best practices → read `references/fin-best-practices.md` and advise from there.
+
+---
+
+## Code Integration
+
+You are bringing Intercom up to the LFX standard in an Angular application. This
+skill handles both fresh installs and fixing/standardizing existing integrations.
+Follow every step in order — the audit step (Step 2) determines which fixes are
+needed. Do not skip the Auth0 section — without it, identity verification will
+silently fail.
 
 ---
 
@@ -26,7 +53,7 @@ Ask the user:
    an existing integration?
 2. **App name** — What is the exact Auth0 client name for this app? (e.g. "LFX
    Project Control Center", "CB Funding"). This must match the `case` in the
-   Auth0 `custom_claims` Action exactly.
+   Auth0 custom_claims action exactly.
 3. **Public pages?** — Is this app accessible to non-authenticated visitors?
    - **Yes** (e.g. Mentorship, Crowdfunding, Insights) → Intercom must boot
      anonymously on page load so banners/popups are visible to all visitors,
@@ -50,18 +77,18 @@ Check all of the following and produce a gap report:
 | Check | What to look for | LFX Standard |
 |---|---|---|
 | **IntercomService** | Does `intercom.service.ts` exist? | Direct script injection, `isLoaded` + `isBooted` + `isLoading` + `bootedWithIdentity` state, `boot()` returns `Promise<void>` |
-| **npm package** | `@intercom/messenger-js-sdk` or similar in `package.json` | Not allowed — use script injection |
-| **Intercom stub** | Does `initializeIntercomFunction()` create the `i.q` stub? | Required — queues commands before script loads |
-| **JWT pre-set** | Is `window.intercomSettings.intercom_user_jwt` set *before* `window.Intercom('boot')` is called? | Required |
-| **JWT stripped from boot options** | Is `intercom_user_jwt` removed from the options passed to `window.Intercom('boot')`? | Required — JWT only in `intercomSettings`, not boot payload |
-| **Anonymous boot** | Is `bootIntercomAnonymous()` called in `ngOnInit()` before user auth check? | Required if app has public pages; skip if auth-only app |
-| **Anonymous→identified upgrade** | Does `boot()` detect anonymous session and upgrade to identified via `shutdownForReboot()`? | Required if anonymous boot is used — `bootedWithIdentity` flag tracks session type |
-| **Identified boot** | Is identified `boot()` called inside `userProfile$` subscription with `intercomBootAttempted` guard? | Required |
-| **Shutdown on logout** | Is `Intercom('shutdown')` called, JWT cleared, and anonymous session re-booted on logout? | Required |
-| **App IDs** | Dev: `mxl90k6y`, Prod: `w29sqomy` | Shared across all LFX apps |
-| **Auth0 claim** | Is `http://lfx.dev/claims/intercom` used (not the deprecated HMAC)? | JWT claim only |
-| **CSP** | Are ALL Intercom domains in the Content Security Policy, including the `wss://` WebSocket entries? | Required if CSP exists |
-| **environment vars** | Are all 4 env fields present in both `environment.ts` and `environment.prod.ts`? | Required |
+| **npm package** | `@intercom/messenger-js-sdk` or similar in `package.json` | ❌ Not allowed — use script injection |
+| **Intercom stub** | Does `initializeIntercomFunction()` create the `i.q` stub? | ✅ Required — queues commands before script loads |
+| **JWT pre-set** | Is `window.intercomSettings.intercom_user_jwt` set *before* `window.Intercom('boot')` is called? | ✅ Required |
+| **JWT stripped from boot options** | Is `intercom_user_jwt` removed from the options passed to `window.Intercom('boot')`? | ✅ Required — JWT only in `intercomSettings`, not boot payload |
+| **Anonymous boot** | Is `bootIntercomAnonymous()` called in `ngOnInit()` before user auth check? | ✅ Required if app has public pages; skip if auth-only app |
+| **Anonymous→identified upgrade** | Does `boot()` detect anonymous session and upgrade to identified via `shutdownForReboot()`? | ✅ Required if anonymous boot is used — `bootedWithIdentity` flag tracks session type |
+| **Identified boot** | Is identified `boot()` called inside `userProfile$` subscription with `intercomBootAttempted` guard? | ✅ Required |
+| **Shutdown on logout** | Is `Intercom('shutdown')` called, JWT cleared, and anonymous session re-booted on logout? | ✅ Required |
+| **App IDs** | Dev: `mxl90k6y`, Prod: `w29sqomy` | ✅ Shared across all LFX apps |
+| **Auth0 claim** | Is `http://lfx.dev/claims/intercom` used (not the deprecated HMAC)? | ✅ JWT claim only |
+| **CSP** | Are ALL Intercom domains in the Content Security Policy, including WebSocket entries? | ✅ Required if CSP exists |
+| **environment vars** | Are all 4 env fields present in both `environment.ts` and `environment.prod.ts`? | ✅ Required |
 
 After the audit, tell the user what is already correct, what is missing, and what
 needs to be fixed. Then proceed only with the steps that address identified gaps.
@@ -72,7 +99,6 @@ If nothing is wrong, say so and exit — do not make unnecessary changes.
 ## Step 3 — Add Environment Variables
 
 Add to `environment.ts`:
-
 ```typescript
 intercomId: 'mxl90k6y',
 intercomApiBase: 'https://api-iam.intercom.io',
@@ -81,7 +107,6 @@ auth0UsernameClaim: 'https://sso.linuxfoundation.org/claims/username',
 ```
 
 Add to `environment.prod.ts`:
-
 ```typescript
 intercomId: 'w29sqomy',
 intercomApiBase: 'https://api-iam.intercom.io',
@@ -91,17 +116,18 @@ auth0UsernameClaim: 'https://sso.linuxfoundation.org/claims/username',
 
 Also add these fields to the `Environment` interface if one exists.
 
-The Dev (`mxl90k6y`) and Prod (`w29sqomy`) App IDs are canonical and shared
-across every LFX app. Do not request or create a new Intercom workspace.
-
 ---
 
 ## Step 4 — Generate IntercomService
 
 Create `src/app/services/intercom.service.ts` (or
 `src/app/shared/services/intercom.service.ts` — match existing service
-placement). Adjust the `environment` import path to match the chosen folder
-depth.
+placement). This is the canonical LFX implementation validated across Mentorship,
+Crowdfunding, and PCC.
+
+⚠️ **Adjust the `environment` import path** to match the chosen folder depth,
+e.g. `../../environments/environment` from `src/app/services/` or
+`../../../environments/environment` from `src/app/shared/services/`.
 
 ```typescript
 import { Injectable } from '@angular/core';
@@ -456,14 +482,14 @@ if (userProfile) {
 }
 ```
 
-Use `== null` (loose equality) for the logout check — this catches both `null`
-and `undefined`, which different auth services may emit.
+⚠️ **Use `== null`** (loose equality) for the logout check — this catches both
+`null` and `undefined`, which different auth services may emit.
 
 ### 5c — Anonymous boot helper method (public-page apps only)
 
-Include this method only if the app has public pages. Auth-only apps do not
-need this method — remove the `bootIntercomAnonymous()` calls from `ngOnInit`
-and the logout block if the app is auth-only.
+**Include this method only if the app has public pages** (Step 1, question 3 = Yes).
+Auth-only apps do not need this method — remove the `bootIntercomAnonymous()` calls
+from ngOnInit and the logout block if the app is auth-only.
 
 ```typescript
 /**
@@ -487,42 +513,39 @@ private bootIntercomAnonymous() {
 ### Boot lifecycle summary
 
 **Public-page apps** (Mentorship, Crowdfunding, Insights):
-
-```text
+```
 Page Load
   → bootIntercomAnonymous()               // banners visible to all visitors
-  → Intercom boots with no user_id        // bootedWithIdentity = false
+  → Intercom boots with no user_id         // bootedWithIdentity = false
 
 User Logs In (userProfile$ emits user)
   → boot({ user_id, intercom_user_jwt, ... })
   → IntercomService detects bootedWithIdentity === false
-  → shutdownForReboot()                   // clears anonymous session
-  → Intercom re-boots with identity       // bootedWithIdentity = true
+  → shutdownForReboot()                    // clears anonymous session
+  → Intercom re-boots with identity        // bootedWithIdentity = true
 
 User Logs Out (userProfile$ emits null)
-  → shutdown()                            // clears identified session + JWT
+  → shutdown()                             // clears identified session + JWT
   → intercomBootAttempted = false
-  → bootIntercomAnonymous()               // banners visible again
+  → bootIntercomAnonymous()                // banners visible again
 ```
 
 **Auth-only apps** (PCC, Org Dashboard, Individual Dashboard, Security):
-
-```text
+```
 Page Load
   → (nothing — user must log in first)
 
 User Logs In (userProfile$ emits user)
   → boot({ user_id, intercom_user_jwt, ... })
-  → Intercom boots with identity          // bootedWithIdentity = true
+  → Intercom boots with identity           // bootedWithIdentity = true
 
 User Logs Out (userProfile$ emits null)
-  → shutdown()                            // clears identified session + JWT
+  → shutdown()                             // clears identified session + JWT
   → intercomBootAttempted = false
 ```
 
 If the app uses **LaunchDarkly**, wrap both the anonymous and identified boot
 blocks:
-
 ```typescript
 if (this.ldClient.variation('enable-intercom', false)) {
   // ... boot block ...
@@ -535,61 +558,98 @@ if (this.ldClient.variation('enable-intercom', false)) {
 
 ## Step 6 — Auth0 Configuration (REQUIRED)
 
-Without this step, the `http://lfx.dev/claims/intercom` JWT claim will not be
-present in the user's token and Intercom will boot without identity
-verification — a security issue.
+⚠️ **This step is required.** Without it, the `http://lfx.dev/claims/intercom`
+JWT claim will not be present in the user's token and Intercom will boot without
+identity verification — a security issue.
+
+### What needs to happen
 
 The Auth0 `custom_claims` Action in the `auth0-terraform` repo must be updated
 to add your app to the switch statement that generates the Intercom JWT claim.
-See `auth0-terraform/docs/agent-guidance/intercom-auth0-claims.md` for the full
-mechanics (HS256, 12h expiry, payload shape, secret path, HMAC deprecation
-policy, and the Action `case` block pattern). Raise a PR against
-`auth0-terraform` or ask the platform/infra team to add your app.
 
-### Verify after deploy
+### File to modify
 
-Decode a fresh ID token for your app (e.g. using `jwt.io`) and confirm
-`http://lfx.dev/claims/intercom` is present and contains a valid JWT with
-`user_id` and `email` fields.
+`auth0-terraform/src/actions/custom_claims.js`
+
+### Change required
+
+Add a new `case` block to the `switch (event.client.name)` statement:
+
+```javascript
+case "Your App Name Here": {
+  // HMAC claim is deprecated but kept for backward compat with existing clients.
+  // New apps must add both until all clients migrate to the JWT claim.
+  api.idToken.setCustomClaim(
+    `${lfPrefix}intercom`,
+    intercomHMAC(event.user.username),
+  );
+  api.idToken.setCustomClaim(
+    `${lfxPrefix}intercom`,
+    await intercomJWT(event.user.username),
+  );
+  break;
+}
+```
+
+Replace `"Your App Name Here"` with the **exact Auth0 client name** for your
+app (case-sensitive, must match `event.client.name` exactly).
+
+### How the JWT is generated
+
+- **Secret**: Stored in AWS Secrets Manager at
+  `/cloudops/managed-secrets/cloud/intercom/secret_key`
+- **Algorithm**: HS256
+- **Expiry**: 12 hours
+- **Payload**: `{ user_id, email, name? }`
+- The secret is automatically injected into the Auth0 Action via Terraform —
+  no manual secret management needed once it's in the switch statement.
+
+### Who to contact
+
+Raise a PR against `auth0-terraform` or ask the platform/infra team to add your
+app. This is a Terraform-managed change and requires deployment to dev, staging,
+and prod Auth0 tenants.
+
+### How to verify
+
+After the Auth0 change is deployed, decode a fresh ID token for your app (e.g.
+using jwt.io) and confirm `http://lfx.dev/claims/intercom` is present and
+contains a valid JWT with `user_id`, `email` fields.
 
 ---
 
 ## Step 7 — Verify the Integration
 
-1. Run the app locally using `127.0.0.1` (not `localhost` — see Notes below).
-2. **Before logging in**: verify Intercom loads — banners/popups should be
-   visible to anonymous visitors.
-3. Log in and check that the console shows the upgrade from anonymous to
-   identified session.
-4. Verify the Intercom chat bubble appears with your identity.
-5. Open browser console and run `window.Intercom('getVisitorId')` — should
-   return a string, not an error.
+1. Run the app locally using `127.0.0.1` (not `localhost` — see Notes below)
+2. **Before logging in**: verify Intercom loads (check console for
+   `IntercomService: Script loaded successfully`) — banners/popups should be
+   visible to anonymous visitors
+3. Log in and check that the console shows
+   `IntercomService: Upgrading from anonymous to identified session`
+4. Verify the Intercom chat bubble appears with your identity
+5. Open browser console and run: `window.Intercom('getVisitorId')` — should
+   return a string, not an error
 6. Log out and confirm the console shows `Intercom('shutdown')` followed by a
-   fresh anonymous boot — banners should remain visible.
+   fresh anonymous boot — banners should remain visible
 7. Decode the Auth0 ID token and confirm `http://lfx.dev/claims/intercom` is
-   present (if the Auth0 change has been deployed).
-8. In Intercom dashboard, confirm the user appears with correct name/email.
+   present (if Auth0 change is deployed)
+8. In Intercom dashboard, confirm the user appears with correct name/email
 
 ---
 
-## CSP (Canonical Origin List)
+## Keeping This Skill Up to Date
 
-Add ALL of the following entries to your Content Security Policy if the app
-has one set. The `wss://` WebSocket entries are required for real-time chat.
+**Canonical reference app**: LFX Mentorship (`jobspring` / `lfx-mentorship-upgrade`
+repo) is the source of truth for the LFX Intercom pattern. When in doubt about
+what "correct" looks like, check how Mentorship implements it — Crowdfunding and
+PCC follow the same pattern and can be used for cross-validation.
 
-```text
-script-src   https://widget.intercom.io https://*.intercomcdn.com
-connect-src  https://*.intercom.io https://*.intercomcdn.com https://*.intercom-messenger.com
-             wss://*.intercom-messenger.com wss://*.intercom.io
-style-src    https://*.intercomcdn.com
-font-src     https://*.intercomcdn.com
-img-src      https://static.intercomassets.com https://*.intercomcdn.com
-frame-src    https://*.intercom.io https://*.intercom-messenger.com https://intercom-sheets.com
-media-src    https://js.intercomcdn.com
-```
+**If you find this skill is outdated**: Update `SKILL.md` in the same PR where
+you fix the app. Do not defer it. The skill is wrong for everyone until it's
+fixed.
 
-The identity bridge (`identity-cookie-helper`) uses the same canonical origin
-list for its identify page. Keep these in sync.
+**Last validated**: 2026-03-24 against LFX Mentorship (PRs #147, #148),
+Crowdfunding (PRs #31-#38), and PCC.
 
 ---
 
@@ -599,21 +659,29 @@ list for its identify page. Keep these in sync.
   consistently across all apps. Keep it consistent.
 - **The HMAC claim** (`https://sso.linuxfoundation.org/claims/intercom`) is
   deprecated — the JWT claim (`http://lfx.dev/claims/intercom`) is current. Use
-  only the JWT claim in your Angular code. The Auth0 Action still emits both
-  for backward compatibility; see
-  `auth0-terraform/docs/agent-guidance/intercom-auth0-claims.md`.
+  only the JWT claim in your Angular code.
 - **Shared App IDs**: Dev (`mxl90k6y`) and Prod (`w29sqomy`) are shared across
   all LFX apps. Do not create a new Intercom workspace.
 - **Identity verification is mandatory** — do not boot identified Intercom
   without the JWT. Booting without it allows users to impersonate others in
   Intercom. Anonymous boot (no user_id) does not require JWT.
-- **Local development**: Intercom only works on `127.0.0.1` locally —
-  `localhost` is not supported and the launcher will not appear. Run your dev
-  server bound to `127.0.0.1` (e.g. `ng serve --host 127.0.0.1`) or access via
-  `http://127.0.0.1:4200`.
-- **New hostname registration (REQUIRED)**: Intercom enforces a workspace
-  hostname allow-list. If you deploy to a new domain or subdomain and the
-  chat bubble does not show, contact the Intercom Admin (Heather's team) to
-  add the hostname. This applies to staging/preview environments as well as
-  production. The identity-bridge side of this coordination is documented in
-  `identity-cookie-helper/docs/agent-guidance/intercom-identity-bridge.md`.
+- **Local development**: Intercom only works on `127.0.0.1` locally — `localhost`
+  is not supported and the launcher will not appear. Run your dev server bound to
+  `127.0.0.1` (e.g. `ng serve --host 127.0.0.1`) or access via `http://127.0.0.1:4200`.
+- **New hostname registration (REQUIRED)**: Intercom must be configured to allow
+  each hostname where the launcher will appear. If you deploy to a new domain or
+  subdomain and the chat bubble does not show, contact the Intercom Admin
+  (Heather's team) to add the hostname to the Intercom installation settings. This
+  applies to staging/preview environments as well as production.
+- **CSP**: Add ALL of the following entries to your Content Security Policy if
+  the app has one set (the WebSocket entries are required for real-time chat):
+  ```
+  script-src   https://widget.intercom.io https://*.intercomcdn.com
+  connect-src  https://*.intercom.io https://*.intercomcdn.com https://*.intercom-messenger.com
+               wss://*.intercom-messenger.com wss://*.intercom.io
+  style-src    https://*.intercomcdn.com
+  font-src     https://*.intercomcdn.com
+  img-src      https://static.intercomassets.com https://*.intercomcdn.com
+  frame-src    https://*.intercom.io https://*.intercom-messenger.com https://intercom-sheets.com
+  media-src    https://js.intercomcdn.com
+  ```

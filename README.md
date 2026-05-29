@@ -61,13 +61,18 @@ Cross-repo developer workflows that apply across every LFX repo.
 |---|---|
 | `/lfx-skills:lfx-v2-ticket-writer` | Create a single LFXV2 Jira ticket via guided prompts; requirement-focused descriptions, reproduction steps for bugs. |
 
-### Reviewer agents (3)
+### Reviewer agents (8)
 
-Post-commit code reviewers that LFX repos invoke after every pre-PR commit. Launched in parallel as subagents via the `Agent` tool. `lfx-self-serve` is the primary consumer today; the general reviewer is repo-agnostic.
+Post-commit code reviewers that LFX repos invoke after every pre-PR commit. Launched in parallel as subagents via the `Agent` tool. The general reviewer is repo-agnostic; repo-specific reviewers are packaged centrally for runtime availability but read their owning repo's `CLAUDE.md`, local skills, docs, contracts, and code.
 
 | Agent | Purpose |
 |---|---|
 | `lfx-skills:lfx-general-code-reviewer` | Generic senior-reviewer pass: correctness, security, performance, maintainability, tests, code truthfulness. No repo-specific rulebook. |
+| `lfx-skills:lfx-committee-service-code-reviewer` | Committee Service convention and contract audit against repo-owned guidance, Goa/NATS/FGA/indexer contracts, chart wiring, and code layout. |
+| `lfx-skills:lfx-email-service-code-reviewer` | Email Service convention and contract audit against repo-owned guidance, public NATS payloads, SES/SQS/KV tracking, and chart wiring. |
+| `lfx-skills:lfx-member-service-code-reviewer` | Member Service convention and contract audit against repo-owned guidance, Salesforce/cache docs, NATS integration, and chart wiring. |
+| `lfx-skills:lfx-newsletter-service-code-reviewer` | Newsletter Service convention and contract audit against repo-owned guidance, recipient resolution, email-service handoff, API behavior, and chart wiring. |
+| `lfx-skills:lfx-project-service-code-reviewer` | Project Service convention and contract audit against repo-owned guidance, Goa/NATS/KV rules, FGA/indexer contracts, and chart wiring. |
 | `lfx-skills:lfx-self-serve-code-reviewer` | Convention audit against `lfx-self-serve`'s `.claude/rules/`, `docs/reviews/` checklists, architecture docs, and upstream API contracts. |
 | `lfx-skills:lfx-self-serve-learnings-reviewer` | Empirical pattern matcher against `lfx-self-serve/docs/reviews/knowledge-base/` (patterns sampled from past PR review comments). |
 
@@ -95,6 +100,11 @@ Each agent locates its owning repo at runtime and uses repo-qualified paths for 
 │   └── lfx-v2-ticket-writer/
 ├── agents/
 │   ├── lfx-general-code-reviewer.md
+│   ├── lfx-committee-service-code-reviewer.md
+│   ├── lfx-email-service-code-reviewer.md
+│   ├── lfx-member-service-code-reviewer.md
+│   ├── lfx-newsletter-service-code-reviewer.md
+│   ├── lfx-project-service-code-reviewer.md
 │   ├── lfx-self-serve-code-reviewer.md
 │   └── lfx-self-serve-learnings-reviewer.md
 ├── docs/                        # plugin docs (platform install, tool mapping)

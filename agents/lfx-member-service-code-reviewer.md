@@ -169,9 +169,12 @@ Prioritize these repo-specific checks.
 
 ### Salesforce, resolver, cache, and current-vs-target architecture
 
-- The service is currently a Salesforce-backed read/write proxy with NATS KV
-  caches. Do not import PostgreSQL, sync-job, indexer-publish, or FGA-sync
-  assumptions into current behavior.
+- The service is a Salesforce-backed read/write proxy with NATS KV caches that
+  also publishes indexer (`lfx.index.*`) and FGA-sync (`lfx.fga-sync.*`) messages
+  on the write path for its FGA-managed types (such as `b2b_org`,
+  `b2b_org_settings`, and `key_contact`), per `ARCHITECTURE.md`. Do not import
+  PostgreSQL or v1-style sync-job assumptions into current behavior, but do expect
+  indexer/FGA-sync publishing on writes.
 - Project-scoped SOQL must resolve v2 project UUIDs through `ProjectResolver`
   before using Salesforce `Project__c.Id`; do not issue SOQL directly against a
   v2 UUID.
@@ -181,6 +184,14 @@ Prioritize these repo-specific checks.
 - `member-service-cache` is the sObject conditional-GET cache and does not use
   `CachedValue` soft TTL envelopes.
 - Key-contact writes must invalidate the relevant membership-cache entries.
+- Write-path changes to FGA-managed types must publish the indexer and FGA-sync
+  messages the write contract requires through the `EventPublisher` port
+  (`Indexer` / `Access`). A new or changed mutation that skips publishing, or a
+  published indexer message missing its `IndexingConfig`, is a finding.
+- Project-scoped key-contact and membership mutations support `If-Match`
+  optimistic concurrency (`IfMatchAttribute` / `ETagAttribute` in the Goa design,
+  the `etag.LFXEtag` compare in the writer). A mutation that drops `If-Match`
+  handling it previously had is a finding.
 - Target-architecture docs are not current behavior unless the change explicitly
   implements that migration and updates docs/contracts in the same change.
 
@@ -198,6 +209,10 @@ Prioritize these repo-specific checks.
   `ProjectResolver`.
 - This repo owns only `membership-cache` and `member-service-cache`. Do not
   write directly to another service's KV bucket.
+- Write-path event publishing uses the indexer subjects (`lfx.index.*`) and the
+  FGA-sync subjects (`lfx.fga-sync.update_access` / `lfx.fga-sync.delete_access`,
+  per `pkg/constants/subjects.go`). Keep these in repo constants and update the
+  NATS reference and `ARCHITECTURE.md` when they change.
 - Changes to subjects, payloads, queue groups, KV buckets, TTLs, or key layouts
   must update the NATS reference and cache docs in the same commit.
 
@@ -277,12 +292,10 @@ what could not be verified. If `extra` was applied, note it after the header.
 
 ## Known False Positives - Do Not Emit
 
-- Do not flag the lack of indexer or FGA-sync publishing in current code. The
-  repo explicitly says it does not publish those messages today.
-- Do not require PostgreSQL, a sync job, or lookup-index keys. Those are not
-  current member-service behavior.
-- Do not require `If-Match` on current project-scoped key-contact mutations.
-  Current docs say those endpoints do not accept it.
+- Do not require PostgreSQL, a v1-style sync job, or v1 lookup-index keys. Those
+  are not current member-service behavior. (Indexer and FGA-sync publishing on
+  the write path IS current behavior per `ARCHITECTURE.md` and
+  `pkg/constants/subjects.go`; do not suppress missing-publish findings.)
 - Do not treat `REPOSITORY_SOURCE=mock` as fully offline. The repo documents
   that startup still initializes NATS/Salesforce for some wiring.
 - Do not report a repo-convention finding without a quote from a loaded source.

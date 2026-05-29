@@ -5,7 +5,7 @@
 
 Use this decision tree for deployment-related work. Deployment ownership is split across three layers: service/app chart defaults, shared platform chart behavior, and GitOps environment state.
 
-Most deployed app and service repos in this checkout carry their own Helm chart under `charts/<repo-name>/`. Examples include `lfx-self-serve/charts/lfx-self-serve`, `lfx-v2-project-service/charts/lfx-v2-project-service`, `lfx-v2-query-service/charts/lfx-v2-query-service`, and `lfx-v2-fga-sync/charts/lfx-v2-fga-sync`. Skeleton/support repos such as `lfx-v2-invite-service` and `lfx-v2-mockdata` may not. `lfx-v2-helm` is the platform exception: it owns `charts/lfx-platform`, not `charts/lfx-v2-helm`.
+Most deployed app and service repos in this checkout carry their own Helm chart under `charts/<repo-name>/`. Examples include `lfx-self-serve/charts/lfx-self-serve`, `lfx-v2-project-service/charts/lfx-v2-project-service`, `lfx-v2-query-service/charts/lfx-v2-query-service`, and `lfx-v2-fga-sync/charts/lfx-v2-fga-sync`. Support repos such as `lfx-v2-mockdata` may not. `lfx-v2-helm` is the platform exception: it owns `charts/lfx-platform`, not `charts/lfx-v2-helm`.
 
 The owning app/service chart is where service-local templates, chart defaults, probes, env vars, routes, middleware, buckets, streams, and Secret/ExternalSecret template shape belong. `lfx-v2-helm` owns the shared/local platform chart, umbrella dependency composition, and shared topology. `lfx-v2-argocd` owns deployed Application/ApplicationSet membership, chart source and revision selection, values layering, image tags, custom resources, previews, and promotion.
 

@@ -3,7 +3,7 @@
 
 # Repo Map
 
-Map version: `2026-05-28.1`
+Map version: `2026-05-29.1`
 
 This is the agent-facing ownership and classifier index for the `/lfx` skill and `lfx-claude`. Use it to match task language to the owning repo, decide which peers may matter, then hand off to repo-local setup. It is not an implementation guide and should not duplicate repo-owned rules.
 
@@ -122,11 +122,11 @@ this map identifies the likely owner or peers.
 
 - Path: `lfx-v2-member-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-member-service
-- Owns: Membership reads, Salesforce/NATS integration, project ID mapping, membership-facing service behavior, and service-local chart templates/defaults when present.
-- Local entrypoints: `CLAUDE.md` and local conventions under `.claude/skills/member-service-dev/`. Membership, Salesforce, NATS, and chart docs are listed in `contract-ownership.md`.
-- Route when the task mentions: member, membership, Salesforce, project ID mapping.
-- Default peers: `lfx-self-serve`
-- Handoff: Start in member-service because it owns membership reads and Salesforce mapping.
+- Owns: Membership reads, Salesforce/NATS integration, project ID mapping, membership-facing service behavior, the `b2b_org`/`project_membership`/`key_contact` FGA tuple emissions and indexer documents, and service-local chart templates/defaults.
+- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-member-service/`, local conventions under `.claude/skills/member-service-dev/`, and contract docs (`docs/fga-contract.md`, `docs/indexer-contract.md`) listed in `contract-ownership.md`.
+- Route when the task mentions: member, membership, Salesforce, project ID mapping, b2b_org, project_membership, key contact, member FGA tuples, member index documents.
+- Default peers: `lfx-v2-fga-sync`, `lfx-v2-indexer-service`, `lfx-v2-query-service`, `lfx-self-serve`
+- Handoff: Start in member-service because it owns membership reads, Salesforce mapping, and the `b2b_org`/`project_membership`/`key_contact` FGA and indexer emissions.
 
 ### `lfx-v2-email-service`
 
@@ -162,11 +162,11 @@ this map identifies the likely owner or peers.
 
 - Path: `lfx-v2-invite-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-invite-service
-- Owns: Skeleton/status ownership only until substantial invite-service code exists. Live invite and application behavior currently belongs to `lfx-v2-committee-service`.
-- Local entrypoints: `CLAUDE.md` and local readiness workflow under `.claude/skills/invite-service-readiness/`. Readiness docs are listed in `contract-ownership.md`.
-- Route when the task mentions: invite service skeleton, invite service readiness, standalone invite service status.
-- Default peers: `lfx-v2-committee-service`
-- Handoff: Route standalone invite-service readiness work here. Route live invite/application API implementation to committee-service unless this repo has since grown real service code.
+- Owns: `send_invite` NATS request/reply handler (`lfx.invite-service.send_invite`) that resource services call to issue an invite: it renders the invite email template, forwards a pre-rendered email to `lfx-v2-email-service`, and replies with the invite UID. Also owns the public `pkg/api` invite contract (subjects, `SendInviteRequest`/`SendInviteResponse`, `InviteRole`), invite email templates, and service-local chart templates/defaults. Future: LFID invite token issuance (NATS KV), `/invite/:uuid` acceptance endpoint, and acceptance broadcast.
+- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-invite-service/`, public contract under `pkg/api/invite.go`, and the local `.claude/skills/invite-service-readiness/` skill. Contract/readiness docs are listed in `contract-ownership.md`.
+- Route when the task mentions: invite service, send_invite, `lfx.invite-service.send_invite`, invite email rendering, invite UID, invite token issuance.
+- Default peers: `lfx-v2-email-service`, `lfx-v2-committee-service`, `lfx-v2-project-service`
+- Handoff: Start in invite-service for `send_invite` request/reply behavior, invite email rendering, and the invite contract. Live committee invite/application/join/leave resource-API behavior still belongs to `lfx-v2-committee-service`; this service is the notification/token side, not the committee resource API.
 
 ### `lfx-v2-auth-service`
 

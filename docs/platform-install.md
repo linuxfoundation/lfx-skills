@@ -20,7 +20,7 @@ skills into `~/.claude/skills/`, including some that have since been removed fro
 this plugin. Those links are no longer managed — clear the stale ones with:
 
 ```bash
-rm -f ~/.claude/skills/lfx-*
+rm -f ~/.claude/skills/lfx ~/.claude/skills/lfx-*
 ```
 
 ## Codex and other Agent Skills–compatible tools

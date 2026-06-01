@@ -13,7 +13,13 @@ In Claude Code:
 
 Restart Claude Code, then open any LFX repo and invoke `/lfx-skills:lfx` (or `/lfx` if your environment has no naming collision). The router auto-detects your context and points you at the right skill, repo, or reference.
 
-For other AI coding assistants that support skills, see [docs/platform-install.md](docs/platform-install.md).
+### Codex and other Agent Skills tools
+
+LFX skills follow the open Agent Skills (`SKILL.md`) standard, so OpenAI Codex and
+similar tools can use them too. Clone this repo and run `./install.sh` to symlink
+the skills into your user-global Agent Skills directory (`~/.agents/skills/`);
+`./update.sh` re-syncs after a `git pull`, and `./uninstall.sh` removes them. See
+[docs/platform-install.md](docs/platform-install.md) for details.
 
 ## How It Works
 
@@ -108,7 +114,9 @@ Each agent locates its owning repo at runtime and uses repo-qualified paths for 
 │   ├── lfx-self-serve-code-reviewer.md
 │   └── lfx-self-serve-learnings-reviewer.md
 ├── docs/                        # plugin docs (platform install, tool mapping)
-├── install.sh                   # CLI installer for non-Claude-Code platforms
+├── install.sh                   # Agent Skills installer (Codex etc. → ~/.agents/skills)
+├── update.sh                    # re-sync Agent Skills symlinks after a pull
+├── uninstall.sh                 # remove LFX Agent Skills symlinks
 ├── LICENSE
 ├── LICENSE-docs
 ├── README.md

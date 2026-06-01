@@ -3,13 +3,27 @@
 
 # Platform Installation Guide
 
-LFX Skills work with any AI coding assistant that can load context from Markdown files. This guide covers the legacy symlink installer. Claude Code plugin installation through the marketplace is preferred when available.
+LFX Skills ship as [Agent Skills](https://developers.openai.com/codex/skills) —
+each skill is a `SKILL.md` folder following the open standard that Claude Code,
+OpenAI Codex, and a growing set of tools understand. This guide covers
+non-Claude assistants. **Claude Code users should install the plugin instead**
+(see the [README](../README.md)).
 
 ## Claude Code
 
-Claude Code is the reference implementation. Skills are auto-discovered from `~/.claude/skills/`.
+Claude Code is the reference implementation — install the marketplace plugin
+(see the [README](../README.md)). The legacy `~/.claude/skills` symlink approach
+is no longer needed.
 
-**Automatic installation:**
+## Codex and other Agent Skills–compatible tools
+
+Codex discovers skills from your **user-global** Agent Skills directory,
+`~/.agents/skills/` (alongside repo-level `.agents/skills/` and admin/system
+locations). The bundled scripts symlink every LFX skill into that directory so
+your agent picks them up — explicitly via `$<skill>` (e.g. `$lfx`) or implicitly
+by matching each skill's `description`.
+
+**Install:**
 
 ```bash
 git clone https://github.com/linuxfoundation/lfx-skills.git
@@ -17,49 +31,50 @@ cd lfx-skills
 ./install.sh
 ```
 
-**Manual installation:**
+Then restart your agent (e.g. Codex) and invoke `$lfx` to get started.
+
+**Update** — after a `git pull` that adds or removes skills (skill *content*
+updates need no script, since the symlinks track this checkout):
 
 ```bash
-mkdir -p ~/.claude/skills
-for skill in skills/*/; do
-  ln -sf "$(pwd)/$skill" ~/.claude/skills/"$(basename "$skill")"
-done
+git pull
+./update.sh
 ```
 
-**Verify:** Restart Claude Code (or open a new session) and type `/lfx-skills:lfx`.
-
-**Per-repo installation** (scoped to a single repo instead of global):
+**Uninstall** — removes only the symlinks that point into this checkout; any
+other skills you have installed are left intact:
 
 ```bash
-# From inside a target repo (e.g., lfx-self-serve)
-mkdir -p .claude/skills
-for skill in /path/to/lfx-skills/skills/*/; do
-  ln -sf "$skill" .claude/skills/"$(basename "$skill")"
-done
-echo '.claude/skills/' >> .gitignore
+./uninstall.sh
 ```
 
-**Uninstall:**
+**Custom location:** all three scripts honor `AGENTS_SKILLS_DIR`. Point it at a
+single repo to scope the skills to that project instead of installing globally:
 
 ```bash
-rm -f ~/.claude/skills/lfx-*
-rm -f ~/.claude/skills/lfx
-# Remove stale symlink from short-lived fan-out builds.
-rm -f ~/.claude/skills/intercom-app-integration
+AGENTS_SKILLS_DIR=/path/to/repo/.agents/skills ./install.sh
 ```
+
+**Verify:** the destination should contain one symlink per skill, e.g.
+`~/.agents/skills/lfx -> /path/to/lfx-skills/skills/lfx`.
 
 ## Gemini CLI
 
-Reference the SKILL.md files in your project's `GEMINI.md` configuration. Consult [Gemini CLI documentation](https://github.com/google-gemini/gemini-cli) for details on loading external context files.
+Reference the SKILL.md files in your project's `GEMINI.md` configuration. Consult
+[Gemini CLI documentation](https://github.com/google-gemini/gemini-cli) for
+details on loading external context files.
 
 ## Other Platforms
 
-Most AI coding tools support loading context from Markdown files. To use LFX Skills with your tool:
+Most AI coding tools support loading context from Markdown files. To use LFX
+Skills with your tool:
 
-1. Clone this repository
-2. Point your tool at the SKILL.md files in each skill directory
-3. Consult [docs/tool-mapping.md](tool-mapping.md) to translate tool names used in SKILL.md files to your platform's equivalents
+1. Clone this repository.
+2. Point your tool at the `SKILL.md` files in each skill directory.
+3. Consult [docs/tool-mapping.md](tool-mapping.md) to translate tool names used
+   in SKILL.md files to your platform's equivalents.
 
 ## Contributing
 
-To add installation instructions for a new platform, submit a PR updating this file and the capability table in [docs/tool-mapping.md](tool-mapping.md).
+To add installation instructions for a new platform, submit a PR updating this
+file and the capability table in [docs/tool-mapping.md](tool-mapping.md).

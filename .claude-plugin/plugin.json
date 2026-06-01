@@ -8,20 +8,5 @@
   "homepage": "https://github.com/linuxfoundation/lfx-skills",
   "repository": "https://github.com/linuxfoundation/lfx-skills",
   "license": "MIT",
-  "skills": "./skills/",
-  "agents": [
-    "./agents/lfx-general-code-reviewer.md",
-    "./agents/lfx-committee-service-code-reviewer.md",
-    "./agents/lfx-committee-service-learnings-reviewer.md",
-    "./agents/lfx-email-service-code-reviewer.md",
-    "./agents/lfx-email-service-learnings-reviewer.md",
-    "./agents/lfx-member-service-code-reviewer.md",
-    "./agents/lfx-member-service-learnings-reviewer.md",
-    "./agents/lfx-newsletter-service-code-reviewer.md",
-    "./agents/lfx-newsletter-service-learnings-reviewer.md",
-    "./agents/lfx-project-service-code-reviewer.md",
-    "./agents/lfx-project-service-learnings-reviewer.md",
-    "./agents/lfx-self-serve-code-reviewer.md",
-    "./agents/lfx-self-serve-learnings-reviewer.md"
-  ]
+  "skills": "./skills/"
 }

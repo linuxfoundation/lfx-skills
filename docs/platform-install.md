@@ -15,6 +15,14 @@ Claude Code is the reference implementation — install the marketplace plugin
 (see the [README](../README.md)). The legacy `~/.claude/skills` symlink approach
 is no longer needed.
 
+**Migrating from the old installer?** Earlier versions of `install.sh` symlinked
+skills into `~/.claude/skills/`, including some that have since been removed from
+this plugin. Those links are no longer managed — clear the stale ones with:
+
+```bash
+rm -f ~/.claude/skills/lfx-*
+```
+
 ## Codex and other Agent Skills–compatible tools
 
 Codex discovers skills from your **user-global** Agent Skills directory,

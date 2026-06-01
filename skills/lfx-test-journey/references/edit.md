@@ -7,6 +7,11 @@ Add or remove branches from an existing journey.
 
 ## Step 1: Load Manifest
 
+**Validate the journey name first:** allow alphanumeric characters and hyphens
+only. Reject any name containing `/`, `..`, spaces, or other special characters
+before building the path — it is interpolated into filesystem paths and git
+commands. This matches the rule enforced at create time.
+
 Read `~/.lfx-journeys/<journey-name>/manifest.yaml`.
 
 If the journey doesn't exist, list available journeys and ask which one.

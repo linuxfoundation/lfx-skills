@@ -9,6 +9,11 @@ Remove a journey's worktrees and manifest.
 
 If the user provided a journey name, use it. Otherwise, run [`list.md`](list.md) and ask which one.
 
+**Validate the name before using it:** allow alphanumeric characters and hyphens
+only. Reject any name containing `/`, `..`, spaces, or other special characters —
+it is interpolated into `rm -rf` paths and git branch names, so an unvalidated
+name could escape `~/.lfx-journeys/`. This matches the rule enforced at create time.
+
 ## Step 2: Confirm
 
 ```

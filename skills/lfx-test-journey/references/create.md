@@ -21,7 +21,8 @@ Cross-link: merge conflicts during Step 6 go to [`conflict-resolution.md`](confl
 Scan `$LFX_DEV_ROOT/` for git repositories:
 
 ```bash
-for dir in $LFX_DEV_ROOT/*/; do
+: "${LFX_DEV_ROOT:?set LFX_DEV_ROOT to your workspace root}"
+for dir in "$LFX_DEV_ROOT"/*/; do
   if [ -d "$dir/.git" ]; then
     echo "$dir"
   fi
@@ -63,10 +64,10 @@ GIT_USER=$(git config user.name)
 
 # Use temp files to avoid clobbering across parallel runs
 TMPDIR=$(mktemp -d)
-trap "rm -rf $TMPDIR" EXIT
+trap 'rm -rf "$TMPDIR"' EXIT
 
 # Find branches with recent work by this user, not yet merged to main
-git log --author="$GIT_USER" --all --oneline --since='30 days ago' --format='%D' \
+git log --author="$GIT_USER" --all --since='30 days ago' --format='%D' \
   | tr ',' '\n' \
   | sed 's/^ *//' \
   | grep -E '^origin/' \

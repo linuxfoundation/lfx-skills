@@ -218,6 +218,60 @@ LFX V2 Invite Service JWT Secret:
 > - The `source.onepassword.item` should match exactly the name in 1Password vaults
 > - The field names should be descriptive enough to avoid duplicates (`litellm_api_key`, not just `api_key`)
 
+**Auth0 template** (`auth0` — client_secret, `auth0_clients.yml`):
+
+> For LFX V2 services, always rename fields to a descriptive name prefixed with `auth0_`
+> (e.g. `auth0_client_id`, `auth0_client_secret`) so keys are unambiguous in the merged K8s Secret.
+
+```yaml
+<Secret Name>:
+  tags: [auth0, <service_tag>]
+  envs: [development, staging, production]
+  source:
+    auth0:
+      client_name: <Auth0 Client Name>
+      rename_fields:
+        client_id: auth0_client_id
+        client_secret: auth0_client_secret
+  destinations:
+    - onepassword:
+        item: auth0 <Service Name>
+        field_types:
+          auth0_client_id: text
+          auth0_client_secret: password
+    - aws_secretsmanager:
+        path: auth0/<ClientName_With_Underscores>
+        tags:
+          service-<eso_service_tag>: enabled
+```
+
+**Auth0 template** (`auth0_jwt` — JWT private key, standard for LFX V2 microservices, `auth0_clients.yml`):
+
+```yaml
+<Secret Name>:
+  tags: [auth0_jwt, <service_tag>]
+  envs: [development, staging, production]
+  auto_rotate: true
+  source:
+    auth0_jwt:
+      client_name: <Auth0 Client Name>
+      rename_fields:
+        client_id: <renamed_client_id>
+        client_public_key: <renamed_client_public_key>
+        client_private_key: <renamed_client_private_key>
+  destinations:
+    - onepassword:
+        item: auth0 <Service Name>
+        field_types:
+          <renamed_client_id>: text
+          <renamed_client_public_key>: text
+          <renamed_client_private_key>: password
+    - aws_secretsmanager:
+        path: auth0/<ClientName_With_Underscores>
+        tags:
+          service-<eso_service_tag>: enabled
+```
+
 > **Important**: After the `lfx-secrets-management` PR is merged, manually trigger the
 > [Deploy workflow](https://github.com/linuxfoundation/lfx-secrets-management/actions/workflows/deploy.yml)
 > to push the secret to AWS SM. Use the most specific secret config tag (the `tags:` field
@@ -405,7 +459,59 @@ the right one.
         path: <file-name>/<3rd-party-service>/<secret-type>
 ```
 
-For auth0 sources, use the same pattern as Mode 1, Step 3 and add to `auth0_clients.yml`.
+**Auth0 template** (`auth0` — client_secret, `auth0_clients.yml`):
+
+> For LFX V2 services, always rename fields to a descriptive name prefixed with `auth0_`
+> (e.g. `auth0_client_id`, `auth0_client_secret`) so keys are unambiguous in the merged K8s Secret.
+
+```yaml
+<Secret Name>:
+  tags: [auth0, <service_tag>]
+  envs: [development, staging, production]
+  source:
+    auth0:
+      client_name: <Auth0 Client Name>
+      rename_fields:
+        client_id: auth0_client_id
+        client_secret: auth0_client_secret
+  destinations:
+    - onepassword:
+        item: auth0 <Service Name>
+        field_types:
+          auth0_client_id: text
+          auth0_client_secret: password
+    - aws_secretsmanager:
+        path: auth0/<ClientName_With_Underscores>
+        tags:
+          service-<eso_service_tag>: enabled
+```
+
+**Auth0 template** (`auth0_jwt` — JWT private key, standard for LFX V2 microservices, `auth0_clients.yml`):
+
+```yaml
+<Secret Name>:
+  tags: [auth0_jwt, <service_tag>]
+  envs: [development, staging, production]
+  auto_rotate: true
+  source:
+    auth0_jwt:
+      client_name: <Auth0 Client Name>
+      rename_fields:
+        client_id: <renamed_client_id>
+        client_public_key: <renamed_client_public_key>
+        client_private_key: <renamed_client_private_key>
+  destinations:
+    - onepassword:
+        item: auth0 <Service Name>
+        field_types:
+          <renamed_client_id>: text
+          <renamed_client_public_key>: text
+          <renamed_client_private_key>: password
+    - aws_secretsmanager:
+        path: auth0/<ClientName_With_Underscores>
+        tags:
+          service-<eso_service_tag>: enabled
+```
 
 > **Important**: After the `lfx-secrets-management` PR is merged, manually trigger the
 > [Deploy workflow](https://github.com/linuxfoundation/lfx-secrets-management/actions/workflows/deploy.yml)

@@ -44,7 +44,7 @@ These values are fixed and apply across all V2 services:
 | Item | Value |
 |------|-------|
 | AWS Region | `us-west-2` |
-| K8s Secret name | `{{ .Chart.Name }}` (e.g., `lfx-v2-invite-service`) |
+| K8s Secret name | `lfx-v2-<service>-secrets` (e.g., `lfx-v2-invite-service-secrets`) |
 | SecretStore name | `{{ .Chart.Name }}` |
 | IAM account — dev | `788942260905` |
 | IAM account — staging | `844790888233` |
@@ -252,6 +252,7 @@ metadata:
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken | default true }}
 {{- end }}
 ```
 
@@ -262,6 +263,7 @@ serviceAccount:
   create: true
   name: "lfx-v2-<service>"
   annotations: {}
+  automountServiceAccountToken: true
 ```
 
 #### 4b. Custom resources in `lfx-v2-argocd`
@@ -506,7 +508,7 @@ Check these repos for the exact file structure and conventions used in productio
 
 ### Adding an Auth0 client key pair to an existing service
 
-1. Users asks: "Add the LFX V2 Persona Service auth0 client to lfx-v2-persona-service"
+1. User asks: "Add the LFX V2 Persona Service auth0 client to lfx-v2-persona-service"
 2. Add sync entry in lfx-secrets-management
 3. Verify using the checklist above
 4. Submit secrets PR

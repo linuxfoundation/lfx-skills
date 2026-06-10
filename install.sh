@@ -2,63 +2,69 @@
 # Copyright The Linux Foundation and each contributor to LFX.
 # SPDX-License-Identifier: MIT
 
-# LFX Skills Installer
-# Symlinks all LFX skills into ~/.claude/skills/ so they're available globally in your AI coding assistant.
+# LFX Skills — Agent Skills installer
+#
+# Symlinks every LFX skill into your user-global Agent Skills directory
+# (~/.agents/skills by default) so AGENTS.md / Agent Skills–compatible agents
+# such as OpenAI Codex discover them automatically — explicitly via $<skill>
+# or implicitly by matching each skill's description.
+#
+# Claude Code users should install the plugin instead (see README.md); this
+# script is for Codex and other tools that read the Agent Skills standard.
+#
+# Override the destination with AGENTS_SKILLS_DIR, e.g. to scope to one repo:
+#   AGENTS_SKILLS_DIR=./.agents/skills ./install.sh
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS_DIR="$HOME/.claude/skills"
+SKILLS_SRC="$SCRIPT_DIR/skills"
+TARGET_DIR="${AGENTS_SKILLS_DIR:-$HOME/.agents/skills}"
 
-echo "Installing LFX skills..."
+echo "Installing LFX skills into $TARGET_DIR ..."
 echo ""
 
-# Create the skills directory if it doesn't exist
-mkdir -p "$SKILLS_DIR"
+mkdir -p "$TARGET_DIR"
 
-# Track results
 installed=0
 updated=0
-failed=0
+skipped=0
 
-# Install each skill directory (lfx-* and lfx/)
-for skill_path in "$SCRIPT_DIR"/lfx-*/ "$SCRIPT_DIR"/lfx/; do
+for skill_path in "$SKILLS_SRC"/*/; do
+  skill_path="${skill_path%/}"
   [ -d "$skill_path" ] || continue
+  [ -f "$skill_path/SKILL.md" ] || continue # only directories that are real skills
 
-  skill_name="$(basename "${skill_path%/}")"
-  target="$SKILLS_DIR/$skill_name"
+  skill_name="$(basename "$skill_path")"
+  target="$TARGET_DIR/$skill_name"
 
   if [ -L "$target" ]; then
-    # Symlink exists — update it
+    # Existing symlink — re-point it at the current source.
     rm "$target"
     ln -s "$skill_path" "$target"
-    echo "  Updated  $skill_name"
+    echo "  refreshed  $skill_name"
     updated=$((updated + 1))
   elif [ -e "$target" ]; then
-    # Something else exists at the target path
-    echo "  Skipped  $skill_name (non-symlink already exists at $target)"
-    failed=$((failed + 1))
+    # A real file/dir already lives here — never clobber it.
+    echo "  skipped    $skill_name (non-symlink already exists at $target)"
+    skipped=$((skipped + 1))
   else
     ln -s "$skill_path" "$target"
-    echo "  Installed  $skill_name"
+    echo "  installed  $skill_name"
     installed=$((installed + 1))
   fi
 done
 
 echo ""
-echo "Done! $((installed + updated)) skills ready ($installed new, $updated updated)."
-
-if [ $failed -gt 0 ]; then
-  echo "$failed skills skipped due to conflicts — check the paths above."
+echo "Done: $((installed + updated)) skill(s) linked ($installed new, $updated refreshed)."
+if [ "$skipped" -gt 0 ]; then
+  echo "$skipped skill(s) skipped — a non-symlink already exists at the path (see above)."
 fi
 
 echo ""
 echo "Next steps:"
-echo "  1. Restart your AI coding assistant (or open a new session)"
-echo "  2. Type /lfx to get started"
+echo "  1. Restart your agent (e.g. Codex) so it picks up the new skills."
+echo "  2. Invoke one explicitly with \$lfx, or let the agent auto-select by task."
 echo ""
-echo "Available skills:"
-for skill_path in "$SKILLS_DIR"/lfx*; do
-  [ -e "$skill_path" ] || continue
-  echo "  /$(basename "$skill_path")"
-done
+echo "The links track this checkout, so 'git pull' here updates skill content in place."
+echo "After a pull that adds or removes skills, run ./update.sh. To remove everything, run ./uninstall.sh."

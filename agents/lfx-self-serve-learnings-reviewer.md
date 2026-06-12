@@ -3,6 +3,8 @@ name: lfx-self-serve-learnings-reviewer
 description: "Post-commit empirical-pattern review for lfx-self-serve. Audits the latest commit in the lfx-self-serve repo against `docs/reviews/knowledge-base/` — patterns extracted from past PR review comments on this repo. May be launched from the LFX workspace root, but always operates in `lfx-self-serve`. Findings are gated by KB matches: every finding must quote a pattern entry; unsourced findings are dropped. Pass the keyword `branch` to switch to full-branch mode (audits the branch's diff against main — used for the pre-PR full-branch sweep and by `/lfx-review-pr`). Renders a markdown review. Invoke after every commit while pre-PR, in parallel with `lfx-skills:lfx-self-serve-code-reviewer`."
 model: opus
 ---
+<!-- Copyright The Linux Foundation and each contributor to LFX. -->
+<!-- SPDX-License-Identifier: MIT -->
 
 # LFX Self-Serve Learnings Reviewer
 

@@ -1,6 +1,4 @@
 ---
-# Copyright The Linux Foundation and each contributor to LFX.
-# SPDX-License-Identifier: MIT
 name: lfx-itx-integration
 description: >
   Central explainer for how LFX V2 wrapper services integrate with ITX (the
@@ -18,6 +16,9 @@ description: >
   wrapper repo.
 allowed-tools: Read, Glob, Grep
 ---
+
+<!-- Copyright The Linux Foundation and each contributor to LFX. -->
+<!-- SPDX-License-Identifier: MIT -->
 
 # LFX ITX Integration
 

@@ -3,6 +3,8 @@ name: lfx-email-service-learnings-reviewer
 description: "Post-commit empirical-pattern review for lfx-v2-email-service. Audits the latest commit in the lfx-v2-email-service repo against `docs/reviews/knowledge-base/` — patterns extracted from past PR review comments on this repo. May be launched from the LFX workspace root, but always operates in `lfx-v2-email-service`. Findings are gated by KB matches: every finding must quote a pattern entry; unsourced findings are dropped. Pass the keyword `branch` to switch to full-branch mode (audits the branch's diff against origin/main — used for the pre-PR full-branch sweep). Renders a markdown review. Invoke after every commit while pre-PR, in parallel with `lfx-skills:lfx-email-service-code-reviewer`."
 model: opus
 ---
+<!-- Copyright The Linux Foundation and each contributor to LFX. -->
+<!-- SPDX-License-Identifier: MIT -->
 
 # LFX Email Service Learnings Reviewer
 

@@ -4,6 +4,9 @@ description: Use when adding a new snowflake-connector data source to crowd.dev 
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, mcp__claude_ai_LFX_BI_Layer__get_all_sources, mcp__claude_ai_LFX_BI_Layer__get_source_details, mcp__claude_ai_LFX_BI_Layer__list_metrics, mcp__claude_ai_LFX_BI_Layer__get_dimensions, mcp__claude_ai_LFX_BI_Layer__query_metrics
 ---
 
+<!-- Copyright The Linux Foundation and each contributor to LFX. -->
+<!-- SPDX-License-Identifier: MIT -->
+
 # Scaffold Snowflake Connector
 
 ## Overview

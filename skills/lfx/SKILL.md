@@ -1,6 +1,4 @@
 ---
-# Copyright The Linux Foundation and each contributor to LFX.
-# SPDX-License-Identifier: MIT
 name: lfx
 description: >
   LFX cross-repo topology and ownership router. Use when the task spans more
@@ -20,6 +18,9 @@ description: >
   (`/lfx-skills:lfx-intercom`).
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion
 ---
+
+<!-- Copyright The Linux Foundation and each contributor to LFX. -->
+<!-- SPDX-License-Identifier: MIT -->
 
 # LFX
 

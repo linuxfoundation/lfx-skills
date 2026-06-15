@@ -45,7 +45,7 @@ These values are fixed and apply across all V2 services:
 |------|-------|
 | AWS Region | `us-west-2` |
 | K8s Secret name | `lfx-v2-<service>-secrets` (e.g., `lfx-v2-invite-service-secrets`) |
-| SecretStore name | `{{ .Chart.Name }}` |
+| SecretStore name | `lfx-v2-<service>` — matches `metadata.name` in `SecretStore.yaml` and `spec.secretStoreRef.name` in `ExternalSecret.yaml` |
 | IAM account — dev | `788942260905` |
 | IAM account — staging | `844790888233` |
 | IAM account — prod | `372256339901` |
@@ -200,26 +200,27 @@ own file (e.g., `litellm.yml`). When unsure, grep for the third-party service na
         path: <file-name>/<3rd-party-service>/<secret-type>
 ```
 
-Example for invite service JWT secret:
+Example for Supabase API key:
 
 ```yaml
-LFX V2 Invite Service JWT Secret:
-  tags: [lfx_v2, invite, jwt]
-  environments: [development, staging, production]
+Supabase API Key:
+  tags: [supabase, supabase_api_key, lfx_v2]
+  envs: [core, development, staging, production]
   source:
     onepassword:
       vaults:
         development: LFX V2 - Development
-        staging: LFX V2 - Staging
         production: LFX V2 - Production
-      item: "LFX V2 Invite Service - JWT Secret"
+        staging: LFX V2 - Staging
+      item: LFX v2 supabase
       fields:
-        - jwt_secret_key
+        - url
+        - api_key
   destinations:
     - aws_secretsmanager:
         tags:
-          service-lfx-v2-invite-service: enabled
-        path: "cloud/invite/jwt"
+          service: pcc
+        path: cloud/supabase/api_key
 ```
 
 > **Tips**:

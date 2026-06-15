@@ -71,9 +71,10 @@ This touches **four repos** and requires changes in a specific order.
 
 ### Step 1: Prepare Information
 
-**Before asking the user anything**, read `iam-service-account-definitions.yaml` in `lfx-v2-opentofu`
-and look up the service's entry. Note the `namespace` and `eso_service_tag` values — both default
-to the role key if not set. You will need these in Steps 3 and 4 and must not ask the user for them.
+**Before asking the user anything**, read `iam-service-account-definitions.yaml` in `lfx-v2-opentofu`.
+If the service already has an entry, note the `namespace` and `eso_service_tag` values — both default
+to the role key if not set. If it does not exist yet (common for a brand-new service), you will add
+it in Step 2 and then use those values in Steps 3 and 4.
 
 Then ask the user to collect:
 

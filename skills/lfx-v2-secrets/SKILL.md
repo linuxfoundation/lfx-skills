@@ -105,7 +105,7 @@ Service: lfx-v2-invite-service
 Namespace: invite-service
 Secrets:
   - Atlassian API Key (service: atlassian, field: atlassian_api_key) - all envs
-  - JWT Secret (service: jwt, field: jwt_secret) — all envs
+  - Supabase API Key (service: pcc, fields: url, api_key) - all envs
 ```
 
 **Auth0 examples:**
@@ -184,7 +184,7 @@ own file (e.g., `litellm.yml`). When unsure, grep for the third-party service na
 ```yaml
 <Secret Name>:
   tags: [lfx_v2, <service_tag>, <type_tag>]
-  environments: [development, staging, production]
+  envs: [development, staging, production]
   source:
     onepassword:
       vaults:
@@ -206,7 +206,7 @@ Example for Supabase API key:
 ```yaml
 Supabase API Key:
   tags: [supabase, supabase_api_key, lfx_v2]
-  envs: [core, development, staging, production]
+  envs: [development, staging, production]
   source:
     onepassword:
       vaults:
@@ -454,6 +454,10 @@ environment:
 Use this mode when adding a new secret to a service that already has ESO + IRSA configured.
 
 ### Step 1: Add Entry to `lfx-secrets-management`
+
+**Before writing the entry**, read `iam-service-account-definitions.yaml` in `lfx-v2-opentofu`
+and confirm the service's `eso_service_tag` (defaults to the role key if not set). You will need
+this for the `service-<eso_service_tag>: enabled` AWS SM resource tag — do not ask the user for it.
 
 Follow the same pattern as Mode 1, Step 3. Add an entry to the appropriate file under
 `secrets/lfx/` — check existing files or grep for the third-party service name to find

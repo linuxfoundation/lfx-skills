@@ -220,7 +220,7 @@ Supabase API Key:
   destinations:
     - aws_secretsmanager:
         tags:
-          service: pcc
+          service-pcc: enabled
         path: cloud/supabase/api_key
 ```
 
@@ -228,7 +228,7 @@ Supabase API Key:
 >
 > - Each secret in the lfx-secrets-management source becomes a separate AWS SM path entry
 > - The `path` convention is `cloud/<service-short-name>/<secret-group>`
-> - Use the `environments` list to sync to all three environments in parallel
+> - Use the `envs` list to sync to all three environments in parallel
 > - The `source.onepassword.item` should match exactly the name in 1Password vaults
 > - The field names should be descriptive enough to avoid duplicates (`litellm_api_key`, not just `api_key`)
 
@@ -320,7 +320,7 @@ metadata:
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken | default true }}
+automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken | default true }}
 {{- end }}
 ```
 
@@ -385,7 +385,7 @@ spec:
         conversionStrategy: Default
         decodingStrategy: None
         tags:
-          service-lfx-v2-<service>: enabled
+          service-<eso_service_tag>: enabled
       rewrite:
         - merge:
             conflictPolicy: Error
@@ -394,7 +394,7 @@ spec:
 ```
 
 > **Tag-based discovery**: ESO finds and merges all AWS SM secrets tagged
-> `service-lfx-v2-<service>: enabled` into a single Kubernetes Secret named
+> `service-<eso_service_tag>: enabled` into a single Kubernetes Secret named
 > `lfx-v2-<service>-secrets`. No manual `data` list is needed — new secrets are picked up
 > automatically after the next sync.
 
@@ -466,7 +466,7 @@ the right one.
 ```yaml
 <Secret Name>:
   tags: [lfx_v2, <service_tag>, <type_tag>]
-  environments: [development, staging, production]
+  envs: [development, staging, production]
   source:
     onepassword:
       vaults:

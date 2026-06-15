@@ -44,12 +44,12 @@ These values are fixed and apply across all V2 services:
 | Item | Value |
 |------|-------|
 | AWS Region | `us-west-2` |
-| K8s Secret name | `lfx-v2-<service>-secrets` (e.g., `lfx-v2-invite-service-secrets`) |
-| SecretStore name | `lfx-v2-<service>` — matches `metadata.name` in `SecretStore.yaml` and `spec.secretStoreRef.name` in `ExternalSecret.yaml` |
+| K8s Secret name | `<service>-secrets` (e.g., `lfx-v2-committee-service-secrets`) |
+| SecretStore name | `<service>` — matches `metadata.name` in `SecretStore.yaml` and `spec.secretStoreRef.name` in `ExternalSecret.yaml` |
 | IAM account — dev | `788942260905` |
 | IAM account — staging | `844790888233` |
 | IAM account — prod | `372256339901` |
-| IRSA role ARN pattern | `arn:aws:iam::<account-id>:role/lfx-v2-<service>` |
+| IRSA role ARN pattern | `arn:aws:iam::<account-id>:role/<service>` |
 | AWS SM path pattern | `cloud/<3rd-party-service>/<name_or_identifier>` |
 | ServiceAccount annotation key | `eks.amazonaws.com/role-arn` |
 | ESO JWT auth field | `spec.provider.aws.auth.jwt.serviceAccountRef` |
@@ -71,16 +71,24 @@ This touches **four repos** and requires changes in a specific order.
 
 ### Step 1: Prepare Information
 
-**Before asking the user anything**, read `iam-service-account-definitions.yaml` in `lfx-v2-opentofu`.
-If the service already has an entry, note the `namespace` and `eso_service_tag` values — both default
-to the role key if not set. If it does not exist yet (common for a brand-new service), you will add
-it in Step 2 and then use those values in Steps 3 and 4.
+Identify `<service>` — the fully qualified service name including the `lfx-v2-` prefix (e.g.,
+`lfx-v2-committee-service`). If the user did not include it in their request, ask for it now
+before proceeding. This is used directly in all resource names: K8s Secret is `<service>-secrets`,
+role ARN ends in `<service>`, etc.
 
-Then ask the user to collect:
+Then fetch `iam-service-account-definitions.yaml` directly from GitHub:
+```
+https://raw.githubusercontent.com/linuxfoundation/lfx-v2-opentofu/main/iam-service-account-definitions.yaml
+```
+If the fetch fails (e.g., auth error), ask the user to paste the relevant entry.
 
-1. **Service name** — fully qualified name (e.g., `lfx-v2-invite-service`, `lfx-v2-email-service`)
-2. **Namespace name** — read from `iam-service-account-definitions.yaml` (see above); confirm with the user only if it is missing from the file
-3. **List of secrets** — secrets can come from several source types; the examples below cover the most common ones, but accept any source the user describes:
+Look up the entry for `<service>`:
+- **`namespace`** — note the value; defaults to `<service>` if not set. Confirm with the user only if the entry is missing entirely.
+- **`eso_service_tag`** — note the value; defaults to `<service>` if not set. If the file is inaccessible or the entry is missing, ask the user to confirm the tag (suggest `<service>` as the default).
+
+Then ask the user for:
+
+1. **List of secrets** — secrets can come from several source types; the examples below cover the most common ones, but accept any source the user describes:
 
    **1Password sources** (e.g., API keys, SMTP credentials, JWT secrets, etc):
    - **Secret name** (e.g., "JWT Secret", "SMTP Credentials")
@@ -95,8 +103,7 @@ Then ask the user to collect:
    - **Auto-rotate** — yes/no; default `true` for `auth0_jwt` V2 services
    - **AWS SM path** — follows `auth0/<ClientName_With_Underscores>` convention (e.g., `auth0/LFX_V2_Invite_Service`)
 
-4. **Which environments need this secret** — `development`, `staging`, `production`
-5. **Service tag** — read from `iam-service-account-definitions.yaml` as `eso_service_tag` (defaults to the role key if not set) — do not ask the user for this
+2. **Which environments need this secret** — `development`, `staging`, `production`
 
 **1Password example:**
 
@@ -113,27 +120,27 @@ Secrets:
 `auth0` (client_secret, simpler M2M or BFF clients):
 
 ```text
-Service: lfx-v2-invite-service
-Namespace: invite-service
+Service: lfx-v2-committee-service
+Namespace: committee-service
 Auth0 secrets:
-  - Invite Service BFF
+  - Committee Service BFF
       type: auth0
-      client: "LFX V2 Invite BFF"
-      path: auth0/LFX_V2_Invite_BFF
+      client: "LFX V2 Committee BFF"
+      path: auth0/LFX_V2_Committee_BFF
 ```
 
 `auth0_jwt` (JWT private key, standard for LFX V2 microservices):
 
 ```text
-Service: lfx-v2-invite-service
-Namespace: invite-service
+Service: lfx-v2-committee-service
+Namespace: committee-service
 Auth0 secrets:
-  - Invite Service M2M
+  - Committee Service M2M
       type: auth0_jwt
-      client: "LFX V2 Invite Service"
+      client: "LFX V2 Committee Service"
       auto_rotate: true
       rename_fields: client_id → auth0_client_id, client_private_key → auth0_client_private_key
-      path: auth0/LFX_V2_Invite_Service
+      path: auth0/LFX_V2_Committee_Service
 ```
 
 ### Step 2: Create IAM Service Account in `lfx-v2-opentofu`
@@ -143,19 +150,19 @@ edit `iam-service-account-definitions.yaml` and add:
 
 ```yaml
 service_account_roles:
-  lfx-v2-<service>:
+  <service>:
     namespace: "<service-namespace-name>"
 ```
 
-Example for invite service:
+Example for committee service:
 
 ```yaml
 service_account_roles:
-  lfx-v2-invite-service:
-    namespace: "invite-service"
+  lfx-v2-committee-service:
+    namespace: "committee-service"
 ```
 
-> **Defaults**: All fields default to the role key (e.g., `lfx-v2-invite-service`): `namespace`,
+> **Defaults**: All fields default to the role key (i.e., `<service>`): `namespace`,
 > `service_account`, and `eso_service_tag`. Only specify a field when its value differs
 > from the role key.
 
@@ -227,7 +234,7 @@ Supabase API Key:
 > **Tips**:
 >
 > - Each secret in the lfx-secrets-management source becomes a separate AWS SM path entry
-> - The `path` convention is `cloud/<service-short-name>/<secret-group>`
+> - The `path` convention is `cloud/<3rd-party-service>/<secret-type>`
 > - Use the `envs` list to sync to all three environments in parallel
 > - The `source.onepassword.item` should match exactly the name in 1Password vaults
 > - The field names should be descriptive enough to avoid duplicates (`litellm_api_key`, not just `api_key`)
@@ -302,7 +309,7 @@ Supabase API Key:
 #### 4a. `serviceaccount.yaml` in the service Helm chart
 
 In the service repo's Helm chart (e.g., `lfx-v2-invite-service`), create
-`charts/lfx-v2-<service>/templates/serviceaccount.yaml`:
+`charts/<service>/templates/serviceaccount.yaml`:
 
 ```yaml
 # Copyright The Linux Foundation and each contributor to LFX.
@@ -324,12 +331,12 @@ automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountT
 {{- end }}
 ```
 
-Add to `charts/lfx-v2-<service>/values.yaml`:
+Add to `charts/<service>/values.yaml`:
 
 ```yaml
 serviceAccount:
   create: true
-  name: "lfx-v2-<service>"
+  name: "<service>"
   annotations: {}
   automountServiceAccountToken: true
 ```
@@ -337,9 +344,9 @@ serviceAccount:
 #### 4b. Custom resources in `lfx-v2-argocd`
 
 The `SecretStore` and `ExternalSecret` are **static YAML files** (not Helm templates) placed in
-`lfx-v2-argocd/custom-resources/lfx-v2-<service>/`.
+`lfx-v2-argocd/custom-resources/<service>/`.
 
-Create `custom-resources/lfx-v2-<service>/SecretStore.yaml`:
+Create `custom-resources/<service>/SecretStore.yaml`:
 
 ```yaml
 # Copyright The Linux Foundation and each contributor to LFX.
@@ -348,7 +355,7 @@ Create `custom-resources/lfx-v2-<service>/SecretStore.yaml`:
 apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
-  name: lfx-v2-<service>
+  name: <service>
   namespace: <service-namespace>
 spec:
   provider:
@@ -356,12 +363,12 @@ spec:
       auth:
         jwt:
           serviceAccountRef:
-            name: lfx-v2-<service>
+            name: <service>
       region: us-west-2
       service: SecretsManager
 ```
 
-Create `custom-resources/lfx-v2-<service>/ExternalSecret.yaml`:
+Create `custom-resources/<service>/ExternalSecret.yaml`:
 
 ```yaml
 # Copyright The Linux Foundation and each contributor to LFX.
@@ -370,15 +377,15 @@ Create `custom-resources/lfx-v2-<service>/ExternalSecret.yaml`:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: lfx-v2-<service>
+  name: <service>
   namespace: <service-namespace>
 spec:
   secretStoreRef:
     kind: SecretStore
-    name: lfx-v2-<service>
+    name: <service>
   target:
     creationPolicy: Owner
-    name: lfx-v2-<service>-secrets
+    name: <service>-secrets
   refreshInterval: 10m
   dataFrom:
     - find:
@@ -395,12 +402,12 @@ spec:
 
 > **Tag-based discovery**: ESO finds and merges all AWS SM secrets tagged
 > `service-<eso_service_tag>: enabled` into a single Kubernetes Secret named
-> `lfx-v2-<service>-secrets`. No manual `data` list is needed — new secrets are picked up
+> `<service>-secrets`. No manual `data` list is needed — new secrets are picked up
 > automatically after the next sync.
 
 #### 4c. IRSA annotation in `lfx-v2-argocd` per-environment values
 
-In `values/dev/lfx-v2-<service>.yaml` (repeat for staging and prod with the matching account ID):
+In `values/dev/<service>.yaml` (repeat for staging and prod with the matching account ID):
 
 ```yaml
 # Copyright The Linux Foundation and each contributor to LFX.
@@ -408,24 +415,24 @@ In `values/dev/lfx-v2-<service>.yaml` (repeat for staging and prod with the matc
 ---
 serviceAccount:
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::788942260905:role/lfx-v2-<service>
+    eks.amazonaws.com/role-arn: arn:aws:iam::788942260905:role/<service>
   automountServiceAccountToken: true
 ```
 
 | Environment | Account ID | File |
 |-------------|-----------|------|
-| Development | `788942260905` | `values/dev/lfx-v2-<service>.yaml` |
-| Staging | `844790888233` | `values/staging/lfx-v2-<service>.yaml` |
-| Production | `372256339901` | `values/prod/lfx-v2-<service>.yaml` |
+| Development | `788942260905` | `values/dev/<service>.yaml` |
+| Staging | `844790888233` | `values/staging/<service>.yaml` |
+| Production | `372256339901` | `values/prod/<service>.yaml` |
 
 > **lfx-self-serve**: If the service is `lfx-self-serve`, any update to a values file in
 > `lfx-v2-argocd` must also include the corresponding update to `lfx-self-serve-branch`.
 
 ### Step 5: Wire Secrets into Service Environment in `lfx-v2-argocd`
 
-In `values/global/lfx-v2-<service>.yaml`, add an `environment` block that maps each secret
+In `values/global/<service>.yaml`, add an `environment` block that maps each secret
 field to an environment variable. Reference the Kubernetes Secret created by the ExternalSecret
-(`lfx-v2-<service>-secrets`) and use the field name as the key.
+(`<service>-secrets`) and use the field name as the key.
 
 > **lfx-self-serve**: If the service is `lfx-self-serve`, also update `lfx-self-serve-branch`
 > whenever this values file is modified.
@@ -438,12 +445,12 @@ environment:
   SECRET_NAME:
     valueFrom:
       secretKeyRef:
-        name: lfx-v2-<service>-secrets
+        name: <service>-secrets
         key: <field_name>
   ANOTHER_SECRET_NAME:
     valueFrom:
       secretKeyRef:
-        name: lfx-v2-<service>-secrets
+        name: <service>-secrets
         key: <another_field_name>
 ```
 
@@ -550,7 +557,7 @@ the right one.
 
 ### Step 2: Wire Secret into Service Environment in `lfx-v2-argocd`
 
-In `values/global/lfx-v2-<service>.yaml`, add the new environment variable to the existing
+In `values/global/<service>.yaml`, add the new environment variable to the existing
 `environment` block:
 
 ```yaml
@@ -558,9 +565,13 @@ environment:
   NEW_ENV_VAR:
     valueFrom:
       secretKeyRef:
-        name: lfx-v2-<service>-secrets
+        name: <service>-secrets
         key: <field_name>
 ```
+
+> Before writing `secretKeyRef.name`, verify the K8s Secret name from the existing
+> `ExternalSecret.yaml` in `lfx-v2-argocd/custom-resources/<service>/` —
+> check `spec.target.name`. It is typically `<service>-secrets` but must match exactly.
 
 > Tag-based discovery means the new secret is picked up automatically — no changes to
 > `ExternalSecret.yaml` are needed as long as the AWS SM tag matches the service.
@@ -582,22 +593,22 @@ After completing either mode, verify the setup:
   - [ ] `templates/serviceaccount.yaml` created
   - [ ] `values.yaml` has `serviceAccount` block
 - [ ] `lfx-v2-argocd`:
-  - [ ] `custom-resources/lfx-v2-<service>/SecretStore.yaml` created *(Mode 1 only)*
-  - [ ] `custom-resources/lfx-v2-<service>/ExternalSecret.yaml` created *(Mode 1 only)*
-  - [ ] `values/dev/lfx-v2-<service>.yaml` has IRSA role ARN + `automountServiceAccountToken: true` *(Mode 1 only)*
-  - [ ] `values/staging/lfx-v2-<service>.yaml` has IRSA role ARN + `automountServiceAccountToken: true` *(Mode 1 only)*
-  - [ ] `values/prod/lfx-v2-<service>.yaml` has IRSA role ARN + `automountServiceAccountToken: true` *(Mode 1 only)*
-  - [ ] `values/global/lfx-v2-<service>.yaml` has `environment` block with `secretKeyRef` entries for all secrets
+  - [ ] `custom-resources/<service>/SecretStore.yaml` created *(Mode 1 only)*
+  - [ ] `custom-resources/<service>/ExternalSecret.yaml` created *(Mode 1 only)*
+  - [ ] `values/dev/<service>.yaml` has IRSA role ARN + `automountServiceAccountToken: true` *(Mode 1 only)*
+  - [ ] `values/staging/<service>.yaml` has IRSA role ARN + `automountServiceAccountToken: true` *(Mode 1 only)*
+  - [ ] `values/prod/<service>.yaml` has IRSA role ARN + `automountServiceAccountToken: true` *(Mode 1 only)*
+  - [ ] `values/global/<service>.yaml` has `environment` block with `secretKeyRef` entries for all secrets
   - [ ] **lfx-self-serve only**: `lfx-self-serve-branch` updated alongside any `lfx-self-serve` values file change
 
 **Configuration checks:**
 
-- [ ] IRSA role ARN format is correct: `arn:aws:iam::<account-id>:role/lfx-v2-<service>`
+- [ ] IRSA role ARN format is correct: `arn:aws:iam::<account-id>:role/<service>`
 - [ ] All account IDs are correct (dev=`788942260905`, staging=`844790888233`, prod=`372256339901`)
 - [ ] AWS SM secret config tags (`tags:` field) are specific enough to scope the deploy workflow run
 - [ ] AWS SM resource tag on each secret matches `eso_service_tag`: `service-<eso_service_tag>: enabled`
 - [ ] All secrets are stored as JSON (list form fields or `store_as_json: true`)
-- [ ] `ExternalSecret` target name is `lfx-v2-<service>-secrets` and `secretKeyRef` names match
+- [ ] `ExternalSecret` target name is `<service>-secrets` and `secretKeyRef` names match
 
 **1Password setup** *(1Password sources only)*:
 

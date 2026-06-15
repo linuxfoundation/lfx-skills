@@ -63,13 +63,17 @@ This touches **four repos** and requires changes in a specific order.
 
 ### Step 1: Prepare Information
 
-Ask the user to collect:
+**Before asking the user anything**, read `iam-service-account-definitions.yaml` in `lfx-v2-opentofu`
+and look up the service's entry. Note the `namespace` and `eso_service_tag` values — both default
+to the role key if not set. You will need these in Steps 3 and 4 and must not ask the user for them.
+
+Then ask the user to collect:
 
 1. **Service name** — fully qualified name (e.g., `lfx-v2-invite-service`, `lfx-v2-email-service`)
-2. **Namespace name** — the namespace in Kubernetes the service is deployed in
-3. **List of secrets** — secrets can come from two source types; collect the relevant details for each:
+2. **Namespace name** — read from `iam-service-account-definitions.yaml` (see above); confirm with the user only if it is missing from the file
+3. **List of secrets** — secrets can come from several source types; the examples below cover the most common ones, but accept any source the user describes:
 
-   **1Password sources** (e.g., API keys, SMTP credentials, JWT secrets):
+   **1Password sources** (e.g., API keys, SMTP credentials, JWT secrets, etc):
    - **Secret name** (e.g., "JWT Secret", "SMTP Credentials")
    - **Third-party service** that provides the secret (e.g., `litellm`, `github`)
    - **1Password item name** — exact name as it appears in the vault
@@ -83,7 +87,7 @@ Ask the user to collect:
    - **AWS SM path** — follows `auth0/<ClientName_With_Underscores>` convention (e.g., `auth0/LFX_V2_Invite_Service`)
 
 4. **Which environments need this secret** — `development`, `staging`, `production`
-5. **Service tag** — applies to all secrets going to AWS SM; use the `eso_service_tag` value from this service's entry in `iam-service-accounts-definitions.yaml` in `lfx-v2-opentofu` (set in Step 2) — do not ask the user for this
+5. **Service tag** — read from `iam-service-account-definitions.yaml` as `eso_service_tag` (defaults to the role key if not set) — do not ask the user for this
 
 **1Password example:**
 
@@ -126,7 +130,7 @@ Auth0 secrets:
 ### Step 2: Create IAM Service Account in `lfx-v2-opentofu`
 
 In the [lfx-v2-opentofu](https://github.com/linuxfoundation/lfx-v2-opentofu) repo,
-edit `iam-service-accounts-definitions.yaml` and add:
+edit `iam-service-account-definitions.yaml` and add:
 
 ```yaml
 service_account_roles:
@@ -549,7 +553,7 @@ After completing either mode, verify the setup:
 
 **File checklist — all repos involved:**
 
-- [ ] `lfx-v2-opentofu`: `iam-service-accounts-definitions.yaml` has service entry *(Mode 1 only)*
+- [ ] `lfx-v2-opentofu`: `iam-service-account-definitions.yaml` has service entry *(Mode 1 only)*
 - [ ] `lfx-secrets-management`: appropriate file under `secrets/lfx/` has sync entry for each secret; Deploy workflow run after merge
 - [ ] Service Helm chart *(Mode 1 only)*:
   - [ ] `templates/serviceaccount.yaml` created

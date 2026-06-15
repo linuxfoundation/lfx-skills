@@ -56,6 +56,14 @@ These values are fixed and apply across all V2 services:
 
 ---
 
+## Branching
+
+Before making any changes, create a branch in each repo being modified. Use the format
+`<username>/<secret-name>`. Never commit directly to `main`. The username is the git
+username (typically the part before `@` in the email). Always sign off commits.
+
+---
+
 ## Mode 1: New Service (Full Setup)
 
 Use this mode when a brand-new V2 service needs secrets wired up end-to-end from scratch.
@@ -408,11 +416,17 @@ serviceAccount:
 | Staging | `844790888233` | `values/staging/lfx-v2-<service>.yaml` |
 | Production | `372256339901` | `values/prod/lfx-v2-<service>.yaml` |
 
+> **lfx-self-serve**: If the service is `lfx-self-serve`, any update to a values file in
+> `lfx-v2-argocd` must also include the corresponding update to `lfx-self-serve-branch`.
+
 ### Step 5: Wire Secrets into Service Environment in `lfx-v2-argocd`
 
 In `values/global/lfx-v2-<service>.yaml`, add an `environment` block that maps each secret
 field to an environment variable. Reference the Kubernetes Secret created by the ExternalSecret
 (`lfx-v2-<service>-secrets`) and use the field name as the key.
+
+> **lfx-self-serve**: If the service is `lfx-self-serve`, also update `lfx-self-serve-branch`
+> whenever this values file is modified.
 
 ```yaml
 # Copyright The Linux Foundation and each contributor to LFX.
@@ -545,6 +559,9 @@ environment:
 > Tag-based discovery means the new secret is picked up automatically — no changes to
 > `ExternalSecret.yaml` are needed as long as the AWS SM tag matches the service.
 
+> **lfx-self-serve**: If the service is `lfx-self-serve`, also update `lfx-self-serve-branch`
+> whenever this values file is modified.
+
 ---
 
 ## Verification Checklist
@@ -565,6 +582,7 @@ After completing either mode, verify the setup:
   - [ ] `values/staging/lfx-v2-<service>.yaml` has IRSA role ARN + `automountServiceAccountToken: true` *(Mode 1 only)*
   - [ ] `values/prod/lfx-v2-<service>.yaml` has IRSA role ARN + `automountServiceAccountToken: true` *(Mode 1 only)*
   - [ ] `values/global/lfx-v2-<service>.yaml` has `environment` block with `secretKeyRef` entries for all secrets
+  - [ ] **lfx-self-serve only**: `lfx-self-serve-branch` updated alongside any `lfx-self-serve` values file change
 
 **Configuration checks:**
 

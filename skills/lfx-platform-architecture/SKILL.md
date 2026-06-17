@@ -1,6 +1,4 @@
 ---
-# Copyright The Linux Foundation and each contributor to LFX.
-# SPDX-License-Identifier: MIT
 name: lfx-platform-architecture
 description: >
   Central explainer for how the LFX V2 platform components compose: Self Serve,
@@ -17,6 +15,9 @@ description: >
   repo's path-scoped `<short-repo-name>-dev` skill should attach after routing.
 allowed-tools: Read, Glob, Grep
 ---
+
+<!-- Copyright The Linux Foundation and each contributor to LFX. -->
+<!-- SPDX-License-Identifier: MIT -->
 
 # LFX Platform Architecture
 

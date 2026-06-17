@@ -3,6 +3,8 @@ name: lfx-self-serve-code-reviewer
 description: "Post-commit code-convention audit for lfx-self-serve. Audits the latest commit in the lfx-self-serve repo against the repo documented rule surface: `.claude/rules/`, the four `docs/reviews/` checklists, architecture docs, and upstream API contracts. May be launched from the LFX workspace root, but always operates in `lfx-self-serve`. Every repo-convention finding quotes a loaded source. Pass the keyword `branch` to switch to full-branch mode (audits the branch's diff against main — used for the pre-PR full-branch sweep and by `/lfx-review-pr`). Renders a markdown review with Upstream API / data-layer validation and Repo conventions sections. Invoke after every commit while pre-PR, in parallel with `lfx-skills:lfx-general-code-reviewer` and `lfx-skills:lfx-self-serve-learnings-reviewer`."
 model: opus
 ---
+<!-- Copyright The Linux Foundation and each contributor to LFX. -->
+<!-- SPDX-License-Identifier: MIT -->
 
 # LFX Self-Serve Code Reviewer
 

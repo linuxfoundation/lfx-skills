@@ -1,3 +1,6 @@
+<!-- Copyright The Linux Foundation and each contributor to LFX. -->
+<!-- SPDX-License-Identifier: MIT -->
+
 # LFX Skills
 
 Central Claude Code plugin for LFX development. Bundles the canonical LFX architecture knowledge, cross-repo workflow skills, and post-commit reviewer agents that every LFX contributor needs. Each LFX repo's local setup (`CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, and repo-owned `docs/`) calls out to this plugin for cross-repo topology, platform conventions, and review automation.

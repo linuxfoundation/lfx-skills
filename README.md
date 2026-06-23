@@ -31,6 +31,7 @@ Type `/lfx-skills:lfx` and describe what you want in plain language:
 - **"Where does the meeting data flow live?"** — the router classifies the task and points at the owning repos plus the relevant central skill.
 - **"I'm adding a new V2 resource service"** — routes you to `/lfx-skills:lfx-platform-architecture` for platform flow, service class, and cross-service handoff points; the owning repo's path-scoped guidance handles Go conventions.
 - **"Does this API already exist?"** — `/lfx-skills:lfx` runs a read-only research pass to verify owning repos, contracts, examples, and blockers before implementation.
+- **"Generate a new silver dbt model"** — routes to `/lfx-skills:lfx-data-engineer` for medallion-layer conventions, sqlfluff formatting, tests, and dbt validation guidance.
 - **"Add or fix Intercom in this app"** — routes to `/lfx-skills:lfx-intercom`.
 - **"Add a CDP Snowflake connector"** — routes to `/lfx-skills:lfx-cdp-snowflake-connectors`.
 - **"Catch me up on my open PRs"** — routes to `/lfx-skills:lfx-pr-catchup`.
@@ -50,7 +51,7 @@ Canonical LFX knowledge that lives in this plugin and is referenced by every LFX
 | `/lfx-skills:lfx-itx-integration` | ITX wrapper patterns: OAuth2 M2M tokens, v1 KV sync, NATS ID mapping via `lfx.lookup_v1_mapping`. |
 | `/lfx-skills:lfx-intercom` | Retained central Intercom workflow from `main`, plus Fin AI optimization: Fin Guidance, Help Center content quality, and resolution rate. |
 
-### Workflow skills (7)
+### Workflow skills (8)
 
 Cross-repo developer workflows that apply across every LFX repo.
 
@@ -63,6 +64,7 @@ Cross-repo developer workflows that apply across every LFX repo.
 | `/lfx-skills:lfx-test-journey` | Combine feature branches across repos into git worktrees for end-to-end journey testing. |
 | `/lfx-skills:lfx-snowflake-access` | Request Snowflake access or service accounts via the `lfx-snowflake-terraform` repo. |
 | `/lfx-skills:lfx-cdp-snowflake-connectors` | Scaffold a CDP snowflake-connector data source in `crowd.dev`; retained centrally from `main`. |
+| `/lfx-skills:lfx-data-engineer` | Generate PR-ready dbt models, SQL transformations, and tests for `lf-dbt`, including medallion architecture, sqlfluff conventions, macros, and validation workflow guidance. |
 
 ### Platform skill (1)
 
@@ -111,6 +113,8 @@ Each agent locates its owning repo at runtime and uses repo-qualified paths for 
 │   ├── lfx-test-journey/
 │   ├── lfx-snowflake-access/
 │   ├── lfx-cdp-snowflake-connectors/
+│   ├── lfx-data-engineer/       # dbt model + SQL transformation skill
+│   │   └── references/          # dbt setup, style, macros, testing, debugging
 │   └── lfx-v2-ticket-writer/
 ├── agents/
 │   ├── lfx-committee-service-code-reviewer.md

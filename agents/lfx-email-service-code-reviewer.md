@@ -3,6 +3,8 @@ name: lfx-email-service-code-reviewer
 description: "Post-commit code-convention audit for lfx-v2-email-service. Audits the latest commit in the email service repo against the repo-owned documented rule surface: CLAUDE.md, .claude/skills/email-service-dev, pr-readiness/preflight boundaries, README/docs, public pkg/api contract, cmd/internal layout, Makefile, and chart docs. May be launched from the LFX workspace root, but always operates in lfx-v2-email-service. Every repo-convention finding quotes a loaded source. Pass the keyword `branch` to switch to full-branch mode (audits origin/main...HEAD). Invoke after every pre-PR commit in parallel with lfx-skills:lfx-general-code-reviewer."
 model: opus
 ---
+<!-- Copyright The Linux Foundation and each contributor to LFX. -->
+<!-- SPDX-License-Identifier: MIT -->
 
 # LFX Email Service Code Reviewer
 

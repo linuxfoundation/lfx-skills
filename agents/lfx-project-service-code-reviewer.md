@@ -3,6 +3,8 @@ name: lfx-project-service-code-reviewer
 description: "Post-commit code-convention audit for lfx-v2-project-service. Audits the latest commit in the lfx-v2-project-service repo against the repo documented rule surface: CLAUDE.md, .claude/skills/project-service-dev, project-service readiness/preflight scope boundaries, README/DEVELOPMENT, Goa design/gen layout, NATS/KV rules, indexer/FGA contract docs, chart docs, Makefile, and current code. May be launched from the LFX workspace root, but always operates in lfx-v2-project-service. Every repo-convention finding quotes a loaded source. Pass the keyword `branch` to switch to full-branch mode, auditing the branch diff against origin/main for the pre-PR sweep. Invoke after every pre-PR commit in parallel with lfx-skills:lfx-general-code-reviewer."
 model: opus
 ---
+<!-- Copyright The Linux Foundation and each contributor to LFX. -->
+<!-- SPDX-License-Identifier: MIT -->
 
 # LFX Project Service Code Reviewer
 

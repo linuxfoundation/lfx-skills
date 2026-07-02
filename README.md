@@ -51,7 +51,7 @@ Canonical LFX knowledge that lives in this plugin and is referenced by every LFX
 | `/lfx-skills:lfx-itx-integration` | ITX wrapper patterns: OAuth2 M2M tokens, v1 KV sync, NATS ID mapping via `lfx.lookup_v1_mapping`. |
 | `/lfx-skills:lfx-intercom` | Retained central Intercom workflow from `main`, plus Fin AI optimization: Fin Guidance, Help Center content quality, and resolution rate. |
 
-### Workflow skills (8)
+### Workflow skills (9)
 
 Cross-repo developer workflows that apply across every LFX repo.
 
@@ -65,6 +65,7 @@ Cross-repo developer workflows that apply across every LFX repo.
 | `/lfx-skills:lfx-snowflake-access` | Request Snowflake access or service accounts via the `lfx-snowflake-terraform` repo. |
 | `/lfx-skills:lfx-cdp-snowflake-connectors` | Scaffold a CDP snowflake-connector data source in `crowd.dev`; retained centrally from `main`. |
 | `/lfx-skills:lfx-data-engineer` | Generate PR-ready dbt models, SQL transformations, and tests for `lf-dbt`, including medallion architecture, sqlfluff conventions, macros, and validation workflow guidance. |
+| `/lfx-skills:lfx-security-engineer` | Security review for LFX repos: OWASP Top 10 scan, auth/authz review, secret detection, Terraform audit, migration safety. Use before PRs touching auth, permissions, or data handling. |
 
 ### Platform skill (1)
 
@@ -115,6 +116,7 @@ Each agent locates its owning repo at runtime and uses repo-qualified paths for 
 │   ├── lfx-cdp-snowflake-connectors/
 │   ├── lfx-data-engineer/       # dbt model + SQL transformation skill
 │   │   └── references/          # dbt setup, style, macros, testing, debugging
+│   ├── lfx-security-engineer/   # OWASP scan + security review
 │   └── lfx-v2-ticket-writer/
 ├── agents/
 │   ├── lfx-committee-service-code-reviewer.md

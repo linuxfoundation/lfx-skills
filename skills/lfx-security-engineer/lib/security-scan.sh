@@ -110,10 +110,14 @@ apply_secignore() {
 }
 
 # Emit a finding, downgrading severity for test files
+# location is the full grep -Hn output: file:line:matched_source
+# We split into file:line for field 4 and fold matched source into description
 emit_finding() {
   local severity="$1" check="$2" location="$3" description="$4"
-  local file
+  local file line_num file_line
   file=$(echo "$location" | cut -d: -f1)
+  line_num=$(echo "$location" | cut -d: -f2)
+  file_line="$file:$line_num"
   if is_test_file "$file"; then
     # Downgrade: CRITICAL→HIGH, HIGH→MEDIUM in test files
     case "$severity" in
@@ -122,7 +126,7 @@ emit_finding() {
     esac
     description="$description [test file]"
   fi
-  echo "FINDING|$severity|$check|$location|$description"
+  echo "FINDING|$severity|$check|$file_line|$description"
 }
 
 # ============================================================
@@ -417,9 +421,9 @@ check_terraform() {
       # Use awk to find output blocks with sensitive names and check for sensitive = true
       local bad_outputs
       bad_outputs=$(awk '
-        /^\s*output\s*"[^"]*((password|secret|token|key)[^"]*)"/{ in_block=1; block_file=FILENAME; block_line=NR; block_text=$0; has_sensitive=0 }
-        in_block && /sensitive\s*=\s*true/ { has_sensitive=1 }
-        in_block && /^\s*\}/ { if (!has_sensitive) print block_file ":" block_line ":" block_text; in_block=0 }
+        /^[[:space:]]*output[[:space:]]*"[^"]*((password|secret|token|key)[^"]*)"/{ in_block=1; block_file=FILENAME; block_line=NR; block_text=$0; has_sensitive=0 }
+        in_block && /sensitive[[:space:]]*=[[:space:]]*true/ { has_sensitive=1 }
+        in_block && /^[[:space:]]*\}/ { if (!has_sensitive) print block_file ":" block_line ":" block_text; in_block=0 }
       ' "$tf_file" 2>/dev/null)
       while IFS= read -r line; do
         [ -z "$line" ] && continue

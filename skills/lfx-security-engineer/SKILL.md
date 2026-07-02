@@ -133,11 +133,6 @@ for security-specific exclusions (same glob syntax as `.gitignore`).
 
 Default shows CRITICAL only. Use `--all` for all severity levels.
 
-### Caching
-
-Results cached in `.security-cache/` (add to `.gitignore`). Only changed files
-re-scanned on subsequent runs. Clear with `rm -rf .security-cache/`.
-
 ## Scope Boundaries
 
 **This skill DOES:**

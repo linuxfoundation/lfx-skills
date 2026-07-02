@@ -56,7 +56,7 @@ get_changed_files() {
   else
     local base_ref
     base_ref=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/||' || echo "origin/main")
-    git diff --name-only "${base_ref}...HEAD" 2>/dev/null || git diff --name-only HEAD~1 2>/dev/null || true
+    { git diff -z --name-only "${base_ref}...HEAD" 2>/dev/null || git diff -z --name-only HEAD~1 2>/dev/null || true; } | tr '\0' '\n'
   fi
 }
 
@@ -70,7 +70,7 @@ filter_files() {
 scan_files() {
   local ext_filter="$1"
   local grep_pattern="$2"
-  filter_files "$ext_filter" | xargs grep -HnE "$grep_pattern" 2>/dev/null || true
+  filter_files "$ext_filter" | xargs -r grep -HnE "$grep_pattern" 2>/dev/null || true
 }
 
 # Check if a file is a test file (for false positive reduction)
@@ -165,6 +165,9 @@ check_access_control() {
 
   case "$REPO_TYPE" in
     angular|typescript-bff)
+      # These Express route/IDOR checks apply to the server-side Express proxy/BFF layer
+      # inside the LFX Angular monorepo (e.g. apps/*/server/, server/, bff/), not to
+      # browser-only Angular components.
       findings=$(scan_files '\.(ts|js)$' 'router\.(get|post|put|delete|patch)\(' 2>/dev/null)
       # Also check for IDOR patterns
       local idor

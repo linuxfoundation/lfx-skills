@@ -91,9 +91,13 @@ db.Raw(`DELETE FROM sessions WHERE user_id = ` + userId);
 **Unsafe — explicit bypass:**
 
 ```html
-<!-- Dangerous -->
+<!-- Dangerous — Angular -->
 <div [innerHTML]="userInput"></div>
-<div dangerouslySetInnerHTML={{__html: userInput}}></div>
+
+<!-- Dangerous — React -->
+<div dangerouslySetInnerHTML={{ __html: userInput }}></div>
+
+<!-- Dangerous — Go templates -->
 {{.UserInput | safeHTML}}
 ```
 

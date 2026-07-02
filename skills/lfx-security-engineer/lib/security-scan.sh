@@ -28,7 +28,12 @@ TARGET_PATH=""
 while [[ $# -gt 0 ]]; do
   case $1 in
     --full-scan) SCAN_MODE="full"; shift ;;
-    --file) SCAN_MODE="file"; TARGET_PATH="$2"; shift 2 ;;
+    --file)
+      if [[ -z "${2:-}" ]]; then
+        echo "ERROR: --file requires a path argument" >&2
+        exit 1
+      fi
+      SCAN_MODE="file"; TARGET_PATH="$2"; shift 2 ;;
     *) shift ;;
   esac
 done
@@ -39,7 +44,8 @@ eval "$("$SCRIPT_DIR/detect-repo-type.sh")"
 # --- Determine file list ---
 get_changed_files() {
   if [[ "$SCAN_MODE" == "full" ]]; then
-    find . -type f \( -name "*.ts" -o -name "*.go" -o -name "*.rs" -o -name "*.tf" -o -name "*.sql" -o -name "*.js" -o -name "*.json" \) \
+    find . -type f \( -name "*.ts" -o -name "*.go" -o -name "*.rs" -o -name "*.tf" -o -name "*.sql" -o -name "*.js" -o -name "*.json" \
+      -o -name "*.yaml" -o -name "*.yml" -o -name "*.env" -o -name "*.tfvars" -o -name "*.py" \) \
       -not -path "*/node_modules/*" -not -path "*/dist/*" -not -path "*/build/*" -not -path "*/.next/*" -not -path "*/target/*" 2>/dev/null
   elif [[ "$SCAN_MODE" == "file" ]]; then
     if [ -d "$TARGET_PATH" ]; then
@@ -48,7 +54,9 @@ get_changed_files() {
       echo "$TARGET_PATH"
     fi
   else
-    git diff --name-only origin/main...HEAD 2>/dev/null || true
+    local base_ref
+    base_ref=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/||' || echo "origin/main")
+    git diff --name-only "${base_ref}...HEAD" 2>/dev/null || git diff --name-only HEAD~1 2>/dev/null || true
   fi
 }
 
@@ -80,15 +88,25 @@ if [ -f .secignore ]; then
   done < .secignore
 fi
 
-# Filter out paths matching .secignore patterns
+# Filter out paths matching .secignore glob patterns (fnmatch-style)
 apply_secignore() {
   if [ ${#SECIGNORE_PATTERNS[@]} -eq 0 ]; then
     cat
     return
   fi
-  local exclude_regex
-  exclude_regex=$(printf '%s\|' "${SECIGNORE_PATTERNS[@]}" | sed 's/\\|$//')
-  grep -v -E "$exclude_regex" 2>/dev/null || true
+  while IFS= read -r filepath; do
+    local excluded=false
+    for pattern in "${SECIGNORE_PATTERNS[@]}"; do
+      # Use bash extended globbing for fnmatch-style matching
+      # shellcheck disable=SC2254
+      case "$filepath" in
+        $pattern) excluded=true; break ;;
+      esac
+    done
+    if [[ "$excluded" == "false" ]]; then
+      echo "$filepath"
+    fi
+  done
 }
 
 # Emit a finding, downgrading severity for test files
@@ -389,15 +407,27 @@ check_terraform() {
   done <<< "$unencrypted"
 
   # Sensitive outputs without sensitive = true
-  local sensitive_out
-  sensitive_out=$(scan_files '\.tf$' 'output\s*".*password|output\s*".*secret|output\s*".*token|output\s*".*key')
-  while IFS= read -r line; do
-    [ -z "$line" ] && continue
-    if ! echo "$line" | grep -q 'sensitive.*true'; then
-      emit_finding HIGH terraform "$line" "Sensitive output without sensitive = true"
-      has_findings=true
-    fi
-  done <<< "$sensitive_out"
+  # Grep for output blocks with sensitive names, then check context for sensitive = true
+  local tf_files
+  tf_files=$(filter_files '\.tf$')
+  if [ -n "$tf_files" ]; then
+    while IFS= read -r tf_file; do
+      [ -z "$tf_file" ] && continue
+      [ -f "$tf_file" ] || continue
+      # Use awk to find output blocks with sensitive names and check for sensitive = true
+      local bad_outputs
+      bad_outputs=$(awk '
+        /^\s*output\s*"[^"]*((password|secret|token|key)[^"]*)"/{ in_block=1; block_file=FILENAME; block_line=NR; block_text=$0; has_sensitive=0 }
+        in_block && /sensitive\s*=\s*true/ { has_sensitive=1 }
+        in_block && /^\s*\}/ { if (!has_sensitive) print block_file ":" block_line ":" block_text; in_block=0 }
+      ' "$tf_file" 2>/dev/null)
+      while IFS= read -r line; do
+        [ -z "$line" ] && continue
+        emit_finding HIGH terraform "$line" "Sensitive output without sensitive = true"
+        has_findings=true
+      done <<< "$bad_outputs"
+    done <<< "$tf_files"
+  fi
 
   if [[ "$has_findings" != "true" ]]; then
     echo "PASSED|terraform|Terraform checks passed"

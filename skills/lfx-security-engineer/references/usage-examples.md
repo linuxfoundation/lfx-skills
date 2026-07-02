@@ -41,37 +41,7 @@ Scopes both phases to the specified file or directory.
 
 Runs both phases on **all files** in the repo. Warning: slow on large codebases. Use for new repos or major refactors.
 
-## Example 5: Educational Mode
-
-```bash
-/lfx-security-engineer --explain
-```
-
-Includes educational context for each check — why it matters, real-world examples, and OWASP references. Great for onboarding.
-
-## Example 6: CI/CD Pipeline Integration
-
-```bash
-/lfx-security-engineer --ci-mode --format json
-```
-
-Exits non-zero on blockers. Outputs machine-readable JSON. Example GitHub Actions usage:
-
-```yaml
-- name: Security Review
-  run: /lfx-security-engineer --ci-mode --format json
-  continue-on-error: false
-```
-
-## Example 7: Watch Mode
-
-```bash
-/lfx-security-engineer --watch --scan-only
-```
-
-Watches for file changes and auto-runs Phase 1 scan on save. Press `Ctrl+C` to stop.
-
-## Example 8: Terraform/OpenTofu Audit
+## Example 5: Terraform/OpenTofu Audit
 
 ```bash
 /lfx-security-engineer
@@ -79,7 +49,7 @@ Watches for file changes and auto-runs Phase 1 scan on save. Press `Ctrl+C` to s
 
 Detects Terraform files automatically — no special flag needed.
 
-## Example 9: Database Migration Review
+## Example 6: Database Migration Review
 
 ```bash
 /lfx-security-engineer --file db/migrations/
@@ -87,13 +57,13 @@ Detects Terraform files automatically — no special flag needed.
 
 Scans migration files for plain-text password columns, hardcoded PII, broad grants, and missing audit columns.
 
-## Example 10: Combine Multiple Flags
+## Example 7: Combine Multiple Flags
 
 ```bash
-/lfx-security-engineer --full-scan --explain --format json > security-report.json
+/lfx-security-engineer --full-scan --file src/auth/
 ```
 
-Comprehensive audit with explanations in JSON format.
+Full scan scoped to auth directory.
 
 ## Pro Tips
 

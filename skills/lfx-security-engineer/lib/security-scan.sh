@@ -324,7 +324,7 @@ check_data_exposure() {
 
   # PII in URLs/query strings
   local pii_urls
-  pii_urls=$(scan_files '\.(ts|js|go)$' 'email=|password=|token=|ssn=|dob=.*req\.(query|url|originalUrl)')
+  pii_urls=$(scan_files '\.(ts|js|go)$' '(email|password|token|ssn|dob)=.*req\.(query|url|originalUrl)')
   findings="$findings"$'\n'"$pii_urls"
 
   findings=$(echo "$findings" | sed '/^$/d')

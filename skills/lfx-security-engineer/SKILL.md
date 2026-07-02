@@ -31,10 +31,6 @@ concrete fix.
 - **`--scan-only`:** Run Phase 1 only. Useful for quick pre-commit checks.
 - **`--file <path>`:** Scope the review to a specific file or directory.
 - **`--full-scan`:** Run both phases on all files (not just changed files). Use for new repos or major refactors.
-- **`--explain`:** Add detailed explanations for each check (educational mode).
-- **`--ci-mode`:** Exit with non-zero status if any blockers are found. Output machine-readable JSON.
-- **`--format json`:** Output results as structured JSON instead of text report.
-- **`--watch`:** Watch for file changes and auto-run scan on save. Use during active development.
 - **`--all`:** Show all severity levels (CRITICAL, HIGH, MEDIUM, INFO). Default shows CRITICAL only.
 
 For usage examples, see `references/usage-examples.md`.
@@ -43,13 +39,19 @@ For usage examples, see `references/usage-examples.md`.
 
 ### Step 1: Run Phase 1 Automated Scan
 
+Resolve the skill directory first (the script must run from the target repo root,
+not from the skill directory):
+
 ```bash
+# $SKILL_DIR is the directory containing this SKILL.md
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+
 # Default: scan changed files
-bash lib/security-scan.sh
+bash "$SKILL_DIR/lib/security-scan.sh"
 
 # Or with flags:
-bash lib/security-scan.sh --full-scan
-bash lib/security-scan.sh --file src/auth/
+bash "$SKILL_DIR/lib/security-scan.sh" --full-scan
+bash "$SKILL_DIR/lib/security-scan.sh" --file src/auth/
 ```
 
 The script outputs structured findings:

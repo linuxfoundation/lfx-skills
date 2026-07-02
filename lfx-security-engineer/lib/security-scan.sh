@@ -52,17 +52,17 @@ get_changed_files() {
   fi
 }
 
-# Filter files by extension pattern
+# Filter files by extension pattern, excluding .secignore paths
 filter_files() {
   local pattern="$1"
-  get_changed_files | grep -E "$pattern" 2>/dev/null || true
+  get_changed_files | apply_secignore | grep -E "$pattern" 2>/dev/null || true
 }
 
 # Grep changed files matching extension for a pattern
 scan_files() {
   local ext_filter="$1"
   local grep_pattern="$2"
-  filter_files "$ext_filter" | xargs grep -nE "$grep_pattern" 2>/dev/null || true
+  filter_files "$ext_filter" | xargs grep -HnE "$grep_pattern" 2>/dev/null || true
 }
 
 # Check if a file is a test file (for false positive reduction)
@@ -71,14 +71,41 @@ is_test_file() {
   echo "$file" | grep -qE '\.(spec|test)\.(ts|js)$|_test\.go$|test_.*\.py$|/tests/|/__tests__/|/spec/|/fixtures/|/mocks/|/__mocks__/'
 }
 
-# Respect .secignore if present
-SECIGNORE_ARGS=""
+# Respect .secignore if present — build an array of grep exclude patterns
+SECIGNORE_PATTERNS=()
 if [ -f .secignore ]; then
   while IFS= read -r pattern; do
     [[ "$pattern" =~ ^#.*$ || -z "$pattern" ]] && continue
-    SECIGNORE_ARGS="$SECIGNORE_ARGS --exclude=$pattern"
+    SECIGNORE_PATTERNS+=("$pattern")
   done < .secignore
 fi
+
+# Filter out paths matching .secignore patterns
+apply_secignore() {
+  if [ ${#SECIGNORE_PATTERNS[@]} -eq 0 ]; then
+    cat
+    return
+  fi
+  local exclude_regex
+  exclude_regex=$(printf '%s\|' "${SECIGNORE_PATTERNS[@]}" | sed 's/\\|$//')
+  grep -v -E "$exclude_regex" 2>/dev/null || true
+}
+
+# Emit a finding, downgrading severity for test files
+emit_finding() {
+  local severity="$1" check="$2" location="$3" description="$4"
+  local file
+  file=$(echo "$location" | cut -d: -f1)
+  if is_test_file "$file"; then
+    # Downgrade: CRITICAL→HIGH, HIGH→MEDIUM in test files
+    case "$severity" in
+      CRITICAL) severity="HIGH" ;;
+      HIGH) severity="MEDIUM" ;;
+    esac
+    description="$description [test file]"
+  fi
+  echo "FINDING|$severity|$check|$location|$description"
+}
 
 # ============================================================
 # CHECK 1: Secrets and Credentials
@@ -101,9 +128,9 @@ check_secrets() {
     fi
     # Check for live key patterns (high confidence)
     if echo "$line" | grep -qE 'AKIA[0-9A-Z]{16}|sk_live_|ghp_[0-9a-zA-Z]{36}|AIza[0-9A-Za-z_-]{35}'; then
-      echo "FINDING|CRITICAL|secrets|$line|Live service credential detected"
+      emit_finding CRITICAL secrets "$line" "Live service credential detected"
     else
-      echo "FINDING|CRITICAL|secrets|$line|Potential hardcoded secret"
+      emit_finding CRITICAL secrets "$line" "Potential hardcoded secret"
     fi
   done <<< "$findings"
 }
@@ -138,12 +165,12 @@ check_access_control() {
 
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    echo "FINDING|HIGH|access-control|$line|Route/handler may lack auth middleware — verify manually"
+    emit_finding HIGH access-control "$line" "Route/handler may lack auth middleware — verify manually"
   done <<< "$findings"
 }
 
 # ============================================================
-# CHECK 3: OWASP A02 — Cryptographic Failures
+# CHECK 3: OWASP A04 — Cryptographic Failures
 # ============================================================
 check_crypto() {
   local findings=""
@@ -174,15 +201,15 @@ check_crypto() {
   while IFS= read -r line; do
     [ -z "$line" ] && continue
     if echo "$line" | grep -qE 'md5|sha1'; then
-      echo "FINDING|CRITICAL|crypto|$line|Weak hash algorithm — use bcrypt/argon2 for passwords"
+      emit_finding CRITICAL crypto "$line" "Weak hash algorithm — use bcrypt/argon2 for passwords"
     else
-      echo "FINDING|HIGH|crypto|$line|Insecure random — use crypto.randomBytes() or OsRng"
+      emit_finding HIGH crypto "$line" "Insecure random — use crypto.randomBytes() or OsRng"
     fi
   done <<< "$findings"
 }
 
 # ============================================================
-# CHECK 4: OWASP A03 — Injection
+# CHECK 4: OWASP A05 — Injection
 # ============================================================
 check_injection() {
   local findings=""
@@ -218,9 +245,9 @@ check_injection() {
   while IFS= read -r line; do
     [ -z "$line" ] && continue
     if echo "$line" | grep -qE 'unsafe\s*\{'; then
-      echo "FINDING|HIGH|injection|$line|Unsafe block — verify SAFETY comment and no attacker-controlled data"
+      emit_finding HIGH injection "$line" "Unsafe block — verify SAFETY comment and no attacker-controlled data"
     else
-      echo "FINDING|CRITICAL|injection|$line|Potential injection vulnerability"
+      emit_finding CRITICAL injection "$line" "Potential injection vulnerability"
     fi
   done <<< "$findings"
 }
@@ -254,7 +281,7 @@ check_auth() {
 
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    echo "FINDING|HIGH|auth|$line|Authentication weakness — verify JWT validation and cookie security"
+    emit_finding HIGH auth "$line" "Authentication weakness — verify JWT validation and cookie security"
   done <<< "$findings"
 }
 
@@ -279,7 +306,7 @@ check_logging() {
     [ -z "$line" ] && continue
     # Only flag if in auth-related files
     if echo "$line" | grep -qiE 'auth|token|jwt|session|login'; then
-      echo "FINDING|HIGH|logging|$line|Silent error in auth code — add security event logging"
+      emit_finding HIGH logging "$line" "Silent error in auth code — add security event logging"
     fi
   done <<< "$findings"
 }
@@ -308,7 +335,7 @@ check_data_exposure() {
 
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    echo "FINDING|HIGH|data-exposure|$line|Potential sensitive data exposure"
+    emit_finding HIGH data-exposure "$line" "Potential sensitive data exposure"
   done <<< "$findings"
 }
 
@@ -321,7 +348,7 @@ check_terraform() {
     return
   fi
 
-  local findings=""
+  local has_findings=false
 
   # Committed .tfvars
   local tfvars
@@ -329,7 +356,8 @@ check_terraform() {
   if [ -n "$tfvars" ]; then
     while IFS= read -r f; do
       [ -z "$f" ] && continue
-      findings="$findings"$'\n'"FINDING|CRITICAL|terraform|$f|.tfvars file in source control — may contain secrets"
+      emit_finding CRITICAL terraform "$f" ".tfvars file in source control — may contain secrets"
+      has_findings=true
     done <<< "$tfvars"
   fi
 
@@ -338,7 +366,8 @@ check_terraform() {
   wildcard_iam=$(scan_files '\.tf$' 'actions\s*=\s*\["\*"\]|resources\s*=\s*\["\*"\]')
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    findings="$findings"$'\n'"FINDING|HIGH|terraform|$line|Overly permissive IAM — scope actions and resources"
+    emit_finding HIGH terraform "$line" "Overly permissive IAM — scope actions and resources"
+    has_findings=true
   done <<< "$wildcard_iam"
 
   # Open network (0.0.0.0/0 on sensitive ports)
@@ -346,7 +375,8 @@ check_terraform() {
   open_net=$(scan_files '\.tf$' '0\.0\.0\.0/0|::/0')
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    findings="$findings"$'\n'"FINDING|HIGH|terraform|$line|Open network rule — restrict CIDR for sensitive ports"
+    emit_finding HIGH terraform "$line" "Open network rule — restrict CIDR for sensitive ports"
+    has_findings=true
   done <<< "$open_net"
 
   # Unencrypted storage
@@ -354,7 +384,8 @@ check_terraform() {
   unencrypted=$(scan_files '\.tf$' 'storage_encrypted\s*=\s*false|acl\s*=\s*"public-read"')
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    findings="$findings"$'\n'"FINDING|HIGH|terraform|$line|Unencrypted or public storage"
+    emit_finding HIGH terraform "$line" "Unencrypted or public storage"
+    has_findings=true
   done <<< "$unencrypted"
 
   # Sensitive outputs without sensitive = true
@@ -363,15 +394,13 @@ check_terraform() {
   while IFS= read -r line; do
     [ -z "$line" ] && continue
     if ! echo "$line" | grep -q 'sensitive.*true'; then
-      findings="$findings"$'\n'"FINDING|HIGH|terraform|$line|Sensitive output without sensitive = true"
+      emit_finding HIGH terraform "$line" "Sensitive output without sensitive = true"
+      has_findings=true
     fi
   done <<< "$sensitive_out"
 
-  findings=$(echo "$findings" | sed '/^$/d')
-  if [ -z "$findings" ]; then
+  if [[ "$has_findings" != "true" ]]; then
     echo "PASSED|terraform|Terraform checks passed"
-  else
-    echo "$findings"
   fi
 }
 
@@ -384,14 +413,15 @@ check_migrations() {
     return
   fi
 
-  local findings=""
+  local has_findings=false
 
   # Sensitive columns as plain text
   local sensitive_cols
   sensitive_cols=$(scan_files '\.(sql|up\.sql)$' '(password|passwd|ssn|tax_id|national_id|credit_card|card_number|cvv)\s+(VARCHAR|TEXT|CHAR)')
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    findings="$findings"$'\n'"FINDING|CRITICAL|migrations|$line|Sensitive column stored as plain text"
+    emit_finding CRITICAL migrations "$line" "Sensitive column stored as plain text"
+    has_findings=true
   done <<< "$sensitive_cols"
 
   # Overly broad grants
@@ -399,7 +429,8 @@ check_migrations() {
   broad_grants=$(scan_files '\.sql$' 'GRANT ALL PRIVILEGES|GRANT.*TO PUBLIC')
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    findings="$findings"$'\n'"FINDING|HIGH|migrations|$line|Overly broad permission grant"
+    emit_finding HIGH migrations "$line" "Overly broad permission grant"
+    has_findings=true
   done <<< "$broad_grants"
 
   # Hardcoded PII in seed data
@@ -411,14 +442,12 @@ check_migrations() {
     if echo "$line" | grep -qE '@example\.(com|invalid|test)|555-0[0-9]{3}|000-00-0000'; then
       continue
     fi
-    findings="$findings"$'\n'"FINDING|CRITICAL|migrations|$line|Potential real PII in migration seed data"
+    emit_finding CRITICAL migrations "$line" "Potential real PII in migration seed data"
+    has_findings=true
   done <<< "$hardcoded_pii"
 
-  findings=$(echo "$findings" | sed '/^$/d')
-  if [ -z "$findings" ]; then
+  if [[ "$has_findings" != "true" ]]; then
     echo "PASSED|migrations|Migration security checks passed"
-  else
-    echo "$findings"
   fi
 }
 

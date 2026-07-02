@@ -115,8 +115,8 @@ Format findings using the template in `references/report-template.md`.
 Include OWASP reference links for each finding:
 
 - A01: https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/
-- A02: https://owasp.org/Top10/2025/A02_2025-Security_Misconfiguration/
-- A03: https://owasp.org/Top10/2025/A03_2025-Software_Supply_Chain_Failures/
+- A04: https://owasp.org/Top10/2025/A04_2025-Cryptographic_Failures/
+- A05: https://owasp.org/Top10/2025/A05_2025-Injection/
 - A07: https://owasp.org/Top10/2025/A07_2025-Authentication_Failures/
 - A09: https://owasp.org/Top10/2025/A09_2025-Security_Logging_and_Alerting_Failures/
 

@@ -150,6 +150,26 @@ Do not assume a direct JOIN between tables. The relation type (JOIN, subquery, C
 
 Once all table names are known, collect column schemas using the LFX BI Layer MCP tools. Only fall back to the manual query when BI Layer lookup fails for a specific table.
 
+> ⚠️ **Data Privacy — real user data ahead.** This phase asks the user to paste
+> Snowflake results that will contain real emails, usernames, LFIDs, and org
+> data. Read
+> [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)
+> before proceeding. The rules for this skill:
+>
+> - Use pasted PII **in-session only** to derive column mappings and validate
+>   transformer logic. Do **not** embed pasted values as example rows,
+>   comments, test fixtures, or docs into any file written to disk.
+> - Every column-mapping example, code comment, and generated fixture MUST
+>   use the safe alternatives from the reference (`user-1@example.com`,
+>   `testuser01`, reserved UUIDs). Never hard-code a real user's email or
+>   LFID into `transformer.ts` or `buildSourceQuery.ts`.
+> - If the generated code introduces logging (via `console.log`, an existing
+>   logger, or a `throw new Error(...)` message), it MUST NOT include the
+>   user's email, LFID, name, or platform username. Log the `sourceId` or a
+>   hashed identifier instead.
+> - When in doubt (e.g., a column looks synthetic but might be a real handle),
+>   stop and ask the user before writing the file.
+
 ### Step 0 — Check BI Layer connectivity
 
 Use `ToolSearch` with query `"LFX BI Layer get_all_sources"` to check whether the BI Layer tools are available in the current session.

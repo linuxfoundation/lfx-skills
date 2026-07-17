@@ -93,6 +93,14 @@ Ask for:
 **Do not proceed to Step 4 until you have reproduction steps.** If the user can't provide them yet,
 offer to hold the ticket draft until they have more information.
 
+> ⚠️ **No real user PII in the ticket.** Reproduction steps, screenshots, and
+> environment notes must not include real user emails, names, LFIDs, phone
+> numbers, or other PII. Substitute a safe placeholder (`user-a@example.com`,
+> "the affected committee chair", "member with role X") and, if the specific
+> user matters, tell the assignee to look it up out-of-band. See
+> [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md).
+> If the user's draft contains real PII, offer to redact it before submitting.
+
 ### Story / Task
 
 Ask for:

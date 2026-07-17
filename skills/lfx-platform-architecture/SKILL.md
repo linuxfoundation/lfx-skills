@@ -306,6 +306,31 @@ keeps only the architectural ownership split.
 - Deployed environment values, chart pins, image tags, ExternalSecrets, and
   promotion state belong to `lfx-v2-argocd`.
 
+## Data privacy across the platform
+
+Every V2 service that touches user identity (member, committee, project,
+meeting, mailing-list, voting, survey, invite, auth, persona) must follow the
+plugin-wide data-privacy rules in
+[`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md).
+
+Platform-shape implications to keep in mind when generating code or reviewing
+a service's flow:
+
+- **KV writes** (native and wrapper resource services): persist only fields
+  the resource contract owns. Do not stash extra user identifiers "for
+  convenience."
+- **Indexer envelopes and OpenSearch documents**: index only fields the
+  resource contract exposes for search. Emails, phone numbers, and precise
+  addresses generally do not belong in search documents.
+- **FGA tuples**: use structural IDs (resource UID, user UID, project UID),
+  never raw emails or personal names, as tuple `user`/`object` values.
+- **Application logs, error responses, tracing spans**: default is no PII.
+  Correlate on request ID, resource UID, or hashed identifier. The narrow
+  audit-log exception is documented in `data-privacy.md`.
+- **Wrapper services**: an upstream system may return more PII than the LFX
+  V2 API needs. Strip fields not part of the LFX V2 contract before
+  publishing to indexer/FGA or persisting to a local cache.
+
 ## What this skill is not
 
 - Not a V2 Go coding rulebook. Repo-local path-scoped `<short-repo-name>-dev`

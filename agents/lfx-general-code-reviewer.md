@@ -95,6 +95,30 @@ Evaluate the changed code against these criteria:
 - Are authentication and authorization properly implemented?
 - Are sensitive operations properly guarded?
 
+**Data Privacy / PII**:
+
+Apply the LFX plugin-wide data-privacy rules
+(`skills/lfx/references/data-privacy.md`). Flag as **Critical** when the change
+would ship real user PII into a log, datastore, index document, FGA tuple,
+test fixture, seed file, docs example, or committed sample response.
+
+- Do new test files, fixtures, seed data, or mocked responses use fabricated
+  values (`user-*@example.com`, `Test User`, reserved phone blocks, fixed
+  UUIDs) rather than values copied from a real user, ticket, or Snowflake
+  query?
+- Do new log lines, error messages, tracing spans, or metrics tags include
+  raw emails, names, phone numbers, LFIDs, GitHub/Discord handles, or other
+  PII? If yes, flag unless the code path is a clearly named audit path AND
+  the raw field is required by a documented audit requirement (comment must
+  name the policy).
+- Do new KV writes, index documents, FGA tuples, Postgres columns, or cache
+  entries persist PII that is NOT part of the resource contract? If yes,
+  flag as Critical.
+- Do committed code comments, PR body, migration comments, or docs snippets
+  hard-code real user identifiers? If yes, flag and recommend redaction.
+- For dbt/data-engineer changes: are new PII-bearing columns tagged with
+  `config.meta.contains_pii: true` and `data_retention` set?
+
 **Error Handling**:
 
 - Are errors caught and handled appropriately (not silently swallowed)?

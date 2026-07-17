@@ -204,6 +204,11 @@ preserves the useful research workflow without adding another central skill.
 - **`references/service-types.md`**: thin routing stub. For native, wrapper,
   proxy, or V2 Go service-class depth, forward to
   `/lfx-skills:lfx-platform-architecture`.
+- **`references/data-privacy.md`**: canonical hard rules for handling PII in
+  test data, logs, persisted stores, tickets, PRs, and code comments. Read
+  before generating fixtures/examples, before adding a log line that includes
+  a user field, or before writing a user identifier into a KV, index doc,
+  FGA tuple, or Jira ticket.
 
 Never load all references by default. Start with the smallest one.
 
@@ -258,3 +263,9 @@ unsure. Never assume `../../<repo>/`.
   from this skill alone.
 - `lfx-self-serve` is the canonical Self Serve repo; legacy deployment
   artifacts may say `lfx-v2-ui`, which is deployment naming only.
+- **Never generate real user PII (real emails, names, usernames, phone
+  numbers, LFIDs, GitHub/Discord handles, addresses, etc.) in test data,
+  fixtures, examples, logs, commits, PRs, or tickets. Never persist PII
+  outside a field the resource contract requires. When in doubt, stop and
+  ask the user.** Full rules and safe alternatives:
+  [`references/data-privacy.md`](references/data-privacy.md).

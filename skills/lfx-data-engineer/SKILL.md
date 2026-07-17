@@ -389,6 +389,33 @@ See [references/key-macros.md](references/key-macros.md) for full documentation 
 
 ## Data Governance
 
+### PII Hard Rules
+
+The plugin-wide data-privacy rules live in
+[`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md). Read
+that doc before generating any of the following:
+
+- **dbt seeds, fixtures, `dbt show` examples in docs, or unit-test rows** —
+  never paste values copied from a production Snowflake query. Fabricate with
+  `user-1@example.com`, `Test User`, `testuser01`, reserved phone blocks, and
+  fixed UUIDs. Use `dbt_utils.generate_surrogate_key` on synthetic inputs, not
+  real primary keys.
+- **New bronze/silver models that expose email, name, phone, address, or
+  linked pseudonyms (LFID, GitHub handle, Discord ID)** — the column MUST be
+  PII-tagged (see below), the model description MUST name the retention
+  policy, and any downstream `dbt show` or docs snippet MUST use the safe
+  alternatives from `data-privacy.md`.
+- **Logging or `RAISE`/`ASSERT` output inside macros or Python models** —
+  never emit raw PII. Use hashed identifiers or the record's structural key
+  (project slug, activity UID) instead.
+- **Any code path that would persist a PII column into a schema where the
+  column is not part of the documented contract** — stop and ask the user
+  first; the answer is usually "drop the column."
+
+`gdpr_filter_email()`, `comprehensive_email_filter()`, and the `_fivetran_deleted`
+filter are policy-enforcement macros, not optional. Every model that exposes
+email addresses MUST route through them.
+
 ### PII Tagging
 
 Columns containing personally identifiable information (names, emails, addresses, etc.) must be tagged in the YML file. Use `config.meta` — not top-level `meta`.

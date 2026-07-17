@@ -406,8 +406,13 @@ that doc before generating any of the following:
   policy, and any downstream `dbt show` or docs snippet MUST use the safe
   alternatives from `data-privacy.md`.
 - **Logging or `RAISE`/`ASSERT` output inside macros or Python models** —
-  never emit raw PII. Use hashed identifiers or the record's structural key
-  (project slug, activity UID) instead.
+  never emit raw PII. Use a **non-user** structural key (project slug,
+  activity UID, source table + row number) for correlation. If a
+  user-linked correlator is genuinely required, emit a service-specific
+  **keyed-HMAC pseudonym** per the canonical rule in
+  [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)
+  ("Logging exception"). Plain hashes such as `sha256(email)` are not
+  acceptable.
 - **Any code path that would persist a PII column into a schema where the
   column is not part of the documented contract** — stop and ask the user
   first; the answer is usually "drop the column."

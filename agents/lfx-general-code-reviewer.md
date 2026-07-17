@@ -110,12 +110,21 @@ deciding severity.
   values (`user-*@example.com`, `Test User`, reserved phone blocks, fixed
   UUIDs) rather than values copied from a real user, ticket, or Snowflake
   query?
-- Do new log lines, error messages, tracing spans, or metrics tags include
-  raw emails, names, phone numbers, LFIDs, GitHub/Discord handles, or other
-  PII? If yes, flag unless the code path is a clearly named audit path AND
-  the raw field is required by a documented audit requirement (comment must
-  name the policy). Plain hashes such as truncated `sha256(email)` are not
-  safe pseudonyms; a service-specific keyed HMAC is required.
+- Do new **log lines on the general application logger** include raw
+  emails, names, phone numbers, LFIDs, GitHub/Discord handles, or other
+  PII (including user-linked UIDs such as user UID, member UID, persona
+  UID, Auth0 `sub`)? If yes, flag unless the code path is a clearly named
+  audit-log path AND the raw field is required by a documented audit
+  requirement (comment must name the policy). Non-user resource UIDs
+  (project UID, meeting UID, committee UID, etc.), request IDs,
+  correlation IDs, and trace IDs are permitted. Plain hashes such as
+  truncated `sha256(email)` are not safe pseudonyms; a service-specific
+  keyed HMAC is required.
+- Do new **error messages, error responses, tracing spans, metrics tags,
+  or user-visible error text** include raw PII (as defined above)? If
+  yes, flag as Critical. **The audit exception does NOT apply to these
+  sinks** — the canonical rule explicitly excludes them, so an "audit
+  path" justification here is invalid.
 - Do new KV writes, index documents, FGA tuples, Postgres columns, or cache
   entries persist PII that is NOT part of the resource contract? If yes,
   flag as Critical. Contract-owned PII fields (documented in the owning

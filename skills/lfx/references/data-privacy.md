@@ -83,7 +83,7 @@ domain-appropriate:
 | Phone | `+15555550100` .. `+15555550199` (NANPA fictional-use range, `555-0100`..`555-0199`) | Real numbers |
 | Address | `1 Test Way, Springfield` | Real customer addresses |
 | Org / company | `Example Foundation`, `Acme Test Org` | Real member organization names |
-| UUID / IDs | `uuid.NewString()` or a fixed `00000000-0000-0000-0000-...` | Copy-pasted production UUIDs from a real record |
+| UUID / IDs | `uuid.NewString()` or a fixed valid UUID such as `00000000-0000-0000-0000-000000000001` | Copy-pasted production UUIDs from a real record |
 | Faker / factory | Language-native fakers (`faker.Name()`, `@faker-js/faker`, `factory_bot`, dbt seed generators) seeded with a fixed value for determinism | Snapshots of real production rows |
 
 For dbt seeds and bronze-layer examples, follow the PII tagging and filtering
@@ -108,10 +108,14 @@ When emitting to an audit path:
 - The value MUST NOT also flow to the general application log, error log,
   metrics, tracing spans, or user-visible error responses.
 
-Structured logs on the general application logger use non-PII identifiers
-(resource UID, request ID, correlation ID) and, when a user reference is
-truly needed for correlation, a **pseudonymized** identifier — not the raw
-value.
+Structured logs on the general application logger use non-PII identifiers:
+request ID, correlation ID, trace ID, or a **non-user** resource UID
+(project UID, meeting UID, committee UID, mailing-list UID, invoice UID,
+etc.). User-linked UIDs (user UID, member UID, persona UID, LFID, Auth0
+`sub`, GitHub user ID, Discord user ID) are linked pseudonyms per the PII
+taxonomy above and are **not** safe to log raw. When a user reference is
+truly needed for correlation, emit a **pseudonymized** identifier — not
+the raw value.
 
 Do NOT use plain hashes such as `sha256(email)` or its truncation as a
 pseudonym. Email addresses have a small, enumerable input space; unsalted
@@ -145,8 +149,10 @@ email into the draft reproduction steps — describe it generically, then
 show only the reserved-domain replacement):
 
 > "That reproduction step includes a real staff email address. LFX
-> data-privacy policy says we don't put real user identifiers in tickets or
-> logs unless there's a specific audit reason. I can replace it with
+> data-privacy policy (hard rule 4) says we don't put real user identifiers
+> in tickets, PRs, commit messages, or code comments — there is no audit
+> exception for those surfaces (the narrow audit-log exception applies only
+> to a dedicated audit-log code path). I can replace it with
 > `user-a@example.com` and note the affected user role instead — okay?"
 
 ## Handling real user data the user pasted

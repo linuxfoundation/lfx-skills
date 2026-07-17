@@ -97,10 +97,14 @@ Evaluate the changed code against these criteria:
 
 **Data Privacy / PII**:
 
-Apply the LFX plugin-wide data-privacy rules
-(`skills/lfx/references/data-privacy.md`). Flag as **Critical** when the change
-would ship real user PII into a log, datastore, index document, FGA tuple,
-test fixture, seed file, docs example, or committed sample response.
+Apply the LFX plugin-wide data-privacy rules (documented in the `lfx-skills`
+plugin at `skills/lfx/references/data-privacy.md`; the criteria below are
+self-contained — no file load required at review time). Flag as **Critical**
+when the change would ship real user PII into a log, test fixture, seed file,
+committed sample response, or docs example, or would persist PII into a
+datastore/index document/FGA tuple **outside a field the resource contract
+owns**. Apply the exceptions carried in the specific bullets below when
+deciding severity.
 
 - Do new test files, fixtures, seed data, or mocked responses use fabricated
   values (`user-*@example.com`, `Test User`, reserved phone blocks, fixed
@@ -110,10 +114,12 @@ test fixture, seed file, docs example, or committed sample response.
   raw emails, names, phone numbers, LFIDs, GitHub/Discord handles, or other
   PII? If yes, flag unless the code path is a clearly named audit path AND
   the raw field is required by a documented audit requirement (comment must
-  name the policy).
+  name the policy). Plain hashes such as truncated `sha256(email)` are not
+  safe pseudonyms; a service-specific keyed HMAC is required.
 - Do new KV writes, index documents, FGA tuples, Postgres columns, or cache
   entries persist PII that is NOT part of the resource contract? If yes,
-  flag as Critical.
+  flag as Critical. Contract-owned PII fields (documented in the owning
+  service's schema/contract docs) are permitted — do not flag those.
 - Do committed code comments, PR body, migration comments, or docs snippets
   hard-code real user identifiers? If yes, flag and recommend redaction.
 - For dbt/data-engineer changes: are new PII-bearing columns tagged with

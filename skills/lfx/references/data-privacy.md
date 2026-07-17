@@ -80,7 +80,7 @@ domain-appropriate:
 | Email in unit/integration tests | `user-1@example.com`, `alice@example.test`, `qa+bug-123@example.com` | Real coworker or user emails |
 | Full name | `Test User 1`, `Alice Example`, `Committee Chair` | Real names from Salesforce, Auth0, LFID directory |
 | Username / LFID | `testuser01`, `lf-fixture-alice`, `qa-writer-1` | Real GitHub, LFID, or Discord handles |
-| Phone | `+15555550100` .. `+15555550199` (RFC 5733 reserved block) | Real numbers |
+| Phone | `+15555550100` .. `+15555550199` (NANPA fictional-use range, `555-0100`..`555-0199`) | Real numbers |
 | Address | `1 Test Way, Springfield` | Real customer addresses |
 | Org / company | `Example Foundation`, `Acme Test Org` | Real member organization names |
 | UUID / IDs | `uuid.NewString()` or a fixed `00000000-0000-0000-0000-...` | Copy-pasted production UUIDs from a real record |
@@ -110,8 +110,24 @@ When emitting to an audit path:
 
 Structured logs on the general application logger use non-PII identifiers
 (resource UID, request ID, correlation ID) and, when a user reference is
-truly needed for correlation, a stable **hashed or pseudonymized** identifier
-(for example `sha256(email)[:16]`) — not the raw value.
+truly needed for correlation, a **pseudonymized** identifier — not the raw
+value.
+
+Do NOT use plain hashes such as `sha256(email)` or its truncation as a
+pseudonym. Email addresses have a small, enumerable input space; unsalted
+hashes are dictionary-reversible and enable cross-system correlation across
+any service that uses the same digest. Instead:
+
+- Compute the pseudonym as a **service-specific keyed HMAC**, for example
+  `hmac_sha256(key = per_service_secret, msg = normalized_email)`, and read
+  the key from the service's secret store (never a constant in code).
+- Use a distinct key per service so the resulting identifier cannot be
+  joined across service boundaries.
+- Treat the pseudonymous identifier itself as sensitive: apply the same
+  retention window as the underlying PII, restrict it to the log/metrics
+  pipeline that needs it, and rotate the HMAC key on any suspected
+  compromise (rotation invalidates prior-window correlation, which is the
+  desired property).
 
 ## When in doubt: ask, then remind
 
@@ -124,9 +140,11 @@ If any of the following is unclear, stop and ask the user:
   email or a redacted stand-in.
 
 When asking, remind the user of the policy in one sentence, offer a safe
-default, and wait. For example:
+default, and wait. For example (assume the user pasted a real corporate
+email into the draft reproduction steps — describe it generically, then
+show only the reserved-domain replacement):
 
-> "That reproduction step references `alice@linuxfoundation.org`. LFX
+> "That reproduction step includes a real staff email address. LFX
 > data-privacy policy says we don't put real user identifiers in tickets or
 > logs unless there's a specific audit reason. I can replace it with
 > `user-a@example.com` and note the affected user role instead — okay?"

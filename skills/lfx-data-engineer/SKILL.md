@@ -412,9 +412,25 @@ that doc before generating any of the following:
   column is not part of the documented contract** — stop and ask the user
   first; the answer is usually "drop the column."
 
-`gdpr_filter_email()`, `comprehensive_email_filter()`, and the `_fivetran_deleted`
-filter are policy-enforcement macros, not optional. Every model that exposes
-email addresses MUST route through them.
+The three filters below have distinct, non-interchangeable roles. Pick the
+right one for the layer and source:
+
+- **`gdpr_filter_email(email_field)` / `gdpr_filter_email_list(field, delim)`**
+  (see [`references/key-macros.md`](references/key-macros.md)): these are
+  the GDPR enforcement macros. Any model that surfaces email addresses to
+  downstream consumers — bronze, silver, gold, or platinum — MUST filter
+  through the appropriate variant so GDPR-suppressed addresses are removed.
+- **`comprehensive_email_filter(email_field)`** (see
+  [`references/key-macros.md`](references/key-macros.md), "Email Validation
+  Macros"): a data-quality filter (format validation + test-address
+  exclusion). Apply it where you need clean, deliverable email addresses;
+  it is not a GDPR substitute.
+- **`WHERE NOT _fivetran_deleted`** (see
+  [`references/medallion-architecture.md`](references/medallion-architecture.md),
+  Bronze Layer key patterns): bronze-layer-only, and only for sources
+  whose ingest sets the Fivetran soft-delete column. Silver/gold/platinum
+  and non-Fivetran sources do not have this column and MUST NOT reference
+  it.
 
 ### PII Tagging
 

@@ -39,9 +39,13 @@ Apply the rules in this doc any time the AI is about to:
 3. **Never persist PII to a datastore unless the resource contract requires
    that specific field.** If the value is not part of the resource's owned
    schema, it does not belong in KV, index docs, FGA tuples, or Postgres.
-4. **Never paste, embed, or hard-code real user identifiers into documentation,
-   PRs, Jira tickets, commit messages, or code comments.** Redact or replace
-   before submitting. Two narrow exceptions apply, each scoped tightly:
+4. **Never paste, embed, or hard-code any real user PII — including
+   identifiers, images, precise geolocation, financial data, and
+   authentication material (as defined in *What counts as PII* below) —
+   into documentation, PRs, Jira tickets, commit messages, code comments,
+   reproduction steps, screenshot captions, or Slack / external
+   messages.** Redact or replace before submitting. Two narrow exceptions
+   apply, each scoped tightly:
    - *DCO trailer (contribution requirement).* The commit author's own
      `Signed-off-by: <name> <email>` trailer required by the Developer
      Certificate of Origin is permitted and required on every commit (see
@@ -111,7 +115,7 @@ domain-appropriate:
 | Address | `1 Test Way, Springfield` | Real customer addresses |
 | Org / company | `Example Foundation`, `Acme Test Org` | Real member organization names |
 | UUID / IDs | `uuid.NewString()` or a fixed valid UUID such as `00000000-0000-0000-0000-000000000001` | Copy-pasted production UUIDs from a real record |
-| Faker / factory | Language-native fakers (`faker.Name()`, `@faker-js/faker`, `factory_bot`, dbt seed generators) seeded with a fixed value for determinism | Snapshots of real production rows |
+| Faker / factory | Language-native fakers (`faker.Name()`, `@faker-js/faker`, `factory_bot`, dbt seed generators) **only when contact-data providers are overridden to the reserved patterns above**: pin email domain to `example.com` / `example.test` (do NOT rely on the default `internet.email()` — many implementations use real mail providers like `gmail.com` / `hotmail.com`); pin phone to the reserved NANPA range `+1-202-555-0100..0199` (default `phone.number()` produces numbers outside the reserved block); constrain the name provider to an obviously-fake list; seed with a fixed value for determinism. Bare defaults are NOT safe. | Snapshots of real production rows; unconfigured `faker.internet.email()` / `faker.phone.number()`; any faker output that has not been constrained to the reserved ranges |
 
 For dbt seeds and bronze-layer examples, follow the PII tagging and filtering
 rules in `skills/lfx-data-engineer/SKILL.md` and its
@@ -129,9 +133,18 @@ When emitting to an audit path:
 - The code MUST be on a code path clearly named for audit (`internal/audit/`,
   `audit_log`, `AuditLogger`, a dedicated audit NATS subject, etc.) — not the
   general application logger.
-- A code comment on the emission MUST name the policy or requirement that
-  requires the raw field (for example, `// SOC 2 CC7.2: audit trail requires
-  actor email`).
+- A code comment on the emission MUST cite the **specific policy or
+  requirement that mandates the raw field**, by policy identifier and
+  section (for example, the shape is
+  `// <policy-id> §<section>: <mandate that names this exact field>`, not
+  a vague reference to "the audit trail"). The agent authoring the code
+  MUST verify that the cited policy actually mandates *this specific raw
+  field* (not merely "log audit events" — that is generic and does not
+  justify raw PII). If the policy only mandates "an identifier for the
+  actor" without specifying which one, prefer a pseudonymized identifier
+  or a non-user resource UID and skip the exception. Do not copy example
+  policy citations from documentation into code; look up and cite the
+  policy that actually applies to the emitting service.
 - The value MUST NOT also flow to the general application log, error log,
   metrics, tracing spans, or user-visible error responses.
 

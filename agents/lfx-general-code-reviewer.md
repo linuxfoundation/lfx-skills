@@ -137,11 +137,22 @@ with `<redacted>` before including the snippet.
   `audit_log`-shaped writer — **not the general application logger**;
   (b) the code path is clearly named for audit (e.g., `internal/audit/`,
   `audit_log`, `AuditLogger`); (c) a code comment on the emission names
-  the policy or requirement that requires the raw field (regulatory,
-  security, or contract); (d) the same value does not also flow to the
-  general application logger, error log, metrics, tracing spans, or
-  user-visible error responses. Missing any one of these → flag as
-  Critical.
+  the specific policy or requirement that mandates the raw field
+  (regulatory, security, or contract), citing the policy identifier and
+  section; (d) the same value does not also flow to the general
+  application logger, error log, metrics, tracing spans, or user-visible
+  error responses. Missing any one of these → flag as Critical.
+- **Authentication material has no audit exception.** Passwords, API
+  keys, JWTs, session cookies, MFA seeds, and private keys are **never**
+  eligible for the audit exception above, regardless of how well
+  gates (a)-(d) are satisfied. Flag as **Critical** any log emission
+  (application, audit, error, metrics, tracing, or elsewhere) that
+  contains a credential in plaintext or reversibly-encoded form. When
+  emitting a finding about credential logging, describe the category
+  and location only (e.g., "raw JWT emitted at
+  `internal/audit/writer.go:117`") and replace the value with
+  `<redacted>` in any inline snippet — do not paste the credential
+  itself into the review comment.
 - Do new **error messages, error responses, tracing spans, metrics tags,
   or user-visible error text** include raw PII (as defined above)? If
   yes, flag as Critical. **The audit exception does NOT apply to these

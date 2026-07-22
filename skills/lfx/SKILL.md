@@ -267,13 +267,20 @@ unsure. Never assume `../../<repo>/`.
   numbers, LFIDs, GitHub/Discord handles, addresses, etc.) in test data,
   fixtures, examples, logs, commits, PRs, or tickets. Never persist PII
   outside a field the resource contract requires. When in doubt, stop and
-  ask the user.** Two narrow exceptions, each scoped tightly: the commit
-  author's own DCO `Signed-off-by:` trailer required by DCO (see
-  `lfx-git-setup`), and author attribution — the commit's own git-author
-  identity (name + email), plus `Co-authored-by:` trailers only for
-  individuals who actually co-authored the change and consented to real-
-  identity attribution (`Co-authored-by:` is not a DCO trailer and is not
+  ask the user.** *Exceptions to the commit/PR/ticket/comment
+  prohibition (hard rule 4 in `references/data-privacy.md`) are limited
+  to two, each scoped tightly:* the commit author's own DCO
+  `Signed-off-by:` trailer required by DCO (see `lfx-git-setup`), and
+  author attribution — the commit's own git-author identity
+  (name + email), plus `Co-authored-by:` trailers only for individuals
+  who actually co-authored the change and consented to real-identity
+  attribution (`Co-authored-by:` is not a DCO trailer and is not
   produced by `--signoff`). Neither exception permits a non-contributor's
-  PII (an affected end user, support contact, member org's staff, etc.) in
-  commit messages, PR bodies, tickets, or code comments. Full rules and
-  safe alternatives: [`references/data-privacy.md`](references/data-privacy.md).
+  PII (an affected end user, support contact, member org's staff, etc.)
+  in commit messages, PR bodies, tickets, or code comments. *A separate
+  narrow exception applies to hard rule 2 (the no-PII-in-logs default): a
+  dedicated audit-log code path may emit raw PII when four gates are all
+  satisfied — see the "Logging exception" section of
+  `references/data-privacy.md`; authentication material is unconditionally
+  excluded from that exception.* Full rules and safe alternatives:
+  [`references/data-privacy.md`](references/data-privacy.md).

@@ -267,21 +267,24 @@ If no relevant metrics are found, or the returned dimensions don't cover the fie
 
 #### Option B — manual paste (fallback)
 
-Generate a sample data query using **only explicit column names from the registry** (never `*`) and ask the user to run it in Snowflake:
+Generate a sample data query using **only explicit column names from the registry** (never `*`), and per the Phase 2 data-privacy callout above, **narrow the SELECT to the columns needed for mapping** — do not request every column from every table. Use the Step 2 heuristics (below) to pick candidates: identity columns (EMAIL, USER_NAME, LOGIN, HANDLE, LF_USERNAME, LFID), org columns (ACCOUNT_NAME, COMPANY, ORGANIZATION), activity/timestamp columns (`UPDATED*`, `MODIFIED*`, `CREATED*`), and any `_ID` columns that are candidates for `sourceId`. **Exclude** free-text payloads (raw email bodies, comments, notes), base64/binary blob columns, huge JSON columns, and any column whose registry description does not suggest identity/org/activity/timestamp — these expand the PII exposure without helping mapping derivation. If a column's role is genuinely ambiguous from the registry alone (name and description don't disambiguate), add just that column to the SELECT and note the ambiguity to the user — one column at a time, not the entire row:
 
 ```sql
 SELECT
-  main.col1, main.col2, main.col3,  -- all columns from main table registry
-  j1.col1, j1.col2,                  -- all columns from each JOIN table
-  ...
+  -- Identity/org/activity candidates from the main table registry:
+  main.EMAIL, main.USER_NAME, main.LF_USERNAME,
+  main.ACCOUNT_NAME, main.UPDATED_TS, main.<candidate_id_col>,
+  -- Identity/org candidates from each JOIN table:
+  j1.<identity_or_org_cols_only>,
+  -- Omit: raw email bodies, notes, blob payloads, base64 fields, large JSON
 FROM DB.SCHEMA.MAIN_TABLE main
 LEFT JOIN DB.SCHEMA.JOIN_TABLE1 j1 ON main.join_key = j1.pk
--- ... all joins
+-- ... joins limited to tables whose columns actually contribute to mapping
 LIMIT 20;
 ```
 
 Ask the user:
-> "Please run this query in Snowflake and paste the result or provide a path to the exported file (CSV, JSON, or TSV). I'll use the actual data values to auto-derive column mappings before asking for your confirmation."
+> "Please run this query in Snowflake and paste the result or provide a path to the exported file (CSV, JSON, or TSV). I've limited the SELECT to identity/org/activity/timestamp candidates per the Phase 2 minimization rule; if a role is ambiguous and you want me to include another column, tell me and I'll widen the SELECT with your confirmation. I'll use the actual data values to auto-derive column mappings before asking for your confirmation."
 
 ---
 

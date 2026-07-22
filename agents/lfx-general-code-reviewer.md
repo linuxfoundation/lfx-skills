@@ -162,14 +162,21 @@ with `<redacted>` before including the snippet.
   entries persist PII that is NOT part of the resource contract? If yes,
   flag as Critical. Contract-owned PII fields (documented in the owning
   service's schema/contract docs) are permitted — do not flag those.
-- Do committed code comments, PR body, migration comments, or docs snippets
-  hard-code real user identifiers? If yes, flag as **Critical** and recommend
-  redaction. Applies whether the identifier appears in source code, a
-  migration file, a Markdown doc, or the PR description — anything that
-  lands in the repo history. The DCO exception (contributor's own
-  `Signed-off-by:` / `Co-authored-by:` / git-author trailer required by
-  contribution policy) does not extend to _other_ users' PII in any of
-  these surfaces.
+- Do committed code comments, PR body, migration comments, docs snippets,
+  reproduction steps, screenshot captions, or committed screenshot/image
+  files hard-code **any real user PII** — identifiers, images (photo,
+  signature, avatar tied to an individual), precise geolocation, financial
+  data (payment cards, bank accounts, invoice IDs tied to a person), or
+  authentication material (as defined in the Data Privacy taxonomy in
+  `skills/lfx/references/data-privacy.md`, self-contained above)? If yes,
+  flag as **Critical** and recommend redaction. Applies whether the PII
+  appears in source code, a migration file, a Markdown doc, the PR
+  description, or an attached asset (screenshot in `docs/`, PNG in a
+  fixture) — anything that lands in the repo history. The DCO / author-
+  attribution exceptions (contributor's own `Signed-off-by:`, git-author
+  identity, or a consenting coauthor's `Co-authored-by:` per canonical
+  hard rule 4) do not extend to _other_ users' PII in any of these
+  surfaces.
 - For dbt/data-engineer changes: are new PII-bearing columns tagged with
   `config.meta.contains_pii: true` and `data_retention` set?
 

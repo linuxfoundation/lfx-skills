@@ -402,8 +402,13 @@ that doc before generating any of the following:
   real primary keys.
 - **New bronze/silver models that expose email, name, phone, address, or
   linked pseudonyms (LFID, GitHub handle, Discord ID)** — the column MUST be
-  PII-tagged (see below), the model description MUST name the retention
-  policy, and any downstream `dbt show` or docs snippet MUST use the safe
+  PII-tagged and MUST have `config.meta.data_retention` populated per the
+  existing convention in the *PII Tagging* section below and
+  `references/testing-patterns.md` (populate it with the authoritative
+  retention window when known — e.g., `"7-years"`, `"90-days"` — or the
+  documented `"undefined"` placeholder when the policy is not yet
+  authoritative; do not invent a retention period, and do not omit the
+  field). Any downstream `dbt show` or docs snippet MUST use the safe
   alternatives from `data-privacy.md`.
 - **Logging or `RAISE`/`ASSERT` output inside macros or Python models** —
   never emit raw PII. Use a correlator that does not locate an individual

@@ -325,14 +325,20 @@ a service's flow:
 - **FGA tuples**: use structural IDs (resource UID, user UID, project UID),
   never raw emails or personal names, as tuple `user`/`object` values.
 - **Application logs**: default is no PII. Correlate on request ID,
-  correlation ID, trace ID, or a **non-user** resource UID (project UID,
-  meeting UID, committee UID, mailing-list UID, etc.). User-linked UIDs
-  (user UID, member UID, persona UID, LFID, Auth0 `sub`) are linked
-  pseudonyms and are not safe to log raw; when a user correlator is truly
-  needed, emit a service-specific **keyed-HMAC pseudonym** (plain
-  `sha256(email)` is banned — see `data-privacy.md`, "Logging exception").
-  The narrow audit-log exception, also documented in `data-privacy.md`,
-  applies only to a dedicated audit-log code path.
+  correlation ID, trace ID, or a **non-user resource UID that does not
+  reference a natural person** (project UID, meeting UID, committee UID,
+  mailing-list UID, etc.). User-linked UIDs (user UID, member UID,
+  persona UID, LFID, Auth0 `sub`) are linked pseudonyms and are not safe
+  to log raw. **Resource UIDs that reference a person or the person's
+  financial relationship — invoice UID, subscription UID, order UID,
+  membership UID — are also linked pseudonyms per
+  [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)
+  and MUST NOT be logged raw either; treat them like user UIDs.** When a
+  user-linked correlator is truly needed, emit a service-specific
+  **keyed-HMAC pseudonym** (plain `sha256(email)` is banned — see
+  `data-privacy.md`, "Logging exception"). The narrow audit-log
+  exception, also documented in `data-privacy.md`, applies only to a
+  dedicated audit-log code path.
 - **Error responses, tracing spans, metrics tags**: no PII, no audit
   exception. These sinks are excluded from the audit exception by the
   canonical rule.

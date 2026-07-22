@@ -126,10 +126,16 @@ with `<redacted>` before including the snippet.
   UID, Auth0 `sub`)? If yes, flag as **Critical unconditionally**. The
   audit exception does NOT rescue a general-logger emission, even when
   the surrounding file or handler is audit-named (e.g., `internal/audit/`
-  writing to `logger.Info(...)`). Non-user resource UIDs (project UID,
-  meeting UID, committee UID, etc.), request IDs, correlation IDs, and
-  trace IDs are permitted. Plain hashes such as truncated `sha256(email)`
-  are not safe pseudonyms; a service-specific keyed HMAC is required.
+  writing to `logger.Info(...)`). Non-user resource UIDs that do NOT
+  reference a natural person (project UID, meeting UID, committee UID,
+  mailing-list UID, etc.), request IDs, correlation IDs, and trace IDs
+  are permitted. **Resource UIDs that reference a person or the person's
+  financial relationship — invoice UID, subscription UID, order UID,
+  membership UID — are linked pseudonyms per the canonical taxonomy
+  (`skills/lfx/references/data-privacy.md`) and are NOT eligible for
+  this allowlist; treat them like user UIDs and flag raw logging as
+  Critical.** Plain hashes such as truncated `sha256(email)` are not
+  safe pseudonyms; a service-specific keyed HMAC is required.
 - **Narrow audit-log exception.** Raw PII in a log emission is _not_
   flagged only when ALL of the following hold, matching the canonical
   rule: (a) the emission goes to a **dedicated audit sink** — a distinct
@@ -172,11 +178,17 @@ with `<redacted>` before including the snippet.
   flag as **Critical** and recommend redaction. Applies whether the PII
   appears in source code, a migration file, a Markdown doc, the PR
   description, or an attached asset (screenshot in `docs/`, PNG in a
-  fixture) — anything that lands in the repo history. The DCO / author-
-  attribution exceptions (contributor's own `Signed-off-by:`, git-author
-  identity, or a consenting coauthor's `Co-authored-by:` per canonical
-  hard rule 4) do not extend to _other_ users' PII in any of these
-  surfaces.
+  fixture) — anything that lands in the repo history. **The DCO /
+  author-attribution exceptions permit real identity ONLY in commit
+  metadata — the git-author `name <email>` header, the `Signed-off-by:`
+  trailer, and a consenting coauthor's `Co-authored-by:` trailer per
+  canonical hard rule 4. They do NOT permit real PII in the artifact
+  surfaces enumerated above** (source code, code comments, migration
+  comments, docs snippets, PR body, ticket text, reproduction steps,
+  screenshot captions, or attached screenshot/image files), regardless
+  of whose PII it is — including the contributor's own. Any real user
+  PII outside of commit-metadata trailers on those surfaces is
+  Critical.
 - For dbt/data-engineer changes: are new PII-bearing columns tagged with
   `config.meta.contains_pii: true` and `data_retention` set?
 

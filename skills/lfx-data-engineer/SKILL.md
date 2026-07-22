@@ -401,14 +401,16 @@ that doc before generating any of the following:
   fixed UUIDs. Use `dbt_utils.generate_surrogate_key` on synthetic inputs, not
   real primary keys.
 - **New bronze/silver models that expose email, name, phone, address, or
-  linked pseudonyms (LFID, GitHub handle, Discord ID)** — the column MUST be
-  PII-tagged and MUST have `config.meta.data_retention` populated per the
-  existing convention in the *PII Tagging* section below and
-  `references/testing-patterns.md` (populate it with the authoritative
-  retention window when known — e.g., `"7-years"`, `"90-days"` — or the
-  documented `"undefined"` placeholder when the policy is not yet
-  authoritative; do not invent a retention period, and do not omit the
-  field). Any downstream `dbt show` or docs snippet MUST use the safe
+  linked pseudonyms (LFID, GitHub handle, Discord ID)** — the column MUST
+  be PII-tagged (`config.meta.contains_pii: true`) and MUST include
+  `config.meta.data_retention: "undefined"` per the existing convention
+  documented in the *PII Tagging* section below and
+  [`references/testing-patterns.md`](references/testing-patterns.md) (see
+  the "PII Tagging" section there and the checklist item at
+  `references/testing-patterns.md:349-350`). Do not invent an alternative
+  retention value and do not omit the field; the `"undefined"` placeholder
+  is the convention until the shared testing-patterns.md guidance is
+  updated. Any downstream `dbt show` or docs snippet MUST use the safe
   alternatives from `data-privacy.md`.
 - **Logging or `RAISE`/`ASSERT` output inside macros or Python models** —
   never emit raw PII. Use a correlator that does not locate an individual

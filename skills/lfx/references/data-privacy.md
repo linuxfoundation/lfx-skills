@@ -88,10 +88,20 @@ Treat these as PII by default:
   tracing) in plaintext or reversible form. Redact, omit, or replace with a
   fixed masked token (`****`); when correlation is required, use a keyed
   HMAC of the credential's ID, never the credential itself.**
-- Precise geolocation, and IP addresses (raw client IPs are personal data
-  under GDPR and CCPA as online identifiers, regardless of whether they are
-  paired with an account; the CJEU established this in Breyer, C-582/14
-  (2016))
+- Precise geolocation, and IP addresses. **LFX operational default:** treat
+  every raw client IP as personal data — regardless of whether it is paired
+  with an account — because operationally it is safer to redact by default
+  than to reason about linkability per emission site. This default is
+  broader than the strict legal test in either regime: under GDPR the CJEU
+  held in Breyer (C-582/14, 2016) that a dynamic IP is personal data for an
+  operator when it has legal means reasonably likely to identify the person
+  (typically via ISP-held subscriber data); the CCPA / CPRA classifies an
+  IP as personal information when it is reasonably capable of being
+  associated with a consumer or household. Because LFX systems routinely
+  hold or can request linkage data (account records, session logs, support
+  correspondence), the reasonable-linkability threshold is almost always
+  met in practice — so the safer operational default of "always treat raw
+  IPs as personal data" is adopted and enforced by this policy.
 - Photo, avatar, or signature images tied to an individual
 - **Linked pseudonyms**: LFID, GitHub username, Discord user ID, Slack user
   ID, Auth0 `sub`, Snowflake login, or any handle that can be joined back to

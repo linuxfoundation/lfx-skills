@@ -65,6 +65,23 @@ If the caller explicitly asks for staged or uncommitted work, also run
 If no git repository exists, use the Read tool to examine the files mentioned
 in context.
 
+**Fetch the PR body when a PR exists for the target branch.** The PR body
+and title are not part of git history, so `git show`/`git diff` cannot
+observe them. Some criteria below (notably the committed-artifacts PII
+check) apply to PR-body text; without an explicit fetch the reviewer would
+silently miss those violations. Run:
+
+```bash
+gh pr view --json number,title,body --jq '. | "PR #\(.number)\n\(.title)\n\n\(.body)"'
+```
+
+against the current branch (or an explicit PR number when the caller
+supplies one). If `gh` reports no PR for the branch, skip PR-body analysis
+and note that in the review (do not fail the review). Sanitize the fetched
+text before use — if the PR body itself contains real user PII, treat that
+as a finding rather than reproducing it in your review output (see the
+`<redacted>` rule below).
+
 **Focus your review on the changed code, not the entire codebase.** Only
 examine surrounding code for context when needed to understand the changes.
 
@@ -170,12 +187,25 @@ with `<redacted>` before including the snippet.
   service's schema/contract docs) are permitted — do not flag those.
 - Do committed code comments, PR body, migration comments, docs snippets,
   reproduction steps, screenshot captions, or committed screenshot/image
-  files hard-code **any real user PII** — identifiers, images (photo,
-  signature, avatar tied to an individual), precise geolocation, financial
-  data (payment cards, bank accounts, invoice IDs tied to a person), or
-  authentication material (as defined in the Data Privacy taxonomy in
-  `skills/lfx/references/data-privacy.md`, self-contained above)? If yes,
-  flag as **Critical** and recommend redaction. Applies whether the PII
+  files hard-code **any real user PII**? The full canonical taxonomy (from
+  `skills/lfx/references/data-privacy.md`, enumerated inline here so this
+  reviewer stays self-contained) is:
+  (1) real names — full, first, middle, or last;
+  (2) email addresses (personal, corporate, LFID-linked);
+  (3) phone numbers;
+  (4) physical or mailing addresses;
+  (5) government or national IDs (SSN, passport, tax ID);
+  (6) financial data (payment cards, bank accounts, invoice/subscription/
+  order/membership IDs tied to a person);
+  (7) authentication material (passwords, API keys, JWTs, session cookies,
+  MFA seeds, private keys);
+  (8) precise geolocation and IP addresses (LFX's operational default
+  treats all raw client IPs as personal data);
+  (9) photo, avatar, or signature images tied to an individual; and
+  (10) linked pseudonyms — LFID, GitHub username, Discord user ID, Slack
+  user ID, Auth0 `sub`, Snowflake login, or any handle that can be joined
+  back to a real person via internal systems.
+  If yes to any category, flag as **Critical** and recommend redaction. Applies whether the PII
   appears in source code, a migration file, a Markdown doc, the PR
   description, or an attached asset (screenshot in `docs/`, PNG in a
   fixture) — anything that lands in the repo history. **The DCO /

@@ -82,6 +82,27 @@ and ask them to confirm or adjust.
 Ask targeted questions based on type. Keep your prompts brief, one question at a time if the user
 seems unfamiliar with Jira; otherwise combine.
 
+> ⚠️ **No real user PII in the ticket — applies to every ticket type
+> (Bug, Story, Task, Epic).** Ticket descriptions, acceptance criteria,
+> reproduction steps, screenshots, environment notes, and any linked
+> attachments must not include real user emails, names, LFIDs, phone
+> numbers, addresses, government IDs, financial identifiers, IP
+> addresses, or other PII. Substitute a safe placeholder
+> (`user-a@example.com`, "the affected committee chair", "member with
+> role X") and, if the specific user matters, tell the assignee to look
+> it up out-of-band. See
+> [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)
+> for the full taxonomy and safe alternatives.
+>
+> **This is a submission precondition, not an offer.** If the user's
+> draft contains real user PII in any field, do NOT proceed to Step 4.
+> Redact/replace every occurrence with a placeholder first and confirm
+> the redacted draft with the user. The ticket may only be submitted
+> after every real-PII value has been removed or replaced. If the user
+> insists on including a real identifier, stop and ask them to justify
+> the business need against the LFX data-privacy policy before
+> continuing.
+
 ### Bug
 
 Ask for:
@@ -92,14 +113,6 @@ Ask for:
 
 **Do not proceed to Step 4 until you have reproduction steps.** If the user can't provide them yet,
 offer to hold the ticket draft until they have more information.
-
-> ⚠️ **No real user PII in the ticket.** Reproduction steps, screenshots, and
-> environment notes must not include real user emails, names, LFIDs, phone
-> numbers, or other PII. Substitute a safe placeholder (`user-a@example.com`,
-> "the affected committee chair", "member with role X") and, if the specific
-> user matters, tell the assignee to look it up out-of-band. See
-> [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md).
-> If the user's draft contains real PII, offer to redact it before submitting.
 
 ### Story / Task
 

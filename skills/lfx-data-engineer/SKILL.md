@@ -400,9 +400,10 @@ that doc before generating any of the following:
   `user-1@example.com`, `Test User`, `testuser01`, reserved phone blocks, and
   fixed UUIDs. Use `dbt_utils.generate_surrogate_key` on synthetic inputs, not
   real primary keys.
-- **New bronze/silver models that expose email, name, phone, address, or
-  linked pseudonyms (LFID, GitHub handle, Discord ID)** — the column MUST
-  be PII-tagged (`config.meta.contains_pii: true`) and MUST include
+- **New models in any layer (bronze, silver, gold, platinum) that expose
+  email, name, phone, address, or linked pseudonyms (LFID, GitHub handle,
+  Discord ID)** — the column MUST be PII-tagged
+  (`config.meta.contains_pii: true`) and MUST include
   `config.meta.data_retention: "undefined"` per the existing convention
   documented in the *PII Tagging* section below and
   [`references/testing-patterns.md`](references/testing-patterns.md) (see

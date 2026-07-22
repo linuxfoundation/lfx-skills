@@ -120,7 +120,7 @@ deciding severity.
   meeting UID, committee UID, etc.), request IDs, correlation IDs, and
   trace IDs are permitted. Plain hashes such as truncated `sha256(email)`
   are not safe pseudonyms; a service-specific keyed HMAC is required.
-- **Narrow audit-log exception.** Raw PII in a log emission is *not*
+- **Narrow audit-log exception.** Raw PII in a log emission is _not_
   flagged only when ALL of the following hold, matching the canonical
   rule: (a) the emission goes to a **dedicated audit sink** — a distinct
   logger such as `AuditLogger`, a dedicated audit NATS subject, or an

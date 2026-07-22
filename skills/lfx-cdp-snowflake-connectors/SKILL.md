@@ -172,8 +172,17 @@ Once all table names are known, collect column schemas using the LFX BI Layer MC
 >   mapping is confirmed. Never `git add` a Snowflake export file.
 > - If the generated code introduces logging (via `console.log`, an existing
 >   logger, or a `throw new Error(...)` message), it MUST NOT include the
->   user's email, LFID, name, or platform username. Log the `sourceId` or a
->   pseudonymized identifier (per-service keyed HMAC) instead.
+>   user's email, LFID, name, or platform username. **Note**: in this skill,
+>   the `sourceId` argument to `buildMemberIdentities()` is the user ID
+>   column (see the transformer rules below at Touch Point 9), so it is a
+>   linked pseudonym and is NOT a safe log fallback either. Log a
+>   non-user correlator from this domain instead — the CDP `project_slug`,
+>   the activity/record timestamp, or the confirmed record-deduplication
+>   column referred to by its actual column name (e.g. `REGISTRATION_ID`).
+>   When a user-linked correlator is truly needed for a specific log line,
+>   emit a service-specific **keyed-HMAC pseudonym** per
+>   [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)
+>   ("Logging exception"), not a raw hash.
 > - When in doubt (e.g., a column looks synthetic but might be a real handle),
 >   stop and ask the user before writing the file.
 

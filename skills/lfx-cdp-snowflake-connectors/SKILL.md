@@ -172,15 +172,19 @@ Once all table names are known, collect column schemas using the LFX BI Layer MC
 >   mapping is confirmed. Never `git add` a Snowflake export file.
 > - If the generated code introduces logging (via `console.log`, an existing
 >   logger, or a `throw new Error(...)` message), it MUST NOT include the
->   user's email, LFID, name, or platform username. **Note**: in this skill,
->   the `sourceId` argument to `buildMemberIdentities()` is the user ID
->   column (see the transformer rules below at Touch Point 9), so it is a
->   linked pseudonym and is NOT a safe log fallback either. Log a
->   non-user correlator from this domain instead — the CDP `project_slug`,
->   the activity/record timestamp, or the confirmed record-deduplication
->   column referred to by its actual column name (e.g. `REGISTRATION_ID`).
->   When a user-linked correlator is truly needed for a specific log line,
->   emit a service-specific **keyed-HMAC pseudonym** per
+>   user's email, LFID, name, or platform username. **Note**: in this
+>   skill, the `sourceId` argument to `buildMemberIdentities()` is the
+>   user ID column (see the transformer rules below at Touch Point 9), so
+>   `sourceId` — and **any source column that is mapped to `sourceId` in
+>   Phase 3's confirmed mapping**, such as `REGISTRATION_ID` in the
+>   sample prompt below — is a linked pseudonym and is NOT a safe log
+>   fallback either. Log a correlator that is unambiguously non-user
+>   instead: the CDP `project_slug`, the activity/record timestamp column
+>   (e.g. `UPDATED_TS`), or a source-scoped resource ID that is not
+>   mapped to `sourceId`, `email`, `platformUsername`, or `lfUsername` in
+>   Phase 3's confirmed mapping. When a user-linked correlator is truly
+>   needed for a specific log line, emit a service-specific **keyed-HMAC
+>   pseudonym** per
 >   [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)
 >   ("Logging exception"), not a raw hash.
 > - When in doubt (e.g., a column looks synthetic but might be a real handle),

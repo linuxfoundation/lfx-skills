@@ -80,7 +80,7 @@ domain-appropriate:
 | Email in unit/integration tests | `user-1@example.com`, `alice@example.test`, `qa+bug-123@example.com` | Real coworker or user emails |
 | Full name | `Test User 1`, `Alice Example`, `Committee Chair` | Real names from Salesforce, Auth0, LFID directory |
 | Username / LFID | `testuser01`, `lf-fixture-alice`, `qa-writer-1` | Real GitHub, LFID, or Discord handles |
-| Phone | `+15555550100` .. `+15555550199` (NANPA fictional-use range, `555-0100`..`555-0199`) | Real numbers |
+| Phone | `+12025550100` .. `+12025550199` (valid NPA `202` + NANPA fictional-use exchange range `555-0100`..`555-0199`; NPA `555` is not an assigned area code and can be rejected by strict phone validators) | Real numbers, and avoid `+1-555-555-01XX` in code paths that validate the NPA |
 | Address | `1 Test Way, Springfield` | Real customer addresses |
 | Org / company | `Example Foundation`, `Acme Test Org` | Real member organization names |
 | UUID / IDs | `uuid.NewString()` or a fixed valid UUID such as `00000000-0000-0000-0000-000000000001` | Copy-pasted production UUIDs from a real record |

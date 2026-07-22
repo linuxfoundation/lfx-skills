@@ -113,13 +113,25 @@ deciding severity.
 - Do new **log lines on the general application logger** include raw
   emails, names, phone numbers, LFIDs, GitHub/Discord handles, or other
   PII (including user-linked UIDs such as user UID, member UID, persona
-  UID, Auth0 `sub`)? If yes, flag unless the code path is a clearly named
-  audit-log path AND the raw field is required by a documented audit
-  requirement (comment must name the policy). Non-user resource UIDs
-  (project UID, meeting UID, committee UID, etc.), request IDs,
-  correlation IDs, and trace IDs are permitted. Plain hashes such as
-  truncated `sha256(email)` are not safe pseudonyms; a service-specific
-  keyed HMAC is required.
+  UID, Auth0 `sub`)? If yes, flag as **Critical unconditionally**. The
+  audit exception does NOT rescue a general-logger emission, even when
+  the surrounding file or handler is audit-named (e.g., `internal/audit/`
+  writing to `logger.Info(...)`). Non-user resource UIDs (project UID,
+  meeting UID, committee UID, etc.), request IDs, correlation IDs, and
+  trace IDs are permitted. Plain hashes such as truncated `sha256(email)`
+  are not safe pseudonyms; a service-specific keyed HMAC is required.
+- **Narrow audit-log exception.** Raw PII in a log emission is *not*
+  flagged only when ALL of the following hold, matching the canonical
+  rule: (a) the emission goes to a **dedicated audit sink** — a distinct
+  logger such as `AuditLogger`, a dedicated audit NATS subject, or an
+  `audit_log`-shaped writer — **not the general application logger**;
+  (b) the code path is clearly named for audit (e.g., `internal/audit/`,
+  `audit_log`, `AuditLogger`); (c) a code comment on the emission names
+  the policy or requirement that requires the raw field (regulatory,
+  security, or contract); (d) the same value does not also flow to the
+  general application logger, error log, metrics, tracing spans, or
+  user-visible error responses. Missing any one of these → flag as
+  Critical.
 - Do new **error messages, error responses, tracing spans, metrics tags,
   or user-visible error text** include raw PII (as defined above)? If
   yes, flag as Critical. **The audit exception does NOT apply to these

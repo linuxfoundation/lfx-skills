@@ -178,13 +178,18 @@ Once all table names are known, collect column schemas using the LFX BI Layer MC
 >   `sourceId` — and **any source column that is mapped to `sourceId` in
 >   Phase 3's confirmed mapping**, such as `REGISTRATION_ID` in the
 >   sample prompt below — is a linked pseudonym and is NOT a safe log
->   fallback either. Log a correlator that is unambiguously non-user
->   instead: the CDP `project_slug`, the activity/record timestamp column
->   (e.g. `UPDATED_TS`), or a source-scoped resource ID that is not
->   mapped to `sourceId`, `email`, `platformUsername`, or `lfUsername` in
->   Phase 3's confirmed mapping. When a user-linked correlator is truly
->   needed for a specific log line, emit a service-specific **keyed-HMAC
->   pseudonym** per
+>   fallback either. Log only correlators that do not locate an
+>   individual activity record: the CDP `project_slug`, the batch or
+>   pipeline `run_id` / invocation identifier that groups many rows, or
+>   the source table name plus a **coarse** (day-level) time bucket that
+>   deliberately aggregates across many rows. **Do NOT** log row-level
+>   activity timestamps (e.g., `UPDATED_TS`), source-row primary keys, or
+>   any "source-scoped resource ID" that pinpoints a single row — those
+>   join back to a person via the row's user-ID column and are linked
+>   pseudonyms per the canonical taxonomy (same rule as
+>   `skills/lfx-data-engineer/SKILL.md` §PII Hard Rules, macro-logging
+>   bullet). When a user-linked correlator is truly needed for a specific
+>   log line, emit a service-specific **keyed-HMAC pseudonym** per
 >   [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)
 >   ("Logging exception"), not a raw hash.
 > - When in doubt (e.g., a column looks synthetic but might be a real handle),

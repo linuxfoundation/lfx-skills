@@ -41,13 +41,26 @@ Apply the rules in this doc any time the AI is about to:
    schema, it does not belong in KV, index docs, FGA tuples, or Postgres.
 4. **Never paste, embed, or hard-code real user identifiers into documentation,
    PRs, Jira tickets, commit messages, or code comments.** Redact or replace
-   before submitting. *Narrow exception for the contributor's own attribution:*
-   the DCO `Signed-off-by:`, `Co-authored-by:`, and git-author (name + email)
-   trailers required by the project's contribution policy (see
-   `skills/lfx-git-setup/SKILL.md`) are permitted, and required, on the
-   contributor's own commit. This exception covers only the contributor's own
-   attribution metadata — it does not license including *another* user's PII in
-   a commit message, PR body, ticket, or code comment.
+   before submitting. Two narrow exceptions apply, each scoped tightly:
+   - *DCO trailer (contribution requirement).* The commit author's own
+     `Signed-off-by: <name> <email>` trailer required by the Developer
+     Certificate of Origin is permitted and required on every commit (see
+     `skills/lfx-git-setup/SKILL.md`). `Co-authored-by:` is a GitHub
+     attribution convention and is **not** a DCO trailer — do not conflate
+     the two, and do not use `--signoff` to justify `Co-authored-by:`.
+   - *Author attribution (git author + optional coauthors).* The commit's
+     own git-author identity (name + email) is permitted. `Co-authored-by:
+     <name> <email>` trailers are permitted only for individuals who
+     actually co-authored the change and who have consented to being
+     attributed under their real identity on this commit; the coauthor's
+     own `Signed-off-by:` is required alongside their `Co-authored-by:`
+     line when they participated as a contributor. Do not use
+     `Co-authored-by:` as a workaround to reference a third party's PII.
+   Neither exception permits including a *non-contributor's* PII (support
+   contact, end user affected by a bug, member org's staff, etc.) in a
+   commit message, PR body, ticket, or code comment. When such a reference
+   is needed for context, use a role-based stand-in ("the affected
+   committee chair," "the reporter of ticket X") and omit the identity.
 5. **When in doubt, stop and ask the user.** A short question costs seconds.
    A shipped PII leak costs hours of remediation, a customer notice, and
    erodes trust. Remind them that logging, storing, or using real user data

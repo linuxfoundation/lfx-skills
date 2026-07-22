@@ -41,7 +41,13 @@ Apply the rules in this doc any time the AI is about to:
    schema, it does not belong in KV, index docs, FGA tuples, or Postgres.
 4. **Never paste, embed, or hard-code real user identifiers into documentation,
    PRs, Jira tickets, commit messages, or code comments.** Redact or replace
-   before submitting.
+   before submitting. *Narrow exception for the contributor's own attribution:*
+   the DCO `Signed-off-by:`, `Co-authored-by:`, and git-author (name + email)
+   trailers required by the project's contribution policy (see
+   `skills/lfx-git-setup/SKILL.md`) are permitted, and required, on the
+   contributor's own commit. This exception covers only the contributor's own
+   attribution metadata — it does not license including *another* user's PII in
+   a commit message, PR body, ticket, or code comment.
 5. **When in doubt, stop and ask the user.** A short question costs seconds.
    A shipped PII leak costs hours of remediation, a customer notice, and
    erodes trust. Remind them that logging, storing, or using real user data
@@ -59,8 +65,16 @@ Treat these as PII by default:
 - Government or national IDs (SSN, passport, tax ID)
 - Financial data (payment cards, bank accounts, invoice IDs tied to a person)
 - Authentication material (passwords, API keys, JWTs, session cookies, MFA
-  seeds, RSA private keys)
-- Precise geolocation, IP addresses paired with an account
+  seeds, RSA private keys) — **stricter than the rest of this taxonomy: the
+  narrow *Logging exception* below does NOT apply. Authentication material
+  must never appear in any log sink (application, audit, error, metrics,
+  tracing) in plaintext or reversible form. Redact, omit, or replace with a
+  fixed masked token (`****`); when correlation is required, use a keyed
+  HMAC of the credential's ID, never the credential itself.**
+- Precise geolocation, and IP addresses (raw client IPs are personal data
+  under GDPR and CCPA as online identifiers, regardless of whether they are
+  paired with an account; the CJEU established this in Breyer, C-582/14
+  (2016))
 - Photo, avatar, or signature images tied to an individual
 - **Linked pseudonyms**: LFID, GitHub username, Discord user ID, Slack user
   ID, Auth0 `sub`, Snowflake login, or any handle that can be joined back to
@@ -110,12 +124,14 @@ When emitting to an audit path:
 
 Structured logs on the general application logger use non-PII identifiers:
 request ID, correlation ID, trace ID, or a **non-user** resource UID
-(project UID, meeting UID, committee UID, mailing-list UID, invoice UID,
-etc.). User-linked UIDs (user UID, member UID, persona UID, LFID, Auth0
-`sub`, GitHub user ID, Discord user ID) are linked pseudonyms per the PII
-taxonomy above and are **not** safe to log raw. When a user reference is
-truly needed for correlation, emit a **pseudonymized** identifier — not
-the raw value.
+(project UID, meeting UID, committee UID, mailing-list UID, etc.). User-linked
+UIDs (user UID, member UID, persona UID, LFID, Auth0 `sub`, GitHub user ID,
+Discord user ID) are linked pseudonyms per the PII taxonomy above and are
+**not** safe to log raw. Resource UIDs that reference a natural person or
+their financial relationship (invoice UID, subscription UID, order UID,
+membership UID) are also linked pseudonyms — treat them like user UIDs and
+do not log them raw. When a user reference is truly needed for correlation,
+emit a **pseudonymized** identifier — not the raw value.
 
 Do NOT use plain hashes such as `sha256(email)` or its truncation as a
 pseudonym. Email addresses have a small, enumerable input space; unsalted

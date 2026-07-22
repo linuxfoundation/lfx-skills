@@ -267,5 +267,9 @@ unsure. Never assume `../../<repo>/`.
   numbers, LFIDs, GitHub/Discord handles, addresses, etc.) in test data,
   fixtures, examples, logs, commits, PRs, or tickets. Never persist PII
   outside a field the resource contract requires. When in doubt, stop and
-  ask the user.** Full rules and safe alternatives:
-  [`references/data-privacy.md`](references/data-privacy.md).
+  ask the user.** Narrow exception: the contributor's own DCO
+  `Signed-off-by:`, `Co-authored-by:`, and git-author (name + email) trailers
+  required by contribution policy (see `lfx-git-setup`) are permitted on
+  the contributor's own commit; the exception covers only the contributor's
+  own attribution metadata, not *other* users' PII. Full rules and safe
+  alternatives: [`references/data-privacy.md`](references/data-privacy.md).

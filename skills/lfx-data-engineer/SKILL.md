@@ -406,8 +406,13 @@ that doc before generating any of the following:
   policy, and any downstream `dbt show` or docs snippet MUST use the safe
   alternatives from `data-privacy.md`.
 - **Logging or `RAISE`/`ASSERT` output inside macros or Python models** —
-  never emit raw PII. Use a **non-user** structural key (project slug,
-  activity UID, source table + row number) for correlation. If a
+  never emit raw PII. Use a correlator that does not locate an individual
+  record: dbt's `invocation_id` / `run_started_at`, the model name plus
+  source table name, batch identifier, warehouse `query_tag`, or an
+  aggregate grouping key (source-table name + time bucket). Do **not** use
+  `activity UID`, a specific row's surrogate key, or `source_table + row
+  number` — those are joinable back to a specific person's activity record
+  and are therefore linked pseudonyms per the canonical PII taxonomy. If a
   user-linked correlator is genuinely required, emit a service-specific
   **keyed-HMAC pseudonym** per the canonical rule in
   [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)

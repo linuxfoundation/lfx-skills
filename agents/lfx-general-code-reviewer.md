@@ -106,6 +106,16 @@ datastore/index document/FGA tuple **outside a field the resource contract
 owns**. Apply the exceptions carried in the specific bullets below when
 deciding severity.
 
+**Findings must not reproduce the PII they flag.** Because this agent
+publishes findings into a PR review, quoting the raw value re-leaks it into
+a GitHub comment. When flagging a PII violation, describe the PII by
+**category and location only** (for example, "corporate email address at
+`src/handlers/foo.ts:42` in test fixture" or "raw LFID passed to
+`logger.Info` at `internal/audit/writer.go:117`"), and refer to the
+offending value as `<redacted>` in any inline quote or code excerpt. The
+same rule applies to git-diff snippets in findings: elide the actual value
+with `<redacted>` before including the snippet.
+
 - Do new test files, fixtures, seed data, or mocked responses use fabricated
   values (`user-*@example.com`, `Test User`, reserved phone blocks, fixed
   UUIDs) rather than values copied from a real user, ticket, or Snowflake
@@ -142,7 +152,13 @@ deciding severity.
   flag as Critical. Contract-owned PII fields (documented in the owning
   service's schema/contract docs) are permitted — do not flag those.
 - Do committed code comments, PR body, migration comments, or docs snippets
-  hard-code real user identifiers? If yes, flag and recommend redaction.
+  hard-code real user identifiers? If yes, flag as **Critical** and recommend
+  redaction. Applies whether the identifier appears in source code, a
+  migration file, a Markdown doc, or the PR description — anything that
+  lands in the repo history. The DCO exception (contributor's own
+  `Signed-off-by:` / `Co-authored-by:` / git-author trailer required by
+  contribution policy) does not extend to _other_ users' PII in any of
+  these surfaces.
 - For dbt/data-engineer changes: are new PII-bearing columns tagged with
   `config.meta.contains_pii: true` and `data_retention` set?
 

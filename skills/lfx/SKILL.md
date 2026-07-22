@@ -269,8 +269,11 @@ unsure. Never assume `../../<repo>/`.
   outside a field the resource contract requires. When in doubt, stop and
   ask the user.** *Exceptions to the commit/PR/ticket/comment
   prohibition (hard rule 4 in `references/data-privacy.md`) are limited
-  to two, each scoped tightly:* the commit author's own DCO
-  `Signed-off-by:` trailer required by DCO (see `lfx-git-setup`), and
+  to two, each scoped tightly:* **every contributor's own DCO
+  `Signed-off-by:` trailer** required by DCO (see `lfx-git-setup`) —
+  the commit author's signoff is always required, and each coauthor
+  who participated as a contributor MUST add their own
+  `Signed-off-by:` line alongside their `Co-authored-by:` trailer; and
   author attribution — the commit's own git-author identity
   (name + email), plus `Co-authored-by:` trailers only for individuals
   who actually co-authored the change and consented to real-identity

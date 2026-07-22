@@ -706,8 +706,9 @@ Note: the LFX BI Layer MCP does not support arbitrary SQL execution — the test
 ### Dry-Run Validation
 
 When the user pastes results, for each row:
-- Apply transformer logic in-chat (show inputs → outputs)
-- Show the resulting `IActivityData` + segment slug
+
+- Apply transformer logic **internally** (do not echo raw values into chat); when showing inputs → outputs, **redact real PII values in both the input row and the resulting `IActivityData`** — replace real emails, LFIDs, platform usernames, GitHub/Discord/Slack handles, names, phone numbers, and any other PII from the canonical taxonomy (see [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)) with per-row tokens (`<email:row1>`, `<username:row1>`, `<lfid:row1>`) or reserved placeholders (`user-1@example.com`, `testuser01`); never paste raw rows or pre-redaction `IActivityData` into chat, review artifacts, or files on disk
+- Show the resulting `IActivityData` + segment slug (redacted per above)
 - Flag immediately: null email, missing USERNAME identity, unexpected activity type, null sourceId, null timestamp
 - If any issue found: loop back to the relevant Phase 3 sub-section, fix the mapping, regenerate the affected file
 

@@ -185,9 +185,9 @@ with `<redacted>` before including the snippet.
   entries persist PII that is NOT part of the resource contract? If yes,
   flag as Critical. Contract-owned PII fields (documented in the owning
   service's schema/contract docs) are permitted — do not flag those.
-- Do committed code comments, PR body, migration comments, docs snippets,
-  reproduction steps, screenshot captions, or committed screenshot/image
-  files hard-code **any real user PII**? The full canonical taxonomy (from
+- Do committed code comments, **PR title**, PR body, migration comments,
+  docs snippets, reproduction steps, screenshot captions, or committed
+  screenshot/image files hard-code **any real user PII**? The full canonical taxonomy (from
   `skills/lfx/references/data-privacy.md`, enumerated inline here so this
   reviewer stays self-contained) is:
   (1) real names — full, first, middle, or last;
@@ -201,23 +201,34 @@ with `<redacted>` before including the snippet.
   MFA seeds, private keys);
   (8) precise geolocation and IP addresses (LFX's operational default
   treats all raw client IPs as personal data);
-  (9) photo, avatar, or signature images tied to an individual; and
-  (10) linked pseudonyms — LFID, GitHub username, Discord user ID, Slack
+  (9) photo, avatar, or signature images tied to an individual;
+  (10) date of birth (and other precise dates that uniquely identify a
+  person — date of death, exact hire date combined with role, etc.);
+  (11) biometric identifiers (fingerprints, facial-recognition
+  templates, voiceprints, retinal/iris scans, gait, keystroke
+  dynamics) — GDPR Article 9 special category, no exception in this
+  policy applies;
+  (12) health information (medical conditions, diagnoses,
+  prescriptions, insurance records, mental-health notes, disability
+  status, genetic data) — GDPR Article 9 / US HIPAA-scope, no
+  exception in this policy applies; and
+  (13) linked pseudonyms — LFID, GitHub username, Discord user ID, Slack
   user ID, Auth0 `sub`, Snowflake login, or any handle that can be joined
   back to a real person via internal systems.
-  If yes to any category, flag as **Critical** and recommend redaction. Applies whether the PII
-  appears in source code, a migration file, a Markdown doc, the PR
-  description, or an attached asset (screenshot in `docs/`, PNG in a
-  fixture) — anything that lands in the repo history. **The DCO /
+  If yes to any category, flag as **Critical** and recommend redaction.
+  Applies whether the PII appears in source code, a migration file, a
+  Markdown doc, the PR title, the PR body/description, or an attached
+  asset (screenshot in `docs/`, PNG in a fixture) — anything that lands
+  in the repo history OR the PR metadata (title/body). **The DCO /
   author-attribution exceptions permit real identity ONLY in commit
   metadata — the git-author `name <email>` header, the `Signed-off-by:`
   trailer, and a consenting coauthor's `Co-authored-by:` trailer per
   canonical hard rule 4. They do NOT permit real PII in the artifact
   surfaces enumerated above** (source code, code comments, migration
-  comments, docs snippets, PR body, ticket text, reproduction steps,
-  screenshot captions, or attached screenshot/image files), regardless
-  of whose PII it is — including the contributor's own. Any real user
-  PII outside of commit-metadata trailers on those surfaces is
+  comments, docs snippets, PR title, PR body, ticket text, reproduction
+  steps, screenshot captions, or attached screenshot/image files),
+  regardless of whose PII it is — including the contributor's own. Any
+  real user PII outside of commit-metadata trailers on those surfaces is
   Critical.
 - For dbt/data-engineer changes: are new PII-bearing columns tagged with
   `config.meta.contains_pii: true` and `data_retention` set?

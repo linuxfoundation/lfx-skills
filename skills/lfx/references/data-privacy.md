@@ -103,6 +103,22 @@ Treat these as PII by default:
   met in practice — so the safer operational default of "always treat raw
   IPs as personal data" is adopted and enforced by this policy.
 - Photo, avatar, or signature images tied to an individual
+- Date of birth, and other precise dates that uniquely identify a person
+  (date of death, exact hire date when combined with role, exact
+  membership start date when combined with org)
+- **Biometric identifiers** (fingerprints, facial-recognition templates,
+  voiceprints, retinal/iris scans, gait patterns, keystroke dynamics) —
+  GDPR Article 9 special category of personal data; requires explicit
+  consent and is not permitted in logs, fixtures, indexes, or caches
+  under any exception in this policy. If a system genuinely needs to
+  process biometrics, the design must be reviewed separately by the LFX
+  security team.
+- **Health information** (medical conditions, diagnoses, prescriptions,
+  insurance records, mental-health notes, disability status, genetic
+  data) — GDPR Article 9 special category; US HIPAA-scope data when
+  the source is a covered entity. Same treatment as biometrics: never
+  in logs, fixtures, indexes, caches, or generated docs under any
+  exception in this policy.
 - **Linked pseudonyms**: LFID, GitHub username, Discord user ID, Slack user
   ID, Auth0 `sub`, Snowflake login, or any handle that can be joined back to
   a real person via internal systems

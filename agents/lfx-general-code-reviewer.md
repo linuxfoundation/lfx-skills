@@ -65,22 +65,44 @@ If the caller explicitly asks for staged or uncommitted work, also run
 If no git repository exists, use the Read tool to examine the files mentioned
 in context.
 
-**Fetch the PR body when a PR exists for the target branch.** The PR body
-and title are not part of git history, so `git show`/`git diff` cannot
-observe them. Some criteria below (notably the committed-artifacts PII
-check) apply to PR-body text; without an explicit fetch the reviewer would
-silently miss those violations. Run:
+**When a PR exists for the target branch, extend PII-check scope beyond
+the latest commit.** In default post-commit mode the general review scope
+above stays at `git show HEAD`, but the committed-artifacts PII check must
+inspect every commit currently in the PR — real PII added in an earlier
+commit on this branch and still present at PR head would otherwise be
+invisible. When a PR is found:
 
-```bash
-gh pr view --json number,title,body --jq '. | "PR #\(.number)\n\(.title)\n\n\(.body)"'
-```
+- Fetch the PR body and title (they are not in git history):
 
-against the current branch (or an explicit PR number when the caller
-supplies one). If `gh` reports no PR for the branch, skip PR-body analysis
-and note that in the review (do not fail the review). Sanitize the fetched
-text before use — if the PR body itself contains real user PII, treat that
-as a finding rather than reproducing it in your review output (see the
-`<redacted>` rule below).
+  ```bash
+  gh pr view --json number,title,body,baseRefName \
+    --jq '. | "PR #\(.number)\n\(.title)\n\nbase: \(.baseRefName)\n\n\(.body)"'
+  ```
+
+  against the current branch (or an explicit PR number when the caller
+  supplies one).
+
+- Additionally, for the **PII pass only**, expand the diff to the
+  cumulative base-to-HEAD range so PII added in any commit on this
+  branch is visible:
+
+  ```bash
+  gh pr view --json baseRefName --jq '.baseRefName'   # e.g. main
+  git fetch origin
+  git diff "origin/<baseRefName>...HEAD"
+  ```
+
+  Use this cumulative diff as the input to the "Committed artifacts"
+  and "Data Privacy / PII" checks below, in addition to the PR body and
+  title. Other criteria (correctness, security, performance, etc.)
+  continue to review only the latest commit unless the caller passes the
+  `branch` keyword.
+
+If `gh` reports no PR for the branch, skip PR-body analysis and skip the
+cumulative-diff expansion; note that in the review (do not fail the
+review). Sanitize any fetched text before use — if the PR body, title, or
+any diff hunk contains real user PII, treat that as a finding rather than
+reproducing it in your review output (see the `<redacted>` rule below).
 
 **Focus your review on the changed code, not the entire codebase.** Only
 examine surrounding code for context when needed to understand the changes.
@@ -193,15 +215,31 @@ with `<redacted>` before including the snippet.
 - Do new KV writes, index documents, FGA tuples, Postgres columns, or cache
   entries persist PII that is NOT part of the resource contract? If yes,
   flag as Critical. Contract-owned PII fields (documented in the owning
-  service's schema/contract docs) are permitted — do not flag those —
-  **except for biometric identifiers and health information (categories
-  (11) and (12) in the taxonomy above)**. These GDPR Article 9 / HIPAA-
-  scope categories carry a "no exception in this policy applies" note
-  in the canonical taxonomy; documenting them in a service contract does
-  NOT confer permission. Flag any KV/index/FGA/Postgres/cache write of
-  biometric or health data as **Critical** regardless of contract
-  documentation, and recommend the change be reviewed by the LFX security
-  team before proceeding.
+  service's schema/contract docs) are permitted — do not flag those.
+- **Biometric identifiers and health information (taxonomy categories
+  (11) and (12)) have a stricter, sink-specific rule than other PII
+  categories**, matching the canonical taxonomy at
+  `skills/lfx/references/data-privacy.md`:
+  - _Log sinks — application logs, audit logs, error logs, metrics,
+    tracing spans, fixtures, seed data, search-index documents,
+    caches, and generated docs:_ **Critical unconditionally**. The
+    canonical rule explicitly states no exception in this policy
+    applies to these sinks. Documenting the field in a contract does
+    NOT rescue an emission to any of these sinks — flag Critical
+    regardless.
+  - _Primary datastore persistence — Postgres columns, KV writes, and
+    FGA tuples that are part of the service's owned data model:_
+    the field is permitted **only when both** (a) the field is
+    contract-owned (documented in the service's schema/contract
+    docs), **and** (b) the service's contract docs cite an LFX
+    security team review of the biometric/health data model
+    (approval body, review artifact link, date, or ticket
+    identifier). If (a) is missing → Critical (unauthorized
+    biometric/health persistence). If (a) holds but (b) is missing
+    → Critical with recommendation "requires LFX security team
+    review before merge"; do not silently permit primary-store
+    biometric/health persistence on the basis of contract
+    documentation alone.
 - Do committed code comments, **PR title**, PR body, migration comments,
   docs snippets, reproduction steps, screenshot captions, or committed
   screenshot/image files hard-code **any real user PII**? The full canonical taxonomy (from

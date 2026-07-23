@@ -282,8 +282,10 @@ unsure. Never assume `../../<repo>/`.
   PII (an affected end user, support contact, member org's staff, etc.)
   in commit messages, PR bodies, tickets, or code comments. *A separate
   narrow exception applies to hard rule 2 (the no-PII-in-logs default): a
-  dedicated audit-log code path may emit raw PII when four gates are all
-  satisfied — see the "Logging exception" section of
-  `references/data-privacy.md`; authentication material is unconditionally
+  dedicated audit-log code path may emit raw PII only when **every**
+  condition in the canonical "Logging exception (narrow)" section of
+  `references/data-privacy.md` is satisfied — do not memorize a fixed
+  gate count here; consult the canonical section, since gates may be
+  added or refined over time. Authentication material is unconditionally
   excluded from that exception.* Full rules and safe alternatives:
   [`references/data-privacy.md`](references/data-privacy.md).

@@ -321,7 +321,17 @@ a service's flow:
   convenience."
 - **Indexer envelopes and OpenSearch documents**: index only fields the
   resource contract exposes for search. Emails, phone numbers, and precise
-  addresses generally do not belong in search documents.
+  addresses generally do not belong in search documents. **Biometric
+  identifiers and health information (GDPR Article 9 special categories,
+  see the canonical taxonomy in
+  [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md))
+  must never appear in indexer envelopes, OpenSearch documents, or any
+  derived search index, regardless of whether the resource contract
+  documents the field.** The canonical rule states no exception in this
+  policy applies to those categories in indexes; contract ownership does
+  not rescue an index write. If a search capability legitimately requires
+  a biometric or health field, escalate to the LFX security team before
+  designing the index.
 - **FGA tuples**: use structural IDs (resource UID, user UID, project UID),
   never raw emails or personal names, as tuple `user`/`object` values.
 - **Application logs**: default is no PII. Correlate on request ID,

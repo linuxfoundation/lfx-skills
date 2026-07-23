@@ -98,10 +98,22 @@ seems unfamiliar with Jira; otherwise combine.
 > draft contains real user PII in any field, do NOT proceed to Step 4.
 > Redact/replace every occurrence with a placeholder first and confirm
 > the redacted draft with the user. The ticket may only be submitted
-> after every real-PII value has been removed or replaced. If the user
-> insists on including a real identifier, stop and ask them to justify
-> the business need against the LFX data-privacy policy before
-> continuing.
+> after every real-PII value has been removed or replaced.
+>
+> **There is no business-need exception for Jira tickets.** Hard rule 4
+> in [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)
+> forbids real user PII in commit messages, PR bodies, tickets, or code
+> comments and enumerates only two narrow exceptions — the contributor's
+> own DCO `Signed-off-by:` trailer and git-author / `Co-authored-by:`
+> attribution — **neither of which applies to Jira ticket text**. Hard
+> rule 5 makes clear that a business justification is *necessary but not
+> sufficient*: no explanation the user can offer unlocks PII in ticket
+> surfaces. If the user insists on including a real identifier, halt the
+> workflow entirely. Cite hard rule 4 briefly, explain that the ticket
+> cannot be submitted with the raw identifier in any field, and hold
+> until the user provides a redacted draft. Do NOT proceed to Step 4
+> after "hearing them out" — the gate remains closed until the value is
+> replaced.
 
 ### Bug
 

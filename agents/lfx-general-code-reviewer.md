@@ -83,25 +83,41 @@ invisible. When a PR is found:
   supplies one).
 
 - Additionally, for the **PII pass only**, expand the diff to the
-  cumulative base-to-HEAD range so PII added in any commit on this
-  branch is visible:
+  cumulative base-to-HEAD range **and** inspect every commit's
+  message and patch. Once a PR is merged, its full history — including
+  intermediate commits and their messages — stays in the repository
+  forever, so a PII leak in a commit message or in a commit that is
+  later reverted is still a shipped disclosure:
 
   ```bash
   gh pr view --json baseRefName --jq '.baseRefName'   # e.g. main
   git fetch origin
+
+  # Cumulative tree delta (final-state coverage).
   git diff "origin/<baseRefName>...HEAD"
+
+  # Per-commit coverage: each commit's message AND patch.
+  # A three-dot diff cannot see PII that was added and later
+  # removed on this branch, or PII in intermediate commit messages
+  # (author name/email trailers, ticket bodies pasted into
+  # commit messages, etc.). git log -p closes both gaps.
+  git log --format=fuller -p "origin/<baseRefName>..HEAD"
   ```
 
-  Use this cumulative diff as the input to the "Committed artifacts"
-  and "Data Privacy / PII" checks below, in addition to the PR body and
-  title. Other criteria (correctness, security, performance, etc.)
-  continue to review only the latest commit unless the caller passes the
-  `branch` keyword.
+  Use both outputs as input to the "Committed artifacts" and "Data
+  Privacy / PII" checks below, in addition to the PR body and title.
+  For the PII pass, an emission is a finding if it appears in **any**
+  of: the final tree, an intermediate patch, a commit message, or a
+  commit trailer other than the DCO/attribution trailers permitted by
+  hard rule 4 in `references/data-privacy.md`. Other criteria
+  (correctness, security, performance, etc.) continue to review only
+  the latest commit unless the caller passes the `branch` keyword.
 
-If `gh` reports no PR for the branch, skip PR-body analysis and skip the
-cumulative-diff expansion; note that in the review (do not fail the
-review). Sanitize any fetched text before use — if the PR body, title, or
-any diff hunk contains real user PII, treat that as a finding rather than
+If `gh` reports no PR for the branch, skip PR-body analysis, skip the
+cumulative-diff expansion, and skip the per-commit `git log -p` pass;
+note that in the review (do not fail the review). Sanitize any fetched
+text before use — if the PR body, title, any diff hunk, or any commit
+message contains real user PII, treat that as a finding rather than
 reproducing it in your review output (see the `<redacted>` rule below).
 
 **Focus your review on the changed code, not the entire codebase.** Only
@@ -229,17 +245,41 @@ with `<redacted>` before including the snippet.
     regardless.
   - _Primary datastore persistence — Postgres columns, KV writes, and
     FGA tuples that are part of the service's owned data model:_
-    the field is permitted **only when both** (a) the field is
-    contract-owned (documented in the service's schema/contract
-    docs), **and** (b) the service's contract docs cite an LFX
-    security team review of the biometric/health data model
+    the field is permitted **only when all three** conditions hold:
+    (a) the field is contract-owned (documented in the service's
+    schema/contract docs); (b) the service's contract docs cite an
+    LFX security team review of the biometric/health data model
     (approval body, review artifact link, date, or ticket
-    identifier). If (a) is missing → Critical (unauthorized
-    biometric/health persistence). If (a) holds but (b) is missing
-    → Critical with recommendation "requires LFX security team
-    review before merge"; do not silently permit primary-store
-    biometric/health persistence on the basis of contract
-    documentation alone.
+    identifier); and (c) the service documents an appropriate
+    **lawful basis** for the specific category, matching the
+    canonical taxonomy at
+    `skills/lfx/references/data-privacy.md:114-126`:
+    - _Biometric identifiers_ — canonical rule requires **explicit
+      consent**. The service must document the consent mechanism:
+      an opt-in flow (not pre-checked/inferred), a consent-record
+      schema tying the consent event to the biometric record, and
+      a documented withdrawal / erasure path. Legitimate-interest,
+      contract-necessity, or "user is logged in" theories do
+      **not** satisfy this gate.
+    - _Health information_ — GDPR Article 9 allows several bases
+      (explicit consent under 9(2)(a), medical necessity under
+      9(2)(h), public-health under 9(2)(i), etc.); US HIPAA
+      requires patient authorization or a covered TPO purpose.
+      The service must document which specific basis applies and
+      cite the supporting artifact (consent flow, HIPAA
+      authorization template, covered-entity determination,
+      etc.). "Health data is contract-owned" alone does not
+      satisfy this gate.
+
+    If (a) is missing → Critical (unauthorized biometric/health
+    persistence). If (a) holds but (b) is missing → Critical with
+    recommendation "requires LFX security team review before merge."
+    If (a) and (b) hold but (c) is missing → Critical with
+    recommendation "requires documented lawful basis (explicit
+    consent for biometrics; consent or another Art. 9 (h)-(j) /
+    HIPAA basis for health data) before merge." Do not silently
+    permit primary-store biometric/health persistence on the basis
+    of contract documentation and security review alone.
 - Do committed code comments, **PR title**, PR body, migration comments,
   docs snippets, reproduction steps, screenshot captions, or committed
   screenshot/image files hard-code **any real user PII**? The full canonical taxonomy (from
@@ -286,7 +326,18 @@ with `<redacted>` before including the snippet.
   real user PII outside of commit-metadata trailers on those surfaces is
   Critical.
 - For dbt/data-engineer changes: are new PII-bearing columns tagged with
-  `config.meta.contains_pii: true` and `data_retention` set?
+  `config.meta.contains_pii: true` **and** `config.meta.data_retention`
+  set to the exact literal string `"undefined"`? The convention in
+  `skills/lfx-data-engineer/SKILL.md` (see the _PII Tagging_ section and
+  the model bullet at lines 403-414) and in
+  `references/testing-patterns.md` (see the "PII Tagging" section and
+  the checklist item at `references/testing-patterns.md:349-350`)
+  requires that exact placeholder until the shared testing-patterns
+  guidance is updated. Any other value (e.g., `"7-years"`, `"90-days"`,
+  `null`, an omitted key) is out-of-convention — flag as **Critical**
+  and require the author to either use `"undefined"` verbatim or first
+  update the shared convention docs. Do not silently approve invented
+  retention values.
 
 **Error Handling**:
 

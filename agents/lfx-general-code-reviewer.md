@@ -155,20 +155,29 @@ with `<redacted>` before including the snippet.
   safe pseudonyms; a service-specific keyed HMAC is required.
 - **Narrow audit-log exception.** Raw PII in a log emission is _not_
   flagged only when ALL of the following hold, matching the canonical
-  rule: (a) the emission goes to a **dedicated audit sink** — a distinct
-  logger such as `AuditLogger`, a dedicated audit NATS subject, or an
-  `audit_log`-shaped writer — **not the general application logger**;
-  (b) the code path is clearly named for audit (e.g., `internal/audit/`,
-  `audit_log`, `AuditLogger`); (c) a code comment on the emission names
-  the specific policy or requirement that mandates the raw field
-  (regulatory, security, or contract), citing the policy identifier and
-  section; (d) the same value does not also flow to the general
-  application logger, error log, metrics, tracing spans, or user-visible
-  error responses. Missing any one of these → flag as Critical.
+  rule at `skills/lfx/references/data-privacy.md` "Logging exception
+  (narrow)": (a) the emission goes to a **dedicated audit sink** — a
+  distinct logger such as `AuditLogger`, a dedicated audit NATS subject,
+  or an `audit_log`-shaped writer — **not the general application
+  logger**; (b) the code path is clearly named for audit (e.g.,
+  `internal/audit/`, `audit_log`, `AuditLogger`); (c) a code comment on
+  the emission names the specific policy or requirement that mandates
+  the raw field (regulatory, security, or contract), citing the policy
+  identifier and section; (d) the same value does not also flow to the
+  general application logger, error log, metrics, tracing spans, or
+  user-visible error responses; **(e) the raw field is part of the
+  audit record's declared schema** — i.e., a documented field in the
+  audit event's contract, data model, or protobuf/JSON schema — **not
+  an ad-hoc addition tacked onto the log emission**. Missing any one of
+  (a)–(e) → flag as Critical. Gate (e) is easy to miss: verify that the
+  audit event's schema/contract actually enumerates this field; a raw
+  PII value that is merely emitted from an audit-named code path with a
+  policy comment, but is not part of the audit event's declared shape,
+  still fails the exception.
 - **Authentication material has no audit exception.** Passwords, API
   keys, JWTs, session cookies, MFA seeds, and private keys are **never**
   eligible for the audit exception above, regardless of how well
-  gates (a)-(d) are satisfied. Flag as **Critical** any log emission
+  gates (a)-(e) are satisfied. Flag as **Critical** any log emission
   (application, audit, error, metrics, tracing, or elsewhere) that
   contains a credential in plaintext or reversibly-encoded form. When
   emitting a finding about credential logging, describe the category
@@ -184,7 +193,15 @@ with `<redacted>` before including the snippet.
 - Do new KV writes, index documents, FGA tuples, Postgres columns, or cache
   entries persist PII that is NOT part of the resource contract? If yes,
   flag as Critical. Contract-owned PII fields (documented in the owning
-  service's schema/contract docs) are permitted — do not flag those.
+  service's schema/contract docs) are permitted — do not flag those —
+  **except for biometric identifiers and health information (categories
+  (11) and (12) in the taxonomy above)**. These GDPR Article 9 / HIPAA-
+  scope categories carry a "no exception in this policy applies" note
+  in the canonical taxonomy; documenting them in a service contract does
+  NOT confer permission. Flag any KV/index/FGA/Postgres/cache write of
+  biometric or health data as **Critical** regardless of contract
+  documentation, and recommend the change be reviewed by the LFX security
+  team before proceeding.
 - Do committed code comments, **PR title**, PR body, migration comments,
   docs snippets, reproduction steps, screenshot captions, or committed
   screenshot/image files hard-code **any real user PII**? The full canonical taxonomy (from

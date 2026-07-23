@@ -67,9 +67,14 @@ Apply the rules in this doc any time the AI is about to:
    committee chair," "the reporter of ticket X") and omit the identity.
 5. **When in doubt, stop and ask the user.** A short question costs seconds.
    A shipped PII leak costs hours of remediation, a customer notice, and
-   erodes trust. Remind them that logging, storing, or using real user data
-   without an explicit business justification violates LFX data-privacy
-   policy.
+   erodes trust. Remind them that a business justification, by itself, is
+   **necessary but not sufficient** — the concrete gates in hard rules 1–4
+   still apply: persistence must be contract-owned (rule 3), raw logging
+   must satisfy the dedicated-audit gates in the *Logging exception* section
+   below (rule 2), and commit/PR/ticket/comment surfaces have only the two
+   narrow attribution exceptions in rule 4. Logging, storing, or using real
+   user data outside those gates is a policy violation regardless of how
+   compelling the business reason sounds.
 
 ## What counts as PII
 

@@ -65,10 +65,13 @@ These are non-negotiable across all services:
 3. **Per-file maximum size: 20 MB** (logos, meeting attachments, PDFs,
    docx).
 4. **Per-service bucket ownership.** Each service manages its own
-   bucket(s) — potentially more than one, if the service has distinct
-   public (CDN-fronted) and private use cases. FGA relation shapes, allowed
-   content types, and access semantics differ per service. There is no
-   shared attachment service.
+   bucket(s). FGA relation shapes, allowed content types, and access
+   semantics differ per service. There is no shared attachment service.
+   **CDN-fronted (public) and service-API-only (private) files must live
+   in separate buckets** — this is mandatory, not optional: the CDN's
+   origin authorization can read every key in its origin bucket, so mixing
+   private objects into a CDN-fronted bucket makes them anonymously
+   retrievable to anyone who knows the key.
 5. **Metadata/payload separation.** Binary payloads never appear in Query
    Service indexed objects, list responses, or NATS events. Only metadata
    (filename, content type, size, uploader, timestamps, download URL) is
@@ -214,9 +217,10 @@ Chart requirements:
 
 - **`cdnURLPrefix` value** mapped to `CDN_URL_PREFIX`.
 
-A service may need more than one bucket (and CDN prefix), especially when it
-has both a CDN-fronted public use case and a service-API-only private use
-case. Repeat the above per bucket.
+A service may need more than one bucket (and CDN prefix) — and **must** use
+separate buckets when it has both a CDN-fronted public use case and a
+service-API-only private use case (see "Hard requirements"). Repeat the
+above per bucket, using the env var namespacing convention below.
 
 The platform umbrella chart (`lfx-v2-helm`) sets the nats-s3 sidecar values
 as the local-mode default for service charts; deployed values (IRSA role
@@ -315,7 +319,8 @@ Notes on the fields above:
 ## Environment variable contract
 
 The values/env contract every object-storing service chart exposes (per
-bucket, if a service owns more than one):
+bucket — see "Multi-bucket namespacing" below for how the names scale when
+a service owns more than one):
 
 | Variable                                      | Required   | Description                                                                                                                                                                                                                 |
 |-----------------------------------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -330,6 +335,26 @@ This is a **contract**, not an implementation recipe: env vars injected via
 the chart's `env:` block are the platform standard, but how the service
 reads them (plain `os.Getenv`, koanf, viper, etc.) follows the owning
 repo's local conventions.
+
+### Multi-bucket namespacing
+
+The fixed names above are the single-bucket case. A process cannot resolve
+two values for `S3_BUCKET`, so a service that owns more than one bucket
+namespaces the bucket-scoped variables with an uppercase purpose token as a
+prefix, keeping the suffix contract identical:
+
+```text
+LOGOS_S3_BUCKET            ATTACHMENTS_S3_BUCKET
+LOGOS_S3_ENDPOINT_URL      ATTACHMENTS_S3_ENDPOINT_URL
+LOGOS_S3_CREATE_MISSING_BUCKET
+LOGOS_CDN_URL_PREFIX       # public bucket only; private buckets have none
+```
+
+Process-wide variables (`AWS_REGION`, `AWS_ACCESS_KEY_ID` /
+`AWS_SECRET_ACCESS_KEY`) are not namespaced — they apply to every bucket
+the service touches. The chart values mirror the same structure (for
+example, a map of bucket entries keyed by purpose instead of a single
+`s3:` block).
 
 ## What this skill is not
 

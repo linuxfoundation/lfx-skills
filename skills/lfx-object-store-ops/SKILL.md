@@ -49,12 +49,20 @@ the Ops team prefers flat loops over YAML definitions; modules are reserved
 for cases that would otherwise require nested loops (see
 `modules/eks-service-account-role/`).
 
-- New `object-store-definitions.yaml` holding one entry per service bucket.
-- New `object-storage.tf` with one `for_each = local.object_stores` per
-  resource type. Every per-entry resource is 1:1, so no nested loops:
-  `aws_s3_bucket` (+ versioning, SSE, public-access-block),
-  `aws_cloudfront_origin_access_control`, `aws_cloudfront_distribution`,
-  `aws_s3_bucket_policy`.
+- New `object-store-definitions.yaml` holding one entry per service bucket,
+  including a boolean flag marking whether the bucket is public
+  (CDN-fronted) — the design skill requires public and private files in
+  separate buckets, so this is a per-bucket property, never mixed.
+- New `object-storage.tf` with one `for_each` per resource type. Bucket
+  resources loop over every entry: `aws_s3_bucket` (+ versioning, SSE,
+  public-access-block). CDN resources — `aws_cloudfront_origin_access_control`,
+  `aws_cloudfront_distribution`, `aws_s3_bucket_policy` (OAC read policy),
+  and the DNS alias records — loop over a filtered
+  `{ for k, v in local.object_stores : k => v if v.public }` so a
+  distribution is only ever attached to explicitly public buckets.
+  Attaching CloudFront/OAC to a service-API-only bucket would make its
+  private objects anonymously retrievable. Still flat 1:1 loops, no
+  nesting.
 
 ## Requirements
 
@@ -92,6 +100,15 @@ for cases that would otherwise require nested loops (see
   issuance and DNS validation — the one real nested-loop hazard — out of
   the per-bucket loop.
 - The certificate must be in `us-east-1` (CloudFront requirement).
+
+### DNS
+
+- The alias and certificate alone do not publish the hostname: each
+  `{bucket}.{vanity-domain}` name needs a **Route 53 alias A/AAAA record**
+  pointing at its CloudFront distribution, in the vanity domain's hosted
+  zone. This is a per-public-bucket 1:1 resource — include it in the same
+  filtered public-bucket loop as the distribution. Without it the
+  `CDN_URL_PREFIX` handed off below will not resolve.
 
 ### Write access (IRSA)
 

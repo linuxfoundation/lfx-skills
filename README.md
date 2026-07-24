@@ -40,57 +40,59 @@ The plugin assumes you have a workspace with LFX repos checked out (typically `~
 
 ## What's Inside
 
-### Central architecture and integration skills (4)
+### Central architecture and integration skills (6)
 
 Canonical LFX knowledge that lives in this plugin and is referenced by every LFX repo's local setup. These are *not* implementation recipes; they hand off to the owning repo for detail.
 
-| Skill | Purpose |
-|---|---|
-| `/lfx-skills:lfx` | Cross-repo topology and ownership router; entry point for any multi-repo task or "where does X live" question. |
-| `/lfx-skills:lfx-platform-architecture` | V2 platform composition, service classes, and cross-repo flow: Self Serve, Goa services, NATS, KV, OpenFGA, indexer, query, Heimdall, Helm, ArgoCD. |
-| `/lfx-skills:lfx-itx-integration` | ITX wrapper patterns: OAuth2 M2M tokens, v1 KV sync, NATS ID mapping via `lfx.lookup_v1_mapping`. |
-| `/lfx-skills:lfx-intercom` | Retained central Intercom workflow from `main`, plus Fin AI optimization: Fin Guidance, Help Center content quality, and resolution rate. |
+| Skill                                   | Purpose                                                                                                                                                                                        |
+|-----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/lfx-skills:lfx`                       | Cross-repo topology and ownership router; entry point for any multi-repo task or "where does X live" question.                                                                                 |
+| `/lfx-skills:lfx-platform-architecture` | V2 platform composition, service classes, and cross-repo flow: Self Serve, Goa services, NATS, KV, OpenFGA, indexer, query, Heimdall, Helm, ArgoCD.                                            |
+| `/lfx-skills:lfx-itx-integration`       | ITX wrapper patterns: OAuth2 M2M tokens, v1 KV sync, NATS ID mapping via `lfx.lookup_v1_mapping`.                                                                                              |
+| `/lfx-skills:lfx-intercom`              | Retained central Intercom workflow from `main`, plus Fin AI optimization: Fin Guidance, Help Center content quality, and resolution rate.                                                      |
+| `/lfx-skills:lfx-object-store-design`   | Add object storage capability to a service: S3-compatible code patterns, upload/download API shapes, Helm credential modes, nats-s3 + nginx-s3-gateway local stack, `CDN_URL_PREFIX` contract. |
+| `/lfx-skills:lfx-object-store-ops`      | Provision object storage backends (private S3 + CloudFront OAC + IRSA) in `lfx-v2-opentofu`. For linuxfoundation org members.                                                                  |
 
 ### Workflow skills (8)
 
 Cross-repo developer workflows that apply across every LFX repo.
 
-| Skill | Purpose |
-|---|---|
-| `/lfx-skills:lfx-setup` | Environment setup for any LFX repo (Angular or Go). Prerequisites, clone, install, env vars, dev server. |
-| `/lfx-skills:lfx-git-setup` | Interactive DCO sign-off plus GPG-signed commit setup. Required for all LFX repos. |
-| `/lfx-skills:lfx-pr-catchup` | Morning PR catch-up dashboard: unresolved comments, status changes, stale PRs, approved-but-not-merged across all your open PRs. |
-| `/lfx-skills:lfx-pr-resolve` | Address PR review comments, post follow-up summary, dismiss stale "changes requested" reviews, re-request review. |
-| `/lfx-skills:lfx-test-journey` | Combine feature branches across repos into git worktrees for end-to-end journey testing. |
-| `/lfx-skills:lfx-snowflake-access` | Request Snowflake access or service accounts via the `lfx-snowflake-terraform` repo. |
-| `/lfx-skills:lfx-cdp-snowflake-connectors` | Scaffold a CDP snowflake-connector data source in `crowd.dev`; retained centrally from `main`. |
-| `/lfx-skills:lfx-data-engineer` | Generate PR-ready dbt models, SQL transformations, and tests for `lf-dbt`, including medallion architecture, sqlfluff conventions, macros, and validation workflow guidance. |
+| Skill                                      | Purpose                                                                                                                                                                      |
+|--------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/lfx-skills:lfx-setup`                    | Environment setup for any LFX repo (Angular or Go). Prerequisites, clone, install, env vars, dev server.                                                                     |
+| `/lfx-skills:lfx-git-setup`                | Interactive DCO sign-off plus GPG-signed commit setup. Required for all LFX repos.                                                                                           |
+| `/lfx-skills:lfx-pr-catchup`               | Morning PR catch-up dashboard: unresolved comments, status changes, stale PRs, approved-but-not-merged across all your open PRs.                                             |
+| `/lfx-skills:lfx-pr-resolve`               | Address PR review comments, post follow-up summary, dismiss stale "changes requested" reviews, re-request review.                                                            |
+| `/lfx-skills:lfx-test-journey`             | Combine feature branches across repos into git worktrees for end-to-end journey testing.                                                                                     |
+| `/lfx-skills:lfx-snowflake-access`         | Request Snowflake access or service accounts via the `lfx-snowflake-terraform` repo.                                                                                         |
+| `/lfx-skills:lfx-cdp-snowflake-connectors` | Scaffold a CDP snowflake-connector data source in `crowd.dev`; retained centrally from `main`.                                                                               |
+| `/lfx-skills:lfx-data-engineer`            | Generate PR-ready dbt models, SQL transformations, and tests for `lf-dbt`, including medallion architecture, sqlfluff conventions, macros, and validation workflow guidance. |
 
 ### Platform skill (1)
 
-| Skill | Purpose |
-|---|---|
+| Skill                              | Purpose                                                                                                              |
+|------------------------------------|----------------------------------------------------------------------------------------------------------------------|
 | `/lfx-skills:lfx-v2-ticket-writer` | Create a single LFXV2 Jira ticket via guided prompts; requirement-focused descriptions, reproduction steps for bugs. |
 
 ### Reviewer agents (13)
 
 Post-commit code reviewers that LFX repos invoke after every pre-PR commit. Launched in parallel as subagents via the `Agent` tool. The general reviewer is repo-agnostic; repo-specific reviewers are packaged centrally for runtime availability but read their owning repo's `CLAUDE.md`, local skills, docs, contracts, and code.
 
-| Agent | Purpose |
-|---|---|
-| `lfx-skills:lfx-general-code-reviewer` | Generic senior-reviewer pass: correctness, security, performance, maintainability, tests, code truthfulness. No repo-specific rulebook. |
-| `lfx-skills:lfx-committee-service-code-reviewer` | Committee Service convention and contract audit against repo-owned guidance, Goa/NATS/FGA/indexer contracts, chart wiring, and code layout. |
-| `lfx-skills:lfx-committee-service-learnings-reviewer` | Empirical pattern matcher against `lfx-v2-committee-service/docs/reviews/knowledge-base/` (patterns sampled from past PR review comments). |
-| `lfx-skills:lfx-email-service-code-reviewer` | Email Service convention and contract audit against repo-owned guidance, public NATS payloads, SES/SQS/KV tracking, and chart wiring. |
-| `lfx-skills:lfx-email-service-learnings-reviewer` | Empirical pattern matcher against `lfx-v2-email-service/docs/reviews/knowledge-base/` (starter pattern set sampled from past PR review comments). |
-| `lfx-skills:lfx-member-service-code-reviewer` | Member Service convention and contract audit against repo-owned guidance, Salesforce/cache docs, NATS integration, and chart wiring. |
-| `lfx-skills:lfx-member-service-learnings-reviewer` | Empirical pattern matcher against `lfx-v2-member-service/docs/reviews/knowledge-base/` (patterns sampled from past PR review comments). |
-| `lfx-skills:lfx-newsletter-service-code-reviewer` | Newsletter Service convention and contract audit against repo-owned guidance, recipient resolution, email-service handoff, API behavior, and chart wiring. |
-| `lfx-skills:lfx-newsletter-service-learnings-reviewer` | Empirical pattern matcher against `lfx-v2-newsletter-service/docs/reviews/knowledge-base/` (starter pattern set sampled from past PR review comments). |
-| `lfx-skills:lfx-project-service-code-reviewer` | Project Service convention and contract audit against repo-owned guidance, Goa/NATS/KV rules, FGA/indexer contracts, and chart wiring. |
-| `lfx-skills:lfx-project-service-learnings-reviewer` | Empirical pattern matcher against `lfx-v2-project-service/docs/reviews/knowledge-base/` (patterns sampled from past PR review comments). |
-| `lfx-skills:lfx-self-serve-code-reviewer` | Convention audit against `lfx-self-serve`'s `.claude/rules/`, `docs/reviews/` checklists, architecture docs, and upstream API contracts. |
-| `lfx-skills:lfx-self-serve-learnings-reviewer` | Empirical pattern matcher against `lfx-self-serve/docs/reviews/knowledge-base/` (patterns sampled from past PR review comments). |
+| Agent                                                  | Purpose                                                                                                                                                    |
+|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `lfx-skills:lfx-general-code-reviewer`                 | Generic senior-reviewer pass: correctness, security, performance, maintainability, tests, code truthfulness. No repo-specific rulebook.                    |
+| `lfx-skills:lfx-committee-service-code-reviewer`       | Committee Service convention and contract audit against repo-owned guidance, Goa/NATS/FGA/indexer contracts, chart wiring, and code layout.                |
+| `lfx-skills:lfx-committee-service-learnings-reviewer`  | Empirical pattern matcher against `lfx-v2-committee-service/docs/reviews/knowledge-base/` (patterns sampled from past PR review comments).                 |
+| `lfx-skills:lfx-email-service-code-reviewer`           | Email Service convention and contract audit against repo-owned guidance, public NATS payloads, SES/SQS/KV tracking, and chart wiring.                      |
+| `lfx-skills:lfx-email-service-learnings-reviewer`      | Empirical pattern matcher against `lfx-v2-email-service/docs/reviews/knowledge-base/` (starter pattern set sampled from past PR review comments).          |
+| `lfx-skills:lfx-member-service-code-reviewer`          | Member Service convention and contract audit against repo-owned guidance, Salesforce/cache docs, NATS integration, and chart wiring.                       |
+| `lfx-skills:lfx-member-service-learnings-reviewer`     | Empirical pattern matcher against `lfx-v2-member-service/docs/reviews/knowledge-base/` (patterns sampled from past PR review comments).                    |
+| `lfx-skills:lfx-newsletter-service-code-reviewer`      | Newsletter Service convention and contract audit against repo-owned guidance, recipient resolution, email-service handoff, API behavior, and chart wiring. |
+| `lfx-skills:lfx-newsletter-service-learnings-reviewer` | Empirical pattern matcher against `lfx-v2-newsletter-service/docs/reviews/knowledge-base/` (starter pattern set sampled from past PR review comments).     |
+| `lfx-skills:lfx-project-service-code-reviewer`         | Project Service convention and contract audit against repo-owned guidance, Goa/NATS/KV rules, FGA/indexer contracts, and chart wiring.                     |
+| `lfx-skills:lfx-project-service-learnings-reviewer`    | Empirical pattern matcher against `lfx-v2-project-service/docs/reviews/knowledge-base/` (patterns sampled from past PR review comments).                   |
+| `lfx-skills:lfx-self-serve-code-reviewer`              | Convention audit against `lfx-self-serve`'s `.claude/rules/`, `docs/reviews/` checklists, architecture docs, and upstream API contracts.                   |
+| `lfx-skills:lfx-self-serve-learnings-reviewer`         | Empirical pattern matcher against `lfx-self-serve/docs/reviews/knowledge-base/` (patterns sampled from past PR review comments).                           |
 
 Each agent locates its owning repo at runtime and uses repo-qualified paths for multi-repo sessions. See each agent's prompt under `agents/` for the exact invocation contract.
 

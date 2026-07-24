@@ -212,26 +212,37 @@ Never load all references by default. Start with the smallest one.
 Each auto-fires on its own triggers; can also be invoked explicitly. These
 ship in this same `lfx-skills` plugin.
 
-| Topic                                                                | Skill                        |
-| -------------------------------------------------------------------- | ---------------------------- |
-| Platform composition, V2 service classes, write/read/access-check flows, cross-repo owners | `/lfx-skills:lfx-platform-architecture` |
-| Go coding conventions after routing to a service repo                 | That repo's path-scoped `<short-repo-name>-dev` skill |
-| ITX wrapper plumbing (OAuth2 M2M, ID mapping, v1 KV sync)             | `/lfx-skills:lfx-itx-integration`       |
-| Intercom app workflow and Fin AI optimization                         | `/lfx-skills:lfx-intercom`              |
+| Topic                                                                                      | Skill                                                 |
+|--------------------------------------------------------------------------------------------|-------------------------------------------------------|
+| Platform composition, V2 service classes, write/read/access-check flows, cross-repo owners | `/lfx-skills:lfx-platform-architecture`               |
+| Go coding conventions after routing to a service repo                                      | That repo's path-scoped `<short-repo-name>-dev` skill |
+| ITX wrapper plumbing (OAuth2 M2M, ID mapping, v1 KV sync)                                  | `/lfx-skills:lfx-itx-integration`                     |
+| Intercom app workflow and Fin AI optimization                                              | `/lfx-skills:lfx-intercom`                            |
+| Object storage capability in a service (uploads, S3, CDN, local dev)                       | `/lfx-skills:lfx-object-store-design`                 |
+| Object storage backend provisioning (buckets, CloudFront, IRSA)                            | `/lfx-skills:lfx-object-store-ops`                    |
+
+### `-ops` skill convention
+
+Skills whose names end in `-ops` are for **members of the linuxfoundation
+GitHub org** (Ops/infrastructure audience). Before loading an `-ops` skill,
+validate that the current GitHub user is an org member (for example,
+`gh api orgs/linuxfoundation/members/$(gh api user -q .login)` — a `204`
+means member). If membership cannot be confirmed, do not load the `-ops`
+skill; use the corresponding design skill instead.
 
 ## Workflow skills (this plugin)
 
 Seven workflow skills ship alongside the architecture skills in this same
 `lfx-skills` plugin. Forward to them by name when relevant.
 
-| Topic                                | Skill                   |
-| ------------------------------------ | ----------------------- |
-| Onboarding and first-time setup      | `/lfx-skills:lfx-setup`            |
-| DCO and GPG signing                  | `/lfx-skills:lfx-git-setup`        |
-| Cross-repo personal PR dashboard     | `/lfx-skills:lfx-pr-catchup`       |
-| GitHub PR review threads             | `/lfx-skills:lfx-pr-resolve`       |
-| Local multi-branch journey worktrees | `/lfx-skills:lfx-test-journey`     |
-| Snowflake access requests            | `/lfx-skills:lfx-snowflake-access` |
+| Topic                                | Skill                                      |
+|--------------------------------------|--------------------------------------------|
+| Onboarding and first-time setup      | `/lfx-skills:lfx-setup`                    |
+| DCO and GPG signing                  | `/lfx-skills:lfx-git-setup`                |
+| Cross-repo personal PR dashboard     | `/lfx-skills:lfx-pr-catchup`               |
+| GitHub PR review threads             | `/lfx-skills:lfx-pr-resolve`               |
+| Local multi-branch journey worktrees | `/lfx-skills:lfx-test-journey`             |
+| Snowflake access requests            | `/lfx-skills:lfx-snowflake-access`         |
 | CDP Snowflake connector scaffolding  | `/lfx-skills:lfx-cdp-snowflake-connectors` |
 
 ## Cross-repo path convention

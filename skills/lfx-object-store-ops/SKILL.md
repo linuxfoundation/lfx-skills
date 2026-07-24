@@ -73,7 +73,13 @@ for cases that would otherwise require nested loops (see
   `cloudfront-distribution-with-s3` module is a structural reference only
   and must not be copied (deprecated OAI, `forwarded_values`, TLSv1).
 - Managed cache and origin-request policies that honor the origin
-  `Cache-Control` header (services set it per object at upload).
+  `Cache-Control` header (services set it per object at upload). The
+  design skill's cache-busting query parameter (see
+  `/lfx-skills:lfx-object-store-design`) must be included in the cache
+  key — a managed policy that strips query strings (such as the default
+  `CachingOptimized` policy) will keep serving a stale object after the
+  version parameter changes. Use a custom cache policy that forwards that
+  parameter if the default managed policies exclude it.
 - One standardized `default_cache_behavior` (GET/HEAD); no per-path
   `ordered_cache_behavior` blocks — this keeps dynamic blocks out of the
   loop.
@@ -89,10 +95,18 @@ for cases that would otherwise require nested loops (see
 
 ### Write access (IRSA)
 
-- Service write access via the existing IRSA mechanism: an entry in
-  `iam-service-account-definitions.yaml` with an inline policy scoped to the
-  service's bucket, reconciled through `modules/eks-service-account-role/`.
-  See `lfx-v2-opentofu/docs/service-accounts.md`.
+- Service access via the existing IRSA mechanism: an entry in
+  `iam-service-account-definitions.yaml` with an inline policy scoped to
+  the service's bucket ARN(s), reconciled through
+  `modules/eks-service-account-role/`. See
+  `lfx-v2-opentofu/docs/service-accounts.md`.
+- The policy needs bucket-level `s3:ListBucket` (used by the service's
+  `HeadBucket` readiness check and, if applicable, any internal listing —
+  see `/lfx-skills:lfx-object-store-design`) plus object-level
+  `s3:GetObject`, `s3:PutObject`, and `s3:DeleteObject` on
+  `{bucket-arn}/*`. Do **not** grant `s3:CreateBucket` to a deployed role —
+  the bucket is provisioned by this ops flow, not by the service at
+  startup.
 - Bucket definition entries do **not** own IAM; keep the concerns separate.
 
 ### Prohibitions

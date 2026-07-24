@@ -8,7 +8,8 @@ description: >
   singleton and collection API shapes, the Helm chart credential-mode
   contract (static creds for local, IRSA for deployed), the nats-s3 sidecar
   local backend, the nginx-s3-gateway local CDN model, and the
-  S3_BUCKET/AWS_REGION/S3_ENDPOINT_URL/CDN_URL_PREFIX env var contract.
+  S3_BUCKET/AWS_REGION/S3_ENDPOINT_URL/S3_CREATE_MISSING_BUCKET/
+  CDN_URL_PREFIX env var contract.
   Fires on prompts like "object storage", "S3", "file upload", "upload
   endpoint", "attachments", "logo upload", "bucket", "nats-s3",
   "nginx-s3-gateway", "CDN_URL_PREFIX", "presigned URL", "PutObject",
@@ -110,24 +111,31 @@ download response per the ruleset, same as the singleton case.
 3. Write to the S3 bucket (standard `PutObject`), setting `Content-Type` and
    `Cache-Control` object metadata.
 4. Publish standard NATS indexing events (metadata only, no binary).
-5. Return `201`/`204` with metadata, including `public_url` when
-   `CDN_URL_PREFIX` is configured.
+5. Return `201` with metadata, including `public_url` when `CDN_URL_PREFIX`
+   is configured. Reserve `204` for responses with no body (for example,
+   `DELETE`).
 
 ### Download flow
 
-The service API and the CDN are mutually exclusive paths per file, not
-alternate paths for the same file:
+The service's own download route always exists and is always authoritative
+— it is not replaced by the CDN, only supplemented by it for public reads:
 
-- **CDN-fronted files** (public assets such as logos and avatars): served
-  directly by the CDN from the private bucket via origin authorization — no
-  service involvement, and not served through the service's own download
-  route. Use a cache-busting query parameter (not a path segment) for the
-  version/hash, since this is a hint, not a guarantee that old versions
-  remain hosted.
-- **Service-API-only files** (attachments, legal docs): never CDN-fronted.
-  The service streams from S3 after the ruleset authorizes the request, with
-  `Content-Disposition: attachment` and `Range` header pass-through (`206
-  Partial Content`) for PDF viewer compatibility.
+- **CDN-fronted files** (public assets such as logos and avatars): when
+  `CDN_URL_PREFIX` is configured, the CDN serves the file directly from the
+  private bucket via origin authorization, and `public_url` in the upload
+  response points clients there instead of the service route. Use a
+  cache-busting query parameter (not a path segment) for the version/hash,
+  since this is a hint, not a guarantee that old versions remain hosted —
+  and make sure the CDN's cache policy includes that query parameter in its
+  cache key (a cache policy that strips query strings will keep serving a
+  stale object after the version parameter changes). When
+  `CDN_URL_PREFIX` is unset, the service's own download route is the only
+  path and serves the file after the ruleset authorizes the request.
+- **Service-API-only files** (attachments, legal docs): never CDN-fronted,
+  regardless of `CDN_URL_PREFIX`. The service streams from S3 after the
+  ruleset authorizes the request, with `Content-Disposition: attachment`
+  and `Range` header pass-through (`206 Partial Content`) for PDF viewer
+  compatibility.
 
 ### Gateway sizing
 
@@ -146,11 +154,19 @@ timeout 120s. Download routes should set `responseBuffering: false`.
   `config.WithBaseEndpoint`. Empty means real AWS S3.
 - **Path-style addressing:** set `o.UsePathStyle = true` on the S3 client;
   required by nats-s3 and most S3-compatible endpoints.
-- **Startup:** run an idempotent `EnsureBucket`
-  (`HeadBucket`-then-`CreateBucket`) with a retry loop (~10 attempts, 3s
-  apart) before accepting traffic — the local sidecar may not be ready
-  immediately. In deployed environments the bucket pre-exists and
-  `EnsureBucket` is a no-op.
+- **Startup:** run an idempotent `EnsureBucket` with a retry loop (~10
+  attempts, 3s apart) before accepting traffic — the local sidecar may not
+  be ready immediately. Gate the `CreateBucket` call on an explicit
+  `S3_CREATE_MISSING_BUCKET` boolean, not on whether `S3_ENDPOINT_URL` is
+  set — an endpoint override is also used for non-local S3-compatible
+  backends where the app should never create buckets. Set
+  `S3_CREATE_MISSING_BUCKET=true` only in local values; leave it unset
+  (`false`) everywhere else, including deployed environments, where the
+  bucket is provisioned ahead of time
+  (`/lfx-skills:lfx-object-store-ops`) and the IRSA role should not grant
+  `s3:CreateBucket`. When the flag is `false`, `EnsureBucket` should be a
+  `HeadBucket`-only existence check, not a create-on-missing retry loop
+  that could mask a permissions error as "bucket not ready yet".
 - **Readiness:** back `/readyz` with a `HeadBucket` ping.
 - **Delete semantics:** S3 `DeleteObject` is idempotent; `HeadObject` first
   if the API must return not-found for missing keys.
@@ -178,6 +194,9 @@ Chart requirements:
   IRSA-annotated SA provisioned outside the chart can be supplied. This is a
   prerequisite for deployed environments.
 - **`s3.endpointURL` value** mapped to `S3_ENDPOINT_URL` (empty = real AWS).
+- **`s3.createMissingBucket` value** mapped to `S3_CREATE_MISSING_BUCKET`,
+  `true` only in local values (never in deployed values, regardless of
+  whether `s3.endpointURL` happens to be set there too).
 - **nats-s3 sidecar block** for local mode: a second container in the
   service pod listening on `localhost:5222` (loopback only), translating
   SigV4-signed S3 calls into NATS JetStream Object Store operations. The
@@ -230,10 +249,24 @@ sidecar:
   deployed environments, without naming a specific deployed CDN product
   here.
 
-`CDN_URL_PREFIX` points at the gateway's in-cluster Service name; the
-service interpolates it into `public_url` on upload/fetch responses.
+`CDN_URL_PREFIX` must always be a browser-reachable URL — this is a hard
+requirement of the contract, local or deployed, since it ends up directly
+in `public_url` responses consumed by clients. The gateway's bare in-cluster
+Service name does **not** satisfy this and must not be used as the value
+directly.
+
+Expose the gateway the same way every other local service is reached: an
+`IngressRoute` on the platform's `k8s.orb.local` wildcard domain (matching
+`lfx-v2-helm`'s `lfx-platform` chart pattern, for example
+`https://<service>-cdn.k8s.orb.local`), routed through Traefik. Set
+`CDN_URL_PREFIX` to that address. A manual `kubectl port-forward` can
+stand in for one-off testing, but it does not give a stable value a
+service can commit to its local chart values, so it is not a substitute
+for the `IngressRoute`.
+
 Setting `CDN_URL_PREFIX=""` omits `public_url` entirely and clients fall
-back to the service's authenticated download route — a valid degraded mode.
+back to the service's authenticated download route — a valid degraded
+mode, and the simplest option until that ingress wiring exists.
 
 Example gateway container env, illustrating the required variables:
 
@@ -284,13 +317,14 @@ Notes on the fields above:
 The values/env contract every object-storing service chart exposes (per
 bucket, if a service owns more than one):
 
-| Variable                                      | Required   | Description                                                                                                                      |
-|-----------------------------------------------|------------|----------------------------------------------------------------------------------------------------------------------------------|
-| `S3_BUCKET`                                   | yes        | Bucket name. Local default may be chart-derived; deployed value comes from `lfx-v2-argocd`.                                      |
-| `AWS_REGION`                                  | yes        | AWS region. Any non-empty string is accepted by nats-s3; `us-east-1` is the conventional local default.                          |
-| `S3_ENDPOINT_URL`                             | no         | Endpoint override. Local: `http://localhost:5222` (sidecar). Empty: real AWS S3.                                                 |
-| `CDN_URL_PREFIX`                              | no         | Public CDN base URL interpolated into `public_url` responses. Local: the nginx-s3-gateway Service URL. Empty: omit `public_url`. |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | local only | Injected by the chart in static-credential mode. Never set in deployed environments (IRSA).                                      |
+| Variable                                      | Required   | Description                                                                                                                                                                                                                 |
+|-----------------------------------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `S3_BUCKET`                                   | yes        | Bucket name. Local default may be chart-derived; deployed value comes from `lfx-v2-argocd`.                                                                                                                                 |
+| `AWS_REGION`                                  | yes        | AWS region. Any non-empty string is accepted by nats-s3; `us-east-1` is the conventional local default.                                                                                                                     |
+| `S3_ENDPOINT_URL`                             | no         | Endpoint override. Local: `http://localhost:5222` (sidecar). Empty: real AWS S3. Also used for non-AWS S3-compatible backends — do not use its presence to infer "local".                                                   |
+| `S3_CREATE_MISSING_BUCKET`                    | no         | Explicit boolean gate for the service calling `CreateBucket` at startup. `true` only in local values. `false`/unset everywhere else, including any deployed environment that happens to set `S3_ENDPOINT_URL`.              |
+| `CDN_URL_PREFIX`                              | no         | Public, browser-reachable CDN base URL interpolated into `public_url` responses — never an in-cluster-only address. Local: an `IngressRoute` address on `k8s.orb.local` for the nginx-s3-gateway. Empty: omit `public_url`. |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | local only | Injected by the chart in static-credential mode. Never set in deployed environments (IRSA).                                                                                                                                 |
 
 This is a **contract**, not an implementation recipe: env vars injected via
 the chart's `env:` block are the platform standard, but how the service

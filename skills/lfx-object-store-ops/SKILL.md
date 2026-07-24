@@ -55,7 +55,7 @@ for cases that would otherwise require nested loops (see
   separate buckets, so this is a per-bucket property, never mixed.
 - New `object-storage.tf` with one `for_each` per resource type. Bucket
   resources loop over every entry: `aws_s3_bucket` (+ versioning, SSE,
-  public-access-block). CDN resources — `aws_cloudfront_origin_access_control`,
+  lifecycle, public-access-block). CDN resources — `aws_cloudfront_origin_access_control`,
   `aws_cloudfront_distribution`, `aws_s3_bucket_policy` (OAC read policy),
   and the DNS alias records — loop over a filtered
   `{ for k, v in local.object_stores : k => v if v.public }` so a
@@ -72,6 +72,15 @@ for cases that would otherwise require nested loops (see
   policies. The existing `lfx-one-project-logos-png-*` buckets in `s3.tf`
   are a legacy anti-pattern — do not copy them.
 - Versioning and SSE enabled; names interpolate `${terraform.workspace}`.
+- **Lifecycle rules are mandatory alongside versioning.** With versioning
+  on, `DeleteObject` only adds a delete marker and every overwrite retains
+  the prior payload as a noncurrent version — without lifecycle
+  expiration, storage grows unboundedly and user-"deleted" content is
+  retained indefinitely (a data-retention problem, not just a cost one).
+  Each bucket gets an `aws_s3_bucket_lifecycle_configuration` (1:1, same
+  flat loop) that: expires noncurrent versions after **30 days**, removes
+  expired object delete markers, and aborts incomplete multipart uploads
+  after **7 days**.
 
 ### CloudFront
 
@@ -104,11 +113,13 @@ for cases that would otherwise require nested loops (see
 ### DNS
 
 - The alias and certificate alone do not publish the hostname: each
-  `{bucket}.{vanity-domain}` name needs a **Route 53 alias A/AAAA record**
-  pointing at its CloudFront distribution, in the vanity domain's hosted
-  zone. This is a per-public-bucket 1:1 resource — include it in the same
-  filtered public-bucket loop as the distribution. Without it the
-  `CDN_URL_PREFIX` handed off below will not resolve.
+  `{bucket}.{vanity-domain}` name needs **Route 53 alias A and AAAA
+  records** pointing at its CloudFront distribution, in the vanity
+  domain's hosted zone. Enable IPv6 on the distribution
+  (`is_ipv6_enabled = true` — it defaults to false) so the AAAA record is
+  actually served. This is a per-public-bucket 1:1 resource — include it
+  in the same filtered public-bucket loop as the distribution. Without it
+  the `CDN_URL_PREFIX` handed off below will not resolve.
 
 ### Write access (IRSA)
 
@@ -137,11 +148,15 @@ for cases that would otherwise require nested loops (see
 
 After provisioning, hand these to `lfx-v2-argocd` environment values:
 
-- The IRSA role ARN (as the service's ServiceAccount
-  `eks.amazonaws.com/role-arn` annotation, with `serviceAccount.create:
-  false` in the service chart).
-- The bucket name (`S3_BUCKET`) and region (`AWS_REGION`) — one pair per
-  bucket if the service owns more than one.
+- The IRSA role ARN. `lfx-v2-argocd` creates the ServiceAccount itself in
+  its deployment manifests, carrying the `eks.amazonaws.com/role-arn`
+  annotation; the service chart is configured with `serviceAccount.create:
+  false` and `serviceAccount.name` to reference that externally created
+  account (the chart does not render or annotate the SA in this mode).
+- The bucket name(s) (`S3_BUCKET`, or the purpose-prefixed variants from
+  the design skill's multi-bucket namespacing) — one per bucket — plus the
+  region (`AWS_REGION`) once: it is process-wide, and all of a service's
+  buckets are provisioned in the environment's single region.
 - The CDN hostname (`CDN_URL_PREFIX`, e.g. `https://{bucket}.{vanity-domain}`)
   — one per CDN-fronted bucket.
 

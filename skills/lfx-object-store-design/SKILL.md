@@ -193,9 +193,13 @@ values (mirroring the SDK credential chain — no code change):
 Chart requirements:
 
 - **Externally managed ServiceAccount support**: `serviceAccount.create:
-  false` plus `serviceAccount.name` and an `annotations` passthrough, so an
-  IRSA-annotated SA provisioned outside the chart can be supplied. This is a
-  prerequisite for deployed environments.
+  false` plus `serviceAccount.name`, so the chart references — rather than
+  renders — a ServiceAccount created outside the chart. In deployed
+  environments the IRSA-annotated ServiceAccount is created in the
+  `lfx-v2-argocd` deployment manifests (that is where the
+  `eks.amazonaws.com/role-arn` annotation lives); the chart never applies
+  the annotation itself in this mode. This is a prerequisite for deployed
+  environments.
 - **`s3.endpointURL` value** mapped to `S3_ENDPOINT_URL` (empty = real AWS).
 - **`s3.createMissingBucket` value** mapped to `S3_CREATE_MISSING_BUCKET`,
   `true` only in local values (never in deployed values, regardless of

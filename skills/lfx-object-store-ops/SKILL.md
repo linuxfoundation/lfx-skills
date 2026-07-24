@@ -4,8 +4,8 @@ description: >
   Provisioning requirements for LFX object storage backends in deployed
   environments (prod, staging, shared dev): private S3 buckets, CloudFront
   with Origin Access Control, shared wildcard certificate, and IRSA write
-  access, all in `lfx-v2-opentofu`. For members of the linuxfoundation
-  GitHub org (ops audience) — see the `-ops` convention in
+  access, all in `lfx-v2-opentofu`. Written for the linuxfoundation
+  GitHub org's ops audience — see the `-ops` skill convention in
   `/lfx-skills:lfx`. Fires on prompts like "provision a bucket", "object
   storage backend", "CloudFront for uploads", "S3 bucket opentofu",
   "IRSA for S3", "object store CDN", "bucket policy", "wildcard cert
@@ -23,10 +23,12 @@ This is a requirements stub, deliberately non-prescriptive: it captures the
 constraints the Ops team has agreed to, points at the existing conventions
 in `lfx-v2-opentofu`, and leaves the HCL to the implementing agent.
 
-Audience: linuxfoundation GitHub org members. Per the `-ops` skill
-convention in `/lfx-skills:lfx`, validate org membership before acting on
-this skill. Application-side design (endpoints, SDK usage, chart contract,
-local dev) is `/lfx-skills:lfx-object-store-design`.
+Audience: linuxfoundation GitHub org members. This skill is written for
+that ops audience and assumes org membership; it does not itself enforce
+it (see the `-ops` skill convention in `/lfx-skills:lfx` for how the router
+handles routing when membership is unconfirmed). Application-side design
+(endpoints, SDK usage, chart contract, local dev) is
+`/lfx-skills:lfx-object-store-design`.
 
 ## Where
 
@@ -107,8 +109,10 @@ After provisioning, hand these to `lfx-v2-argocd` environment values:
 - The IRSA role ARN (as the service's ServiceAccount
   `eks.amazonaws.com/role-arn` annotation, with `serviceAccount.create:
   false` in the service chart).
-- The bucket name (`S3_BUCKET`) and region (`AWS_REGION`).
-- The CDN hostname (`CDN_URL_PREFIX`, e.g. `https://{bucket}.{vanity-domain}`).
+- The bucket name (`S3_BUCKET`) and region (`AWS_REGION`) — one pair per
+  bucket if the service owns more than one.
+- The CDN hostname (`CDN_URL_PREFIX`, e.g. `https://{bucket}.{vanity-domain}`)
+  — one per CDN-fronted bucket.
 
 ## Handoff boundary
 

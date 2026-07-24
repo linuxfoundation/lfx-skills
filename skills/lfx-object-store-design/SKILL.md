@@ -28,19 +28,14 @@ endpoints, S3-compatible backend wiring, Helm chart credential modes, and the
 local development stack. This is the shared design baseline; service repos
 own their implementation.
 
-Decision record: S3-compatible object storage is the standard backend
-([LFXV2-2119](https://linuxfoundation.atlassian.net/browse/LFXV2-2119),
-decided 2026-07-23). Deployed environments use AWS S3. Local development uses
-a `nats-s3` sidecar over NATS Object Store with zero credentials. The full
-rationale, PoC, and working example live in
-`lfx-architecture-scratch/2026-06-LFX-Object-Storage/` (`README.md`,
-`NATS-VS-S3.md`, `SERVICES.md`, and the `s3-service/` reference
-implementation).
+S3-compatible object storage is the standard backend for LFX V2 services.
+Deployed environments use AWS S3. Local development uses a `nats-s3` sidecar
+over NATS Object Store.
 
-"S3-compatible" is an app-side portability statement (the code targets the S3
-API, so any S3-compatible backend works). It is not a deployment promise:
-there is no Cloudflare R2 or other non-AWS deployment. Backend provisioning
-belongs to `/lfx-skills:lfx-object-store-ops`.
+"S3-compatible" is an app-side portability statement: the code targets the
+S3 API, so any S3-compatible backend works. It is not a deployment
+commitment — which backend is actually deployed is an ops concern, handled
+by `/lfx-skills:lfx-object-store-ops`.
 
 ## When to invoke
 
@@ -56,25 +51,23 @@ Do **not** invoke for:
 - Provisioning buckets, CloudFront, IAM roles, or certificates
   (`/lfx-skills:lfx-object-store-ops`).
 - FGA relation modeling detail (owning service's FGA contract docs).
-- Existing NATS Object Store usage in `lfx-v2-project-service` /
-  `lfx-v2-committee-service` (legacy pattern; new capability follows this
-  skill).
 
 ## Hard requirements
 
 These are non-negotiable across all services:
 
 1. **No presigned uploads.** All uploads go through the service API.
-   Browsers never write directly to the store. (The v1 presigned-URL pattern
-   is explicitly deprecated.)
-2. **Private buckets only.** Public reads are served via CDN (CloudFront
-   with Origin Access Control), never via bucket ACLs or public bucket
-   policies.
+   Browsers never write directly to the store.
+2. **Private buckets only.** Public reads are served via a CDN with origin
+   authorization to the private bucket, never via bucket ACLs or public
+   bucket policies.
 3. **Per-file maximum size: 20 MB** (logos, meeting attachments, PDFs,
    docx).
 4. **Per-service bucket ownership.** Each service manages its own
-   bucket(s). FGA relation shapes, allowed content types, and access
-   semantics differ per service. There is no shared attachment service.
+   bucket(s) — potentially more than one, if the service has distinct
+   public (CDN-fronted) and private use cases. FGA relation shapes, allowed
+   content types, and access semantics differ per service. There is no
+   shared attachment service.
 5. **Metadata/payload separation.** Binary payloads never appear in Query
    Service indexed objects, list responses, or NATS events. Only metadata
    (filename, content type, size, uploader, timestamps, download URL) is
@@ -85,54 +78,65 @@ These are non-negotiable across all services:
 ### Singleton file (exactly one file of a type per resource)
 
 ```text
-POST   /resources/{uid}/logo              Upload or replace (multipart/form-data)
-GET    /resources/{uid}/logo              Download (public, CDN-cacheable)
-DELETE /resources/{uid}/logo              Remove
+POST   /resources/{uid}/logo-upload      Upload or replace (multipart/form-data)
+GET    /resources/{uid}/logo-download    Download
+DELETE /resources/{uid}/logo             Remove
 ```
+
+The download route is not "public" by contract — access is whatever the
+Heimdall ruleset says for that route. Set `Cache-Control` on the response to
+match the ruleset (`public, ...` when the ruleset allows anonymous reads;
+`private, ...` otherwise).
 
 ### Collection (multiple files per resource)
 
 ```text
-POST   /resources/{uid}/documents                       Upload (multipart/form-data)
-GET    /resources/{uid}/documents                       List metadata
-GET    /resources/{uid}/documents/{doc_uid}/download    Download binary
-DELETE /resources/{uid}/documents/{doc_uid}             Delete
+POST   /resources/{uid}/documents                     Upload (multipart/form-data)
+GET    /resources/{uid}/documents/{doc_uid}            Fetch metadata (including CDN URL, if applicable)
+GET    /resources/{uid}/documents/{doc_uid}/download   Download binary
+DELETE /resources/{uid}/documents/{doc_uid}            Delete
 ```
+
+There is no collection-listing REST endpoint. Listing multiple attachments
+(or the parent resources that carry a singleton file as an attribute) is a
+Query Service concern, not a service API concern. Set `Cache-Control` on the
+download response per the ruleset, same as the singleton case.
 
 ### Upload flow
 
-1. Validate JWT via Heimdall middleware.
-2. Check FGA: caller has the write relation (`editor`/`organizer`) on the
-   parent entity.
-3. Validate file: allowed content types, size ≤ 20 MB.
-4. Write to the S3 bucket (standard `PutObject`), setting `Content-Type` and
+1. Validate the JWT via Heimdall middleware. The ruleset enforces
+   authorization for the route; there is no separate access-check step here.
+2. Validate the file: allowed content types, size ≤ 20 MB.
+3. Write to the S3 bucket (standard `PutObject`), setting `Content-Type` and
    `Cache-Control` object metadata.
-5. Publish a NATS event (metadata only, no binary).
-6. Return `201`/`204` with metadata, including `public_url` when
+4. Publish standard NATS indexing events (metadata only, no binary).
+5. Return `201`/`204` with metadata, including `public_url` when
    `CDN_URL_PREFIX` is configured.
 
 ### Download flow
 
-- **Public assets** (logos, avatars): no service involvement — the CDN
-  serves from the private bucket via OAC. Use content-addressed filenames
-  (hash/version in path) with `Cache-Control: public, max-age=86400,
-  immutable`; replacing a file changes the URL, forcing invalidation.
-- **Private files** (attachments, legal docs): the service streams from S3
-  after an FGA `viewer` check, with `Content-Disposition: attachment`,
-  `Cache-Control: private, max-age=300`, and `Range` header pass-through
-  (`206 Partial Content`) for PDF viewer compatibility.
+The service API and the CDN are mutually exclusive paths per file, not
+alternate paths for the same file:
+
+- **CDN-fronted files** (public assets such as logos and avatars): served
+  directly by the CDN from the private bucket via origin authorization — no
+  service involvement, and not served through the service's own download
+  route. Use a cache-busting query parameter (not a path segment) for the
+  version/hash, since this is a hint, not a guarantee that old versions
+  remain hosted.
+- **Service-API-only files** (attachments, legal docs): never CDN-fronted.
+  The service streams from S3 after the ruleset authorizes the request, with
+  `Content-Disposition: attachment` and `Range` header pass-through (`206
+  Partial Content`) for PDF viewer compatibility.
 
 ### Gateway sizing
 
-Upload routes must accommodate 20 MB request bodies: Traefik
-`maxRequestBodyBytes` ≥ `20971520`, upload timeout 120s. Download routes
-should set `responseBuffering: false`.
+Upload routes must accommodate 20 MB request bodies plus multipart overhead
+(boundaries, part headers): Traefik `maxRequestBodyBytes` should be set
+above `20971520`, with margin for the overhead, not exactly at it. Upload
+timeout 120s. Download routes should set `responseBuffering: false`.
 
 ## Go code patterns
-
-The living example is
-`lfx-architecture-scratch/2026-06-LFX-Object-Storage/s3-service/` (store in
-`internal/store/store.go`, startup in `cmd/s3-api/main.go`).
 
 - **AWS SDK v2 with the default credential chain — no code branching.** The
   chain resolves static env credentials (local sidecar) or the IRSA
@@ -150,9 +154,10 @@ The living example is
 - **Readiness:** back `/readyz` with a `HeadBucket` ping.
 - **Delete semantics:** S3 `DeleteObject` is idempotent; `HeadObject` first
   if the API must return not-found for missing keys.
-- **Listing:** `ListObjectsV2` returns only `Key` and `Size` — no
-  `ContentType`. Keep content type in your own metadata store if list
-  responses need it; do not issue per-key `HeadObject` fan-outs.
+- **No client-facing listing.** `ListObjectsV2` is useful internally (for
+  example, to traverse a bucket for maintenance), but it is not how a
+  service serves a list of files to a client — that's a Query Service
+  concern (see "API patterns" above).
 - **Cache-Control:** set the native `CacheControl` field on `PutObject` and
   restore it on download.
 
@@ -176,10 +181,23 @@ Chart requirements:
 - **nats-s3 sidecar block** for local mode: a second container in the
   service pod listening on `localhost:5222` (loopback only), translating
   SigV4-signed S3 calls into NATS JetStream Object Store operations. The
-  chart renders the SigV4 key pair into a `credentials.json` Secret mounted
-  at `/etc/nats-s3` and injects the same pair as AWS env vars into the
-  service container.
+  chart renders a locally generated SigV4 key pair into a
+  `credentials.json` Secret mounted at `/etc/nats-s3` and injects the same
+  pair as AWS env vars into the service container — for example:
+
+  ```yaml
+  natsS3:
+    enabled: true
+    credentials:
+      accessKey: "local-dev-access-key"
+      secretKey: "local-dev-secret-key"
+  ```
+
 - **`cdnURLPrefix` value** mapped to `CDN_URL_PREFIX`.
+
+A service may need more than one bucket (and CDN prefix), especially when it
+has both a CDN-fronted public use case and a service-API-only private use
+case. Repeat the above per bucket.
 
 The platform umbrella chart (`lfx-v2-helm`) sets the nats-s3 sidecar values
 as the local-mode default for service charts; deployed values (IRSA role
@@ -187,54 +205,84 @@ ARN, real bucket name, CDN prefix) come from `lfx-v2-argocd`.
 
 ## Local development stack
 
-No AWS account or credentials required. Two components:
+No AWS account required. Two components:
 
 1. **nats-s3 sidecar** (per service pod): the S3-compatible write/read
    backend at `http://localhost:5222`, backed by NATS Object Store in the
-   local cluster.
+   local cluster. Requires a locally generated SigV4 credential pair (see
+   above) — not an AWS account, but not "zero credentials" either.
 2. **nginx-s3-gateway** (umbrella chart): a local stand-in for the
-   production CDN, demonstrating the `public_url` pattern end to end.
+   production CDN shape, demonstrating the `public_url` pattern end to end.
 
 ### Local CDN model (nginx-s3-gateway)
 
 The umbrella chart deploys a standalone pair, independent of any service's
 sidecar:
 
-- A dedicated, cluster-reachable **nats-s3 instance** (Deployment+Service) —
-  the "private bucket" the CDN fronts. (Separate from service sidecars,
-  which are loopback-only.)
+- A dedicated, cluster-reachable **nats-s3 instance** (Deployment+Service)
+  per bucket needing a CDN-fronted public URL locally — the "private
+  bucket" the local CDN gateway fronts. (Separate from service sidecars,
+  which are loopback-only.) A service with more than one CDN-fronted bucket
+  needs one of these per bucket.
 - An **nginx-s3-gateway** Deployment that proxies unauthenticated `GET`
   requests to that backend, signing them with SigV4 on the way through —
-  structurally the same as CloudFront + OAC (private origin, signing proxy,
-  edge cache).
+  matching the private-origin, signing-proxy, edge-cache shape used in
+  deployed environments, without naming a specific deployed CDN product
+  here.
 
 `CDN_URL_PREFIX` points at the gateway's in-cluster Service name; the
-service interpolates it into `public_url` on upload/list responses. Setting
-`CDN_URL_PREFIX=""` omits `public_url` entirely and clients fall back to the
-service's authenticated download routes — a valid degraded mode.
+service interpolates it into `public_url` on upload/fetch responses.
+Setting `CDN_URL_PREFIX=""` omits `public_url` entirely and clients fall
+back to the service's authenticated download route — a valid degraded mode.
 
-Gotchas when wiring nginx-s3-gateway (validated in the PoC, LFXV2-2847):
+Example gateway container env, illustrating the required variables:
 
-- Images are published under
-  `ghcr.io/nginx/nginx-s3-gateway/nginx-oss-s3-gateway` (the org moved from
-  `nginxinc`). Use an `unprivileged-oss-*` tag (non-root, port 8080).
-- Required env vars: `S3_BUCKET_NAME`, `S3_SERVER`, `S3_SERVER_PORT`,
-  `S3_SERVER_PROTO`, `S3_REGION`, `S3_STYLE`, `S3_SERVICE`,
-  `ALLOW_DIRECTORY_LIST`, `AWS_SIGS_VERSION`, `CORS_ENABLED` — the
-  entrypoint fails silently if any are missing.
-- Credentials via `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (not the
-  deprecated `S3_ACCESS_KEY_ID` / `S3_SECRET_KEY`); they must match the
-  fronted nats-s3 instance's SigV4 pair.
-- Do **not** set `DNS_RESOLVERS` — the image auto-detects the in-cluster
-  resolver, and nginx's `resolver` directive requires an IP, not a Service
-  DNS name.
-- `S3_SERVER` must be a fully qualified in-cluster name
-  (`<svc>.<namespace>.svc.cluster.local`); nginx's async resolver does not
-  apply `/etc/resolv.conf` search suffixes.
+```yaml
+env:
+  - name: S3_BUCKET_NAME
+    value: "my-service-objects"
+  - name: S3_SERVER
+    value: "my-service-nats-s3.my-namespace.svc.cluster.local" # FQDN required
+  - name: S3_SERVER_PORT
+    value: "5222"
+  - name: S3_SERVER_PROTO
+    value: "http"
+  - name: S3_REGION
+    value: "us-east-1"
+  - name: S3_STYLE
+    value: "path"
+  - name: S3_SERVICE
+    value: "s3"
+  - name: ALLOW_DIRECTORY_LIST
+    value: "false"
+  - name: AWS_SIGS_VERSION
+    value: "4"
+  - name: CORS_ENABLED
+    value: "false"
+  - name: AWS_ACCESS_KEY_ID # must match the fronted nats-s3 instance's pair
+    value: "local-dev-access-key"
+  - name: AWS_SECRET_ACCESS_KEY
+    value: "local-dev-secret-key"
+  # No DNS_RESOLVERS: the image auto-detects the in-cluster resolver: an
+  # explicit value must be an IP, and a Service DNS name here breaks it.
+```
+
+Notes on the fields above:
+
+- Image: `ghcr.io/nginx/nginx-s3-gateway/nginx-oss-s3-gateway` (the org
+  moved from `nginxinc`); use an `unprivileged-oss-*` tag (non-root, port
+  8080).
+- `S3_SERVER` must be the fully qualified in-cluster name — nginx's async
+  resolver does not apply `/etc/resolv.conf` search suffixes the way
+  libc-based tools do, so a short Service name resolves via `kubectl exec
+  ... curl` but fails inside nginx itself.
+- Use `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, not the deprecated
+  `S3_ACCESS_KEY_ID` / `S3_SECRET_KEY`.
 
 ## Environment variable contract
 
-The values/env contract every object-storing service chart exposes:
+The values/env contract every object-storing service chart exposes (per
+bucket, if a service owns more than one):
 
 | Variable                                      | Required   | Description                                                                                                                      |
 |-----------------------------------------------|------------|----------------------------------------------------------------------------------------------------------------------------------|
@@ -246,8 +294,8 @@ The values/env contract every object-storing service chart exposes:
 
 This is a **contract**, not an implementation recipe: env vars injected via
 the chart's `env:` block are the platform standard, but how the service
-reads them (plain `os.Getenv`, koanf, etc.) follows the owning repo's local
-conventions.
+reads them (plain `os.Getenv`, koanf, viper, etc.) follows the owning
+repo's local conventions.
 
 ## What this skill is not
 
@@ -257,12 +305,13 @@ conventions.
   service's FGA contract docs.
 - Not a Goa or Go conventions guide. The owning repo's path-scoped dev skill
   governs implementation style.
-- Not a NATS Object Store guide. Direct NATS Object Store usage (ObjectStore
-  CRD, `project-documents` bucket) is the legacy pattern; new object storage
-  capability targets the S3 API per this skill.
+- Not a NATS Object Store guide. NATS Object Store should not be used
+  directly (other than as the backend to nats-s3) for object storage in
+  LFX.
 
 ## Handoff boundary
 
-Once routed to the owning service repo, its local `CLAUDE.md`, `docs/`, and
-repo-local skills control implementation detail. For backend provisioning
-(bucket, CDN, IAM), hand off to `/lfx-skills:lfx-object-store-ops`.
+Once routed to the owning service repo, its local `AGENTS.md`/`CLAUDE.md`,
+`docs/`, and repo-local skills control implementation detail. For backend
+provisioning (bucket, CDN, IAM), hand off to
+`/lfx-skills:lfx-object-store-ops`.

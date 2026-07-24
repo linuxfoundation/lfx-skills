@@ -223,12 +223,15 @@ ship in this same `lfx-skills` plugin.
 
 ### `-ops` skill convention
 
-Skills whose names end in `-ops` are for **members of the linuxfoundation
-GitHub org** (Ops/infrastructure audience). Before loading an `-ops` skill,
-validate that the current GitHub user is an org member (for example,
-`gh api orgs/linuxfoundation/members/$(gh api user -q .login)` — a `204`
-means member). If membership cannot be confirmed, do not load the `-ops`
-skill; use the corresponding design skill instead.
+Skills whose names end in `-ops` are written for **members of the
+linuxfoundation GitHub org** (Ops/infrastructure audience). They are
+provided for that audience's use and are not gated by the skill itself.
+Before routing a task to an `-ops` skill, check whether the current GitHub
+user is an org member (for example, `gh api
+orgs/linuxfoundation/members/$(gh api user -q .login)` — a `204` means
+member). If membership cannot be confirmed, decline the provisioning
+request and say so; do not substitute the corresponding design skill as a
+stand-in, since design skills explicitly exclude provisioning work.
 
 ## Workflow skills (this plugin)
 

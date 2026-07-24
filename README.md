@@ -117,6 +117,8 @@ Each agent locates its owning repo at runtime and uses repo-qualified paths for 
 │   ├── lfx-cdp-snowflake-connectors/
 │   ├── lfx-data-engineer/       # dbt model + SQL transformation skill
 │   │   └── references/          # dbt setup, style, macros, testing, debugging
+│   ├── lfx-object-store-design/
+│   ├── lfx-object-store-ops/
 │   └── lfx-v2-ticket-writer/
 ├── agents/
 │   ├── lfx-committee-service-code-reviewer.md

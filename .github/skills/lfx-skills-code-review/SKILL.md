@@ -14,10 +14,10 @@ description: >-
 
 # LFX Skills Code Review
 
-The `/copilot-code-reviewer` skill owns the reviewer's scope and signal
-discipline; this skill owns the repo-specific method: what a sound skill
-looks like, and which side of the central-vs-repo boundary content belongs
-on.
+Reviewer scope and signal discipline are owned by the `copilot-code-reviewer`
+skill (`.github/skills/copilot-code-reviewer/SKILL.md`); this skill owns the
+repo-specific method: what a sound skill looks like, and which side of the
+central-vs-repo boundary content belongs on.
 
 ## What makes a skill sound
 

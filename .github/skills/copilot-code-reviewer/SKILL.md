@@ -32,9 +32,11 @@ the content under review.
   the installer scripts. Read enough of the surrounding content to judge each
   change in context — a skill edit is judged against the whole skill it lands
   in, not the hunk alone.
-- **The review method.** `/lfx-skills-code-review` carries what makes a skill
+- **The review method.** The `lfx-skills-code-review` skill
+  (`.github/skills/lfx-skills-code-review/SKILL.md`) carries what makes a skill
   sound and the central-vs-repo fanout boundary this repo exists to implement.
-  Load and follow it on every review.
+  It applies to every review on this repo: if it is already in your context,
+  use it; if not, read the file.
 
 ## How to review
 
@@ -44,10 +46,10 @@ the content under review.
    description says deserves a finding; if you cannot work out what the change
    is for, that is a finding.
 2. **Place the change.** Does this content belong in the central plugin at
-   all, or in an owning repo? `/lfx-skills-code-review` carries the boundary
+   all, or in an owning repo? `lfx-skills-code-review` carries the boundary
    rules. Misplaced content is the highest-leverage finding on this repo,
    because the boundary is the architecture.
-3. **Judge the content** with `/lfx-skills-code-review`: skill soundness,
+3. **Judge the content** against `lfx-skills-code-review`: skill soundness,
    internal consistency, reference accuracy, and fanout-boundary compliance.
 
 ## Signal discipline

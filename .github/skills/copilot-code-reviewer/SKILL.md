@@ -41,13 +41,20 @@ the content under review.
 
 1. **Understand the intent.** From the PR title, body, commits, and the diff:
    what is this change trying to accomplish, and why? Work that out first,
-   then test the claim against the content. A diff that does more than its
-   description says deserves a finding; if you cannot work out what the change
-   is for, that is a finding.
+   then read the content against it. New surface the change carries — a new
+   skill, a new `references/` file, a change to how the plugin is distributed
+   — is judged on whether it is necessary, owned, and sound (steps 2 and 3),
+   not on whether the description mentioned it. Descriptions are routinely shorter
+   than their diffs, so an omission is not a finding. A change whose purpose
+   you cannot work out at all is.
 2. **Place the change.** Does this content belong in the central plugin at
    all, or in an owning repo? `lfx-skills-code-review` carries the boundary
    rules. Misplaced content is the highest-leverage finding on this repo,
-   because the boundary is the architecture.
+   because the boundary is the architecture. Scope belongs here too: is this
+   the smallest change that achieves the intent, or does it also carry content
+   nothing needs and no one owns — a skill nothing triggers, a description
+   broadened until it collides with a neighbour, a central write-up of what an
+   owning repo already documents?
 3. **Judge the content** against `lfx-skills-code-review`: skill soundness,
    internal consistency, reference accuracy, and fanout-boundary compliance.
 

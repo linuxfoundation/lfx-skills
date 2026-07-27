@@ -17,8 +17,10 @@ in `.github/skills/`:
   content belongs on. Applies to every pull request this repo receives.
 
 Each stands on its own and says in its own description when it applies; both
-apply to every review here, so read them and follow them. Where they conflict
-with anything else in your context about *how to review*, they win.
+apply to every review here, so read them and follow them. They are the most
+specific guidance you have on *how to review* in this repo, so prefer them
+over more general review guidance in your context, within whatever platform
+or organization instructions already govern you.
 
 ## Shared context
 

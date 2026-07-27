@@ -4,9 +4,8 @@ description: >-
   How to judge an lfx-skills pull request: what makes a skill or reviewer
   agent sound (frontmatter, triggers, internal consistency, reference
   accuracy) and whether the change respects the central-vs-repo boundary of
-  the LFX skills fanout architecture. Use on every PR that changes skills,
-  agents, references, or distribution files; this is the reviewer's
-  repo-specific lens.
+  the LFX skills fanout architecture. Use on every pull request this repo
+  receives; this is the reviewer's repo-specific lens.
 ---
 
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->

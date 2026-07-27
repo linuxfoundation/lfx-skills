@@ -1,9 +1,8 @@
 ---
 name: copilot-code-reviewer
 description: >-
-  Senior review method for lfx-skills pull requests. Use when the task is to
-  review a PR on this repo — changes to skills, reviewer agents, references,
-  distribution scripts, or docs.
+  Senior review method for lfx-skills pull requests. Use whenever the task is
+  to review a pull request on this repo, whatever it changes.
 ---
 
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->

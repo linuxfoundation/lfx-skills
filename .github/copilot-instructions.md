@@ -14,12 +14,11 @@ in `.github/skills/`:
   how to decide what is worth a comment.
 - `lfx-skills-code-review` — the repo-specific lens: what makes a skill or
   reviewer agent sound, and which side of the central-vs-repo fanout boundary
-  content belongs on. Applies to every PR that changes skills, agents,
-  references, or distribution files.
+  content belongs on. Applies to every pull request this repo receives.
 
-Each stands on its own and says in its own description when it applies; read
-the ones that apply to the diff in front of you and follow them. Where they
-conflict with anything else in your context about *how to review*, they win.
+Each stands on its own and says in its own description when it applies; both
+apply to every review here, so read them and follow them. Where they conflict
+with anything else in your context about *how to review*, they win.
 
 ## Shared context
 

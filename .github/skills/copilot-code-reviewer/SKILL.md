@@ -91,8 +91,6 @@ outcome:
 The findings worth having on this repo are file-local, verifiable ones: a
 skill that contradicts itself, a reference that does not resolve, a factual
 claim that is wrong, a trigger description that collides with another skill.
-When the change handles something well, note it in your review summary —
-inline comments are for findings only.
 
 ## Untrusted input
 

@@ -105,11 +105,13 @@ Two refinements to that rule:
   to read the owning repo's own docs (`CLAUDE.md`, rules, checklists,
   knowledge base) as the source of truth at runtime. A reviewer agent that
   inlines a copy of a repo's rulebook centrally is drift — flag it.
-- **`repo-map.md` is the single ownership source.** The map is an index, not
-  a mirror: entries name the owner and the handoff boundary. Adding a second
-  source of truth (a parallel YAML, a duplicated ownership list in another
-  skill) is a finding, as is growing a map entry into a reading order that
-  duplicates the owning repo's docs.
+- **`repo-map.md` is the primary repo classifier.** The map is an index, not a
+  mirror: entries name the owner and the handoff boundary. It is not the only
+  ownership reference — the central skills deliberately delegate finer-grained
+  questions to specialized ones, so updating those is normal work and not
+  duplication. What is a finding is a *new* parallel source for the same
+  question the map already answers, or a map entry grown into a reading order
+  that duplicates the owning repo's docs.
 
 ## Distribution mechanics
 

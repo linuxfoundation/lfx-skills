@@ -271,6 +271,17 @@ Route phrases: Intercom, Intercom identity verification, Intercom JWT, identity-
 - Handoff: Start in ArgoCD because it owns deployed environment state and promotion mechanics.
 - Notes: Dev often deploys from source repo `path: charts/...` with `targetRevision: HEAD`; staging/prod generally use GHCR OCI chart entries with pinned chart versions. Secrets may originate from the DevOps/CloudOps-managed secrets manager / `lfx-secrets-management` flow, but that is not a normal implementation route. Agents should not ask for or print secret values; treat source secret definitions, AWS Secrets Manager paths/tags, service tags, and values as a DevOps/CloudOps handoff unless the task is explicitly about ArgoCD references or ExternalSecrets manifests.
 
+### `lfx-v2-opentofu`
+
+- Path: `lfx-v2-opentofu`
+- GitHub: https://github.com/linuxfoundation/lfx-v2-opentofu
+- Owns: AWS infrastructure for the LFX V2 platform via OpenTofu: EKS cluster resources, IRSA service-account roles (`modules/eks-service-account-role/` driven by `iam-service-account-definitions.yaml`), RDS PostgreSQL databases (`postgres-database-definitions.yaml` + `postgres.tf`), S3 buckets, SES users, and related IAM. Environments are OpenTofu workspaces (`dev`, `staging`, `prod`), not directories.
+- Local entrypoints: `README.md` (workspace workflow, Makefile commands), `docs/` (`architecture.md`, `service-accounts.md`, `services.md`).
+- Route when the task mentions: LFX AWS infrastructure, OpenTofu workspace, IRSA role, EKS service account role, provision an S3 bucket, provision a Postgres database, object storage backend provisioning, CloudFront for uploads, SES user, Secrets Manager secret definitions.
+- Default peers: `lfx-v2-argocd`
+- Handoff: Start in `lfx-v2-opentofu` when the implementation truth is an AWS resource. Hand provisioned outputs (IRSA role ARNs, bucket names, CDN hostnames, secret paths) to `lfx-v2-argocd` values. For object storage provisioning requirements, use `/lfx-skills:lfx-object-store-ops` (linuxfoundation org members).
+- Notes: Data-driven flat `for_each` over YAML definition files is the preferred pattern (see `postgres.tf`); avoid new modules unless nested loops force one. Auth0 tenant resources live in `auth0-terraform`, not here.
+
 ### `lfx-v2-mockdata`
 
 - Path: `lfx-v2-mockdata`

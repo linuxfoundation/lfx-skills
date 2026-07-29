@@ -32,7 +32,14 @@ one repo: the target repo. Before diffing:
   look for a sibling or child directory with the matching repo name (or
   walk up from a changed file path until you find a `.git` directory). Use
   that repo's root as the working directory for every subsequent `git`
-  command in this review.
+  **and `gh`** command in this review. `gh pr view`, `gh api`, `git
+  fetch`, `git diff`, and `git log` all resolve their repo from the
+  current working directory's git remote; if the shell is anywhere but
+  the target repo root, `gh pr view` will silently target a _different_
+  repo's PR (the LFX workspace root or a sibling repo you happened to be
+  in), and the ingested title/body/log will belong to that other PR. Pass
+  `--repo <owner>/<target-repo>` on every `gh` call in this review as a
+  belt-and-suspenders defense.
 - Use repo-qualified paths (for example `lfx-self-serve/apps/lfx-one/...`)
   when referring to files across repos.
 - Abort with `INCOMPLETE - target repo not found` if you cannot identify a
@@ -72,25 +79,35 @@ inspect every commit currently in the PR — real PII added in an earlier
 commit on this branch and still present at PR head would otherwise be
 invisible. When a PR is found:
 
-- Fetch the PR body and title (they are not in git history):
+- Fetch the PR body and title (they are not in git history). Every
+  `gh` call in this review MUST pass `--repo <owner>/<target-repo>` —
+  never rely on cwd repo resolution here, since a reviewer launched
+  from the LFX workspace root or a sibling repo would otherwise read a
+  different repo's PR:
 
   ```bash
-  gh pr view --json number,title,body,baseRefName \
+  gh pr view --repo <owner>/<target-repo> \
+    --json number,title,body,baseRefName \
     --jq '. | "PR #\(.number)\n\(.title)\n\nbase: \(.baseRefName)\n\n\(.body)"'
   ```
 
-  against the current branch (or an explicit PR number when the caller
-  supplies one).
+  against the current branch's PR (or an explicit PR number when the
+  caller supplies one).
 
 - Additionally, for the **PII pass only**, expand the diff to the
   cumulative base-to-HEAD range **and** inspect every commit's
   message and patch. Once a PR is merged, its full history — including
   intermediate commits and their messages — stays in the repository
   forever, so a PII leak in a commit message or in a commit that is
-  later reverted is still a shipped disclosure:
+  later reverted is still a shipped disclosure. All commands below
+  MUST run with the target repo's root (resolved in Step 1) as cwd;
+  from anywhere else, `git fetch`/`git diff`/`git log` operate on
+  whatever repo happens to contain cwd:
 
   ```bash
-  gh pr view --json baseRefName --jq '.baseRefName'   # e.g. main
+  # Run these from the target repo root resolved in Step 1.
+  gh pr view --repo <owner>/<target-repo> --json baseRefName \
+    --jq '.baseRefName'   # e.g. main
   git fetch origin
 
   # Cumulative tree delta (final-state coverage).
@@ -106,12 +123,19 @@ invisible. When a PR is found:
 
   Use both outputs as input to the "Committed artifacts" and "Data
   Privacy / PII" checks below, in addition to the PR body and title.
-  For the PII pass, an emission is a finding if it appears in **any**
-  of: the final tree, an intermediate patch, a commit message, or a
-  commit trailer other than the DCO/attribution trailers permitted by
-  hard rule 4 in `references/data-privacy.md`. Other criteria
-  (correctness, security, performance, etc.) continue to review only
-  the latest commit unless the caller passes the `branch` keyword.
+  For the PII pass, an emission is a finding when it appears on an
+  **added or newly-authored** line — a `+` hunk line in the cumulative
+  diff or in any per-commit patch, a commit message body, or a commit
+  trailer other than the DCO/attribution trailers permitted by hard
+  rule 4 in `skills/lfx/references/data-privacy.md`. Deletions on the
+  `-` side of a patch are **not** findings: a PR that removes existing
+  PII is doing the right thing, and re-flagging the removed value
+  would incentivize the reviewer to obstruct redaction PRs. Add-then-
+  remove leaks are still caught, because the earlier per-commit patch
+  contains the value on a `+` line and that commit's message is also
+  inspected. Other criteria (correctness, security, performance, etc.)
+  continue to review only the latest commit unless the caller passes
+  the `branch` keyword.
 
 If `gh` reports no PR for the branch, skip PR-body analysis, skip the
 cumulative-diff expansion, and skip the per-commit `git log -p` pass;
@@ -228,58 +252,28 @@ with `<redacted>` before including the snippet.
   yes, flag as Critical. **The audit exception does NOT apply to these
   sinks** — the canonical rule explicitly excludes them, so an "audit
   path" justification here is invalid.
-- Do new KV writes, index documents, FGA tuples, Postgres columns, or cache
-  entries persist PII that is NOT part of the resource contract? If yes,
-  flag as Critical. Contract-owned PII fields (documented in the owning
-  service's schema/contract docs) are permitted — do not flag those.
+- Do new KV writes, index documents, Postgres columns, or cache entries
+  persist PII that is NOT part of the resource contract? If yes, flag as
+  Critical. Contract-owned PII fields (documented in the owning service's
+  schema/contract docs) are permitted — do not flag those. FGA tuples
+  carry structural IDs only (see the FGA guidance in
+  `skills/lfx-platform-architecture/SKILL.md`), so any PII value
+  appearing as a tuple `user` or `object` component is always Critical
+  regardless of contract.
 - **Biometric identifiers and health information (taxonomy categories
-  (11) and (12)) have a stricter, sink-specific rule than other PII
-  categories**, matching the canonical taxonomy at
-  `skills/lfx/references/data-privacy.md`:
-  - _Log sinks — application logs, audit logs, error logs, metrics,
-    tracing spans, fixtures, seed data, search-index documents,
-    caches, and generated docs:_ **Critical unconditionally**. The
-    canonical rule explicitly states no exception in this policy
-    applies to these sinks. Documenting the field in a contract does
-    NOT rescue an emission to any of these sinks — flag Critical
-    regardless.
-  - _Primary datastore persistence — Postgres columns, KV writes, and
-    FGA tuples that are part of the service's owned data model:_
-    the field is permitted **only when all three** conditions hold:
-    (a) the field is contract-owned (documented in the service's
-    schema/contract docs); (b) the service's contract docs cite an
-    LFX security team review of the biometric/health data model
-    (approval body, review artifact link, date, or ticket
-    identifier); and (c) the service documents an appropriate
-    **lawful basis** for the specific category, matching the
-    canonical taxonomy at
-    `skills/lfx/references/data-privacy.md:114-126`:
-    - _Biometric identifiers_ — canonical rule requires **explicit
-      consent**. The service must document the consent mechanism:
-      an opt-in flow (not pre-checked/inferred), a consent-record
-      schema tying the consent event to the biometric record, and
-      a documented withdrawal / erasure path. Legitimate-interest,
-      contract-necessity, or "user is logged in" theories do
-      **not** satisfy this gate.
-    - _Health information_ — GDPR Article 9 allows several bases
-      (explicit consent under 9(2)(a), medical necessity under
-      9(2)(h), public-health under 9(2)(i), etc.); US HIPAA
-      requires patient authorization or a covered TPO purpose.
-      The service must document which specific basis applies and
-      cite the supporting artifact (consent flow, HIPAA
-      authorization template, covered-entity determination,
-      etc.). "Health data is contract-owned" alone does not
-      satisfy this gate.
-
-    If (a) is missing → Critical (unauthorized biometric/health
-    persistence). If (a) holds but (b) is missing → Critical with
-    recommendation "requires LFX security team review before merge."
-    If (a) and (b) hold but (c) is missing → Critical with
-    recommendation "requires documented lawful basis (explicit
-    consent for biometrics; consent or another Art. 9 (h)-(j) /
-    HIPAA basis for health data) before merge." Do not silently
-    permit primary-store biometric/health persistence on the basis
-    of contract documentation and security review alone.
+  (11) and (12)) are GDPR Article 9 special categories.** The canonical
+  rule at `skills/lfx/references/data-privacy.md` (under _What counts
+  as PII_) states these categories are not permitted in logs, fixtures,
+  indexes, or caches under any exception in this policy, and that any
+  system that genuinely needs to process them must be reviewed
+  separately by the LFX security team. Flag any newly-added biometric
+  or health field surfacing in the review — in a log call, fixture,
+  index document, cache entry, KV write, Postgres column, generated
+  doc, or anywhere else — as **Critical**, and route the finding to
+  the LFX security team. Do not attempt to adjudicate whether
+  primary-datastore persistence is permitted: that decision is out of
+  scope for this reviewer and belongs to the security team's separate
+  review.
 - Do committed code comments, **PR title**, PR body, migration comments,
   docs snippets, reproduction steps, screenshot captions, or committed
   screenshot/image files hard-code **any real user PII**? The full canonical taxonomy (from
@@ -326,18 +320,22 @@ with `<redacted>` before including the snippet.
   real user PII outside of commit-metadata trailers on those surfaces is
   Critical.
 - For dbt/data-engineer changes: are new PII-bearing columns tagged with
-  `config.meta.contains_pii: true` **and** `config.meta.data_retention`
-  set to the exact literal string `"undefined"`? The convention in
-  `skills/lfx-data-engineer/SKILL.md` (see the _PII Tagging_ section and
-  the model bullet at lines 403-414) and in
-  `references/testing-patterns.md` (see the "PII Tagging" section and
-  the checklist item at `references/testing-patterns.md:349-350`)
-  requires that exact placeholder until the shared testing-patterns
-  guidance is updated. Any other value (e.g., `"7-years"`, `"90-days"`,
-  `null`, an omitted key) is out-of-convention — flag as **Critical**
-  and require the author to either use `"undefined"` verbatim or first
-  update the shared convention docs. Do not silently approve invented
-  retention values.
+  `config.meta.contains_pii: true` and a `config.meta.data_retention`
+  key present? Flag missing tags as **Important** (not Critical — this
+  is metadata hygiene, not a security defect per this reviewer's own
+  Critical rubric of exposed secrets, logic errors, or data corruption
+  risks). Do not enforce a specific `data_retention` value: this
+  reviewer runs against many repos, and the `"undefined"` placeholder
+  is a convention documented in `skills/lfx-data-engineer/SKILL.md`
+  (see the _PII Tagging_ section) and
+  `skills/lfx-data-engineer/references/testing-patterns.md` (see the
+  _PII Tagging_ section).
+  That convention applies only when the target repo explicitly points
+  at this reviewer or at `lfx-data-engineer` for its dbt conventions
+  (per the _Do not import conventions from another repo unless the
+  target repo explicitly points to them_ rule below); otherwise, the
+  presence of a `data_retention` key is enough and the value is the
+  target repo's business.
 
 **Error Handling**:
 

@@ -30,10 +30,10 @@ ROLES="general repo_code repo_learnings"
 CODE_SKILL_REL="${LFX_LOCAL_REVIEW_CODE_SKILL:-.claude/skills/local-code-review/SKILL.md}"
 LEARNINGS_SKILL_REL="${LFX_LOCAL_REVIEW_LEARNINGS_SKILL:-.claude/skills/local-learnings-review/SKILL.md}"
 
-ONBOARDING="Pi is not available, so all three reviewers ran on Claude. This is a
-same-model review, not the cross-model one. To get the cross-model review,
-install Pi (https://aweb.ai/docs/pi/) and authenticate it with your Copilot
-seat, then run this again."
+ONBOARDING="Pi is not available, so all three reviewers will run on Claude
+instead. That makes this a same-model review, not the cross-model one. To get
+the cross-model review, install Pi (https://aweb.ai/docs/pi/) and authenticate
+it with your Copilot seat, then run this again."
 
 # Host-detected failure. Never phrased as a reviewer's INCOMPLETE — only a
 # reviewer that produced usable output may say that about its own review.
@@ -52,18 +52,28 @@ MODE="post-commit"
 EXTRA=""
 READINESS_ONLY=""
 
+# An option that takes a value must actually have one. Without this check a
+# trailing `--repo` leaves $# at 1, `shift 2` fails without consuming anything,
+# and the loop spins on the same argument forever at full CPU.
+need_value() {
+  [ "$2" -ge 2 ] || host_fail "$1 requires a value"
+}
+
 while [ $# -gt 0 ]; do
   case "$1" in
   --repo)
-    REPO="${2:-}"
+    need_value --repo $#
+    REPO="$2"
     shift 2
     ;;
   --mode)
-    MODE="${2:-}"
+    need_value --mode $#
+    MODE="$2"
     shift 2
     ;;
   --extra)
-    EXTRA="${2:-}"
+    need_value --extra $#
+    EXTRA="$2"
     shift 2
     ;;
   --readiness)
@@ -108,26 +118,30 @@ fi
 # one git call and removes the whole class of problem — without a snapshot, a
 # worktree or a patch file.
 # --------------------------------------------------------------------------
+# Fetch first, then pin — in that order. Exactly one fetch, here, before any
+# child and before any revision is pinned. The children never fetch for the
+# base: three concurrent fetches would contend on the same remote-tracking ref
+# lock, and a fetch landing mid-run could move the base out from under reviewers
+# who had already started. Pinning strictly afterwards means every pinned value
+# describes the post-fetch state, and a later fetch by anyone cannot change what
+# this run is reviewing.
+#
+# Note this makes branch mode require network. That is deliberate — a branch
+# sweep measured against a stale base is a wrong answer that looks like a right
+# one — but it does mean branch mode cannot run offline. Post-commit mode needs
+# no fetch and still works.
+if [ "$MODE" = "branch" ]; then
+  log "lfx-local-review: fetching origin once to establish the branch base."
+  git -C "$REPO" fetch origin --quiet ||
+    host_fail "could not fetch origin in $REPO, so the branch base cannot be established"
+fi
+
 TARGET_SHA="$(git -C "$REPO" rev-parse --verify --quiet 'HEAD^{commit}')" ||
   host_fail "no commit to review in $REPO"
 
 BASE_SHA=""
 ORIGIN_MAIN_SHA=""
 if [ "$MODE" = "branch" ]; then
-  # Exactly one fetch, here, before any child. The children never fetch for the
-  # base: three concurrent fetches would contend on the same remote-tracking
-  # ref lock, and a fetch landing mid-run could move the base out from under
-  # reviewers who had already started. Pinning immediately afterwards means a
-  # later fetch by anyone cannot change what this run is reviewing.
-  #
-  # Note this makes branch mode require network. That is deliberate — a branch
-  # sweep measured against a stale base is a wrong answer that looks like a
-  # right one — but it does mean branch mode cannot run offline. Post-commit
-  # mode needs no fetch and still works.
-  log "lfx-local-review: fetching origin once to establish the branch base."
-  git -C "$REPO" fetch origin --quiet ||
-    host_fail "could not fetch origin in $REPO, so the branch base cannot be established"
-
   ORIGIN_MAIN_SHA="$(git -C "$REPO" rev-parse --verify --quiet 'origin/main^{commit}')" ||
     host_fail "local origin/main is unavailable in $REPO even after fetching"
   # The base is the MERGE-BASE, not the origin/main tip. When origin/main has
@@ -188,10 +202,16 @@ pi_ready() {
 
 READINESS="$(pi_ready)" || true
 
-if [ -n "$READINESS_ONLY" ]; then
-  printf '%s\n' "$READINESS"
+# The pinned values, printed with every decision. This run has already fetched
+# (branch mode) and pinned; whoever acts on the decision must use THESE values.
+print_pins() {
   printf 'repo=%s\nmode=%s\ntarget_sha=%s\nbase_sha=%s\norigin_main_sha=%s\n' \
     "$REPO" "$MODE" "$TARGET_SHA" "${BASE_SHA:-}" "${ORIGIN_MAIN_SHA:-}"
+}
+
+if [ -n "$READINESS_ONLY" ]; then
+  printf '%s\n' "$READINESS"
+  print_pins
   [ "$READINESS" = "PI_READY" ] || printf '\n%s\n' "$ONBOARDING"
   exit 0
 fi
@@ -199,7 +219,13 @@ fi
 if [ "$READINESS" != "PI_READY" ]; then
   # Not a failure — it is the decision to run the other harness. The host reads
   # this and launches three Claude subagents instead.
+  #
+  # The pinned values go out WITH the decision, deliberately. If the host had to
+  # ask again to get them, branch mode would fetch and pin a second time, and
+  # the Claude trio could end up reviewing a different target or base than the
+  # one this decision was made about. One decision, one fetch, one set of pins.
   printf '%s\n' "$READINESS"
+  print_pins
   printf '\n%s\n' "$ONBOARDING"
   exit 0
 fi
@@ -218,7 +244,7 @@ role_prompt() {
     printf 'base_sha: none (root commit — the pre-change false-positive floor is empty)\n'
   fi
   [ -n "$ORIGIN_MAIN_SHA" ] &&
-    printf 'origin_main_sha: %s (caller-owned local ref; no freshness claim)\n' "$ORIGIN_MAIN_SHA"
+    printf 'origin_main_sha: %s (fetched once by the host, then pinned, immediately before this run)\n' "$ORIGIN_MAIN_SHA"
   printf 'role: %s\n' "$role"
   [ -n "$EXTRA" ] && printf 'extra: %s\n' "$EXTRA"
   printf '\n'
@@ -270,11 +296,42 @@ for entry in $pids; do
   fi
 done
 
+role_label() { printf '%s' "$1" | tr '[:lower:]_' '[:upper:] '; }
+
+# Why a role failed, or nonzero if it succeeded.
+reason_for() {
+  local wanted="$1" entry
+  for entry in $failed; do
+    if [ "${entry%%:*}" = "$wanted" ]; then
+      printf '%s' "${entry##*:}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+failure_line() {
+  case "$2" in
+  empty) printf '%s REVIEW FAILED — the reviewer exited 0 but produced no output.\n' "$(role_label "$1")" ;;
+  exit-*) printf '%s REVIEW FAILED — process exited %s.\n' "$(role_label "$1")" "${2#exit-}" ;;
+  esac
+}
+
 # Emit in a FIXED role order, so two runs of the same commit read the same way
 # regardless of which child finished first.
+#
+# A failed role's stdout is DISCARDED, never printed under its heading. A
+# crashed reviewer can leave perfectly plausible half-written Markdown behind,
+# and a developer reading stdout — or piping it to a file — would have no way to
+# tell it apart from a finished review. The failure is stated in the same stream
+# so that stdout alone is never misleading.
 for role in $ROLES; do
   printf '\n===== %s =====\n\n' "$role"
-  if [ -s "$TMPDIR_RUN/$role.out" ]; then
+  if reason="$(reason_for "$role")"; then
+    failure_line "$role" "$reason"
+    printf 'No review was produced. Any partial output from the failed process\n'
+    printf 'has been discarded: it is not a review and must not be read as one.\n'
+  else
     cat "$TMPDIR_RUN/$role.out"
   fi
 done
@@ -284,10 +341,7 @@ if [ -n "$failed" ]; then
   for entry in $failed; do
     role="${entry%%:*}"
     reason="${entry##*:}"
-    case "$reason" in
-    empty) printf '%s REVIEW FAILED — the reviewer exited 0 but produced no output.\n' "$(printf '%s' "$role" | tr '[:lower:]_' '[:upper:] ')" >&2 ;;
-    exit-*) printf '%s REVIEW FAILED — process exited %s.\n' "$(printf '%s' "$role" | tr '[:lower:]_' '[:upper:] ')" "${reason#exit-}" >&2 ;;
-    esac
+    failure_line "$role" "$reason" >&2
     if [ -s "$TMPDIR_RUN/$role.err" ]; then
       printf '  stderr: %s\n' "$(head -c 2000 "$TMPDIR_RUN/$role.err" | tr '\n' ' ')" >&2
     fi

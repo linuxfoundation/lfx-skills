@@ -43,8 +43,8 @@ LEARNINGS_SKILL_REL="${LFX_LOCAL_REVIEW_LEARNINGS_SKILL:-.claude/skills/local-le
 # A homepage link is not a path to a working reviewer. Give the three commands,
 # name the provider to pick, and say what to do next -- the developer is in the
 # middle of something else and this is an interruption, not a tutorial.
-ONBOARDING="Pi is not available, so all three reviewers will run on Claude
-instead. That is not the cross-model review: Pi with GitHub Copilot
+ONBOARDING="Pi is not available, so all three reviewers will run as Claude Opus
+subagents instead. That is not the cross-model review: Pi with GitHub Copilot
 GPT-5.6 Sol at thinking high is the intended cross-model check.
 
 Install Pi:
@@ -60,7 +60,7 @@ Copilot-enabled GitHub account/seat. Then rerun local review.
 Detail: references/pi-setup.md beside this skill, or
 https://github.com/earendil-works/pi
 
-Continuing now with the Claude fallback."
+Continuing now with the Claude Opus fallback."
 
 # Host-detected failure. Never phrased as a reviewer's INCOMPLETE — only a
 # reviewer that produced usable output may say that about its own review.

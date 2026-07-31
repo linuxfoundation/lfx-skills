@@ -83,20 +83,25 @@ whole trio on the same harness.
 
 If the launcher prints `PI_NOT_INSTALLED`, `PI_UNAUTHENTICATED` or
 `PI_MODEL_UNAVAILABLE` instead of reviews, **it has not failed** — it has
-chosen the other harness. Launch the fallback yourself: three Claude subagents,
-in one parallel batch.
+chosen the other harness. Launch the **Claude Opus fallback** yourself: three
+generic subagents in one parallel batch, all three using model `opus`.
 
 Show the developer the onboarding message the launcher printed, and say plainly
-that this was a same-model review. A Claude session reviewing Claude's work is
-not the cross-model check Pi provides, and it must never be presented as one.
+that this is not the intended review. Pi with GitHub Copilot GPT-5.6 Sol at
+thinking high is the cross-model check; a Claude trio is not, and must never be
+presented as one. Do not call it a *same-model* review either — the subagents
+are explicitly Opus and the session hosting them may be a different model, so
+that claim is not yours to make.
 
-Launch all three with `run_in_background: true`:
+Launch all three with `run_in_background: true`, model `opus` for every one:
 
-| Role | Subagent | Skill to load |
-|---|---|---|
-| `general` | generic | `lfx-general-code-review` |
-| `repo_code` | generic | the repo's declared code-review skill name |
-| `repo_learnings` | generic | the repo's declared learnings-review skill name |
+| Role | Subagent | Model | Skill to load |
+|---|---|---|---|
+| `general` | generic | `opus` | `lfx-general-code-review` |
+| `repo_code` | generic | `opus` | the repo's declared code-review skill name |
+| `repo_learnings` | generic | `opus` | the repo's declared learnings-review skill name |
+
+One model for the whole batch. A trio split across models is not a trio.
 
 **Prefer the repo's own fallback orchestrator when it has one.** If
 `<repo>/.claude/skills/local-review-fallback/SKILL.md` exists, load and follow

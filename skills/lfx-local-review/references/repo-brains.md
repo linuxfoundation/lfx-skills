@@ -149,7 +149,11 @@ means you cannot apply the rule, not that you should apply half of it.
 
 ## The fallback orchestrator
 
-When Pi is unavailable the review still runs, on three Claude subagents. The
+When Pi is unavailable the review still runs, as the **Claude Opus fallback** on
+three generic subagents. It is not the intended cross-model review — that is Pi
+with GitHub Copilot GPT-5.6 Sol at thinking high — and it should not be called a
+*same-model* review either, since the subagents are explicitly Opus while the
+session hosting them may be a different model. The
 repo owns the small skill that launches them, because it is the thing that knows
 its own reviewer skill names.
 
@@ -163,14 +167,17 @@ reviewer skills. **Never a second copy** — a duplicated body is a body that
 drifts.
 
 **What it does, and only this:** launch exactly three generic subagents in one
-parallel batch, each told which skill to load and which range to review. It is a
-launch table.
+parallel batch, **all three using model `opus`**, each told which skill to load
+and which range to review. It is a launch table.
 
-| Role | Skill to load |
-|---|---|
-| `general` | `lfx-general-code-review` |
-| `repo_code` | the repo's declared code-review skill name |
-| `repo_learnings` | the repo's declared learnings-review skill name |
+| Role | Model | Skill to load |
+|---|---|---|
+| `general` | `opus` | `lfx-general-code-review` |
+| `repo_code` | `opus` | the repo's declared code-review skill name |
+| `repo_learnings` | `opus` | the repo's declared learnings-review skill name |
+
+One model requirement for the whole batch, not per role. A trio split across
+models is not a trio.
 
 Use the **declared** name from each skill's frontmatter, which is not
 necessarily its alias directory. Write the three names into the file.

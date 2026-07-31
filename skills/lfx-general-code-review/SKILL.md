@@ -85,8 +85,9 @@ Confirm `git rev-parse HEAD` equals `target_sha` before you rely on the working
 tree for anything. If it does not, the branch moved under you: say so and treat
 the working tree as unusable evidence.
 
-**The range never comes from a remote.** The host derives it from the commit and
-its parent alone — no fetch, no `origin/main`, no comparison against a mainline.
+**The range never comes from a remote.** `base_sha` is whatever the caller
+supplied, and its first parent when the caller supplied nothing — no fetch, no
+`origin/main`, no comparison against a mainline.
 (Reading GitHub or fetching for *context*, as the wall above allows, is
 unaffected; it just cannot change what you are reviewing.)
 

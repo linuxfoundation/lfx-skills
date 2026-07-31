@@ -66,11 +66,20 @@ LFX_LOCAL_REVIEW_PROVIDER=<provider> ...
 ## How reviewers are invoked
 
 ```text
-pi -p --mode text --model <provider>/<model> --no-session --no-approve \
+pi -p --mode text --model <provider>/<model> --no-approve \
    --no-skills --no-context-files --no-prompt-templates --no-extensions \
    --tools read,bash,grep,find,ls \
+   --session <run dir>/sessions/<role>.jsonl \
    --skill <one absolute SKILL.md> "<role prompt>"
 ```
+
+`--session` is what makes a run watchable. It fixes each reviewer's transcript
+at a known path so `scripts/watch.sh` can follow it live — a child's stdout is
+block-buffered and shows nothing until it exits, so the transcript is the only
+thing there is to watch. The path is inside the run's temp directory, which the
+launcher deletes when the run ends: the transcripts live and die with the run
+and are never a retained report. Do not restore `--no-session` — it would leave
+nothing to watch.
 
 The discovery flags matter: a reviewer sees exactly the one skill it was given,
 with no ambient `AGENTS.md`, `CLAUDE.md`, project skill, prompt template or

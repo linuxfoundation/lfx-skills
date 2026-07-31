@@ -172,7 +172,7 @@ and which range to review. It is a launch table.
 
 | Role | Model | Skill to load |
 |---|---|---|
-| `general` | `opus` | `lfx-general-code-review` |
+| `general` | `opus` | the central general reviewer, declared `lfx-general-code-review` |
 | `repo_code` | `opus` | the repo's declared code-review skill name |
 | `repo_learnings` | `opus` | the repo's declared learnings-review skill name |
 
@@ -181,6 +181,18 @@ models is not a trio.
 
 Use the **declared** name from each skill's frontmatter, which is not
 necessarily its alias directory. Write the three names into the file.
+
+**Your two brains are project skills and register under exactly their declared
+names. The general reviewer is not** — it arrives through a plugin, and a
+session surfaces plugin skills namespaced, `lfx-skills:lfx-general-code-review`
+rather than the bare name. Write whichever form your developers' sessions
+actually list; if you are unsure, check a live session's skill list rather than
+guessing, because an unregistered name fails that role and invalidates the
+whole Claude cycle.
+
+Do not take a healthy Pi run as evidence here. Pi receives the general skill by
+absolute path and never resolves a name, so the naming in this table is
+exercised **only** by the Claude arm.
 
 This works because the developer runs Claude from the service repo with the
 central plugin loaded, so all three are registered in that session. If a named

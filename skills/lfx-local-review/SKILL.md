@@ -174,11 +174,24 @@ Launch all three with `run_in_background: true`, model `opus` for every one:
 
 | Role | Subagent | Model | Skill to load |
 |---|---|---|---|
-| `general` | generic | `opus` | `lfx-general-code-review` |
+| `general` | generic | `opus` | the central general reviewer, declared `lfx-general-code-review` |
 | `repo_code` | generic | `opus` | the repo's declared code-review skill name |
 | `repo_learnings` | generic | `opus` | the repo's declared learnings-review skill name |
 
 One model for the whole batch. A trio split across models is not a trio.
+
+**Name each skill the way this session lists it.** The two repo brains are
+project skills and are registered under exactly their declared names. The
+general reviewer arrives through a **plugin**, and a session surfaces plugin
+skills namespaced — `lfx-skills:lfx-general-code-review` rather than the bare
+`lfx-general-code-review`. Read the name off your own skill list instead of
+assuming a form; an unregistered name fails that role loudly, which is the
+right outcome but a wasted cycle.
+
+Nothing in the Pi arm tells you whether you got this right. Pi is handed the
+general skill by absolute path and never uses a name at all, so a Pi run that
+worked perfectly is no evidence at all about the fallback's naming. The two
+arms have to be judged separately.
 
 **Prefer the repo's own fallback orchestrator when it has one.** If
 `<repo>/.claude/skills/local-review-fallback/SKILL.md` exists, load and follow

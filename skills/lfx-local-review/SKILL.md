@@ -35,10 +35,9 @@ exist:
 <dir of this SKILL.md>/scripts/run-pi.sh --repo <path> [--extra "<hint>"]
 ```
 
-Use the absolute path you get from that. The same rule applies to the general
-skill you hand a Claude subagent: `<dir of this SKILL.md>/../lfx-general-code-review/SKILL.md`,
-resolved to an absolute path before you pass it on. The Pi launcher already
-resolves both this way; the fallback must match it.
+Use the absolute path you get from that. It applies to the launcher script
+alone: the Claude fallback names its three skills and hands over no skill paths
+at all.
 
 Pass `--repo` when you are not standing in the repo under review. The launcher
 resolves the repo from a path only — it never searches for one by name, because
@@ -93,11 +92,16 @@ not the cross-model check Pi provides, and it must never be presented as one.
 
 Launch all three with `run_in_background: true`:
 
-| Role | Subagent | Skill it must load |
+| Role | Subagent | Skill to load |
 |---|---|---|
-| `general` | generic | `<dir of this SKILL.md>/../lfx-general-code-review/SKILL.md` |
-| `repo_code` | generic | `<repo>/.claude/skills/local-code-review/SKILL.md` |
-| `repo_learnings` | generic | `<repo>/.claude/skills/local-learnings-review/SKILL.md` |
+| `general` | generic | `lfx-general-code-review` |
+| `repo_code` | generic | the repo's declared code-review skill name |
+| `repo_learnings` | generic | the repo's declared learnings-review skill name |
+
+**Prefer the repo's own fallback orchestrator when it has one.** If
+`<repo>/.claude/skills/local-review-fallback/SKILL.md` exists, load and follow
+it: it names the three skills for its own repo. Fall back to the table above
+only when the repo has no such skill.
 
 **Use the pinned values the launcher already printed.** That same non-ready
 response carries `repo=`, `target_sha=` and `base_sha=`. Do **not** run the
@@ -106,43 +110,20 @@ trio would then review something other than what the harness decision was made
 about. One decision, one set of pins, three subagents.
 
 Give every subagent those exact values, as the Pi children receive them,
-including the explicit `git diff <parent> <target>` range. The launcher writes
+including the explicit `git diff <base> <target>` range. The launcher writes
 pins as `key=value` and prompts carry `key: value`, so `base_sha=none` becomes
 `base_sha: none` in the prompt — it stays the word `none`, never an empty
 field. A root commit has no base, and its range is the tree the root
 introduced.
 
-**Prefer the repo's own fallback orchestrator when it has one.** If
-`<repo>/.claude/skills/local-review-fallback/SKILL.md` exists, load and follow
-it: it is that repo's own launch table for exactly these three subagents, and it
-knows where its two reviewer skills live. Pass it the absolute path of the
-central general skill — resolved from **this** file's directory as above — plus
-the pinned values. Repo prose must never guess where the plugin was installed.
-Fall back to the table above only when the repo has no such skill.
+Tell each subagent: load the named skill and follow it exactly; review only the
+supplied range; return an ordinary Markdown review.
 
-**Give each subagent its one exact skill, by both arms of this rule.** Resolve
-the selected physical `SKILL.md` and its declared frontmatter name. If the
-harness has that name registered, tell the subagent to load it by name.
-Otherwise, give the subagent the exact absolute `SKILL.md` path and tell it to
-read that file in full and follow it as its entire rulebook. Never paste,
-restate or substitute the body; fail if that exact selected file cannot be
-loaded or read.
-
-Both arms are load-bearing. The by-path arm is what serves a subagent launched
-from a session where the plugin, or another repo's project skills, are not
-registered — which is the ordinary case when the fallback runs from anywhere but
-the repo under review. A pasted rulebook is a second copy that drifts from the
-file, and a restated one is a summary nobody reviewed; reading the one selected
-physical file is neither.
-
-The prompt must also say the loaded skill is the whole rulebook, and forbid
-**ambient** instruction discovery — do not go looking for an
-`AGENTS.md`, `CLAUDE.md`, project skill or prompt template and adopt it as
-rules. That prohibition is about unbidden discovery, not about evidence: the
-selected skill itself directs the reviewer to read the target repo's
-conventions and docs in order to judge the change, and those reads are the
-review's evidence and remain in scope. Forbid picking up instructions nobody
-selected; do not forbid reading the repo.
+This works because the developer runs Claude from the service repo with the
+central plugin loaded, so all three skills are registered in that session. If a
+named skill is unavailable, that role fails loudly and the whole Claude cycle is
+invalid — the remedy is to start Claude from the repo with the right plugin and
+project skills registered.
 
 **Never mix harnesses.** The choice is made once, before any reviewer starts.
 If a Pi child fails mid-run, do not relaunch that role on Claude — a trio split

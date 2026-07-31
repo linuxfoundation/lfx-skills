@@ -151,7 +151,7 @@ means you cannot apply the rule, not that you should apply half of it.
 
 When Pi is unavailable the review still runs, on three Claude subagents. The
 repo owns the small skill that launches them, because it is the thing that knows
-where its own reviewer skills live.
+its own reviewer skill names.
 
 ```text
 <repo>/.claude/skills/local-review-fallback/SKILL.md      the one physical file
@@ -163,48 +163,38 @@ reviewer skills. **Never a second copy** — a duplicated body is a body that
 drifts.
 
 **What it does, and only this:** launch exactly three generic subagents in one
-parallel batch, each given one absolute skill path and the pinned values it was
-handed. It is a launch table.
+parallel batch, each told which skill to load and which range to review. It is a
+launch table.
 
-| Role | Skill it must load |
+| Role | Skill to load |
 |---|---|
-| `general` | the absolute path the caller passes in |
-| `repo_code` | `.claude/skills/local-code-review/SKILL.md` |
-| `repo_learnings` | `.claude/skills/local-learnings-review/SKILL.md` |
+| `general` | `lfx-general-code-review` |
+| `repo_code` | the repo's declared code-review skill name |
+| `repo_learnings` | the repo's declared learnings-review skill name |
 
-**Who resolves what.** The central `lfx-local-review` skill resolves its own
-sibling `lfx-general-code-review/SKILL.md` to an absolute path and passes it in.
-Your fallback skill resolves only its own two. Do not try to work out where the
-plugin was installed — a service repo cannot know that, and guessing is how a
-review silently loads the wrong file or none at all.
+Use the **declared** name from each skill's frontmatter, which is not
+necessarily its alias directory. Write the three names into the file.
+
+This works because the developer runs Claude from the service repo with the
+central plugin loaded, so all three are registered in that session. If a named
+skill is unavailable, that role fails loudly and the whole Claude cycle is
+invalid.
 
 **What it must not contain:** any reviewer substance. No criteria, no
 severities, no floor rules, no knowledge-base awareness. All of that lives in
-the three physical skills it points at. If you find yourself explaining *how* to
-review in this file, it belongs in one of those instead.
+the three skills it names. If you find yourself explaining *how* to review in
+this file, it belongs in one of those instead.
 
 **What it passes on:** `target repo`, `target_sha`, `base_sha` (or `none`), the
-explicit `review exactly:` range, and any `extra` hint — unchanged. Each prompt
-gives its subagent one exact skill, and forbids ambient instruction discovery
-without forbidding the repo reads that skill directs.
-
-**Both arms of the load rule, stated here in full so this file never disagrees
-with the host skill.** Resolve the selected physical `SKILL.md` and its declared
-frontmatter name. If the harness has that name registered, tell the subagent to
-load it by name. Otherwise, give the subagent the exact absolute `SKILL.md` path
-and tell it to read that file in full and follow it as its entire rulebook.
-Never paste, restate or substitute the body; fail if that exact selected file
-cannot be loaded or read.
-
-The by-path arm is not a fallback of last resort — it is the ordinary case
-whenever the trio is launched from a session that has not registered this repo's
-project skills. A declared name is not the same as its alias directory, so read
-the name from the frontmatter rather than assuming the directory is it.
+explicit `review exactly:` range, and any `extra` hint — unchanged. Each
+subagent is told to load its named skill and follow it exactly, review only the
+supplied range, and return an ordinary Markdown review.
 
 **Failure.** A subagent that errors, returns nothing, or returns Markdown that
 is not a review is a role-labelled host failure of the all-Claude cycle. Never
 render it as "no findings", never write an `INCOMPLETE` line on a subagent's
-behalf, and rerun all three rather than the failed one alone.
+behalf, and rerun all three rather than the failed one alone. Never combine Pi
+and Claude roles in one cycle.
 
 ## Writing the skills
 

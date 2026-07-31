@@ -25,7 +25,18 @@
 set -uo pipefail
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-GENERAL_SKILL="$(cd "$SKILL_DIR/../lfx-general-code-review" && pwd)/SKILL.md"
+# The general reviewer is a sibling directory of this skill, shipped by the same
+# plugin. Canonicalise it if it is there, and leave it EMPTY if it is not: an
+# unguarded `cd` failure here yields the literal "/SKILL.md", a path nobody can
+# act on, and the only real diagnosis lands in a raw bash warning a host
+# capturing typed failures will drop. The precondition loop reports it properly,
+# below, where host_fail exists.
+GENERAL_SKILL_EXPECTED="$SKILL_DIR/../lfx-general-code-review"
+if general_dir="$(cd "$GENERAL_SKILL_EXPECTED" 2>/dev/null && pwd)"; then
+  GENERAL_SKILL="$general_dir/SKILL.md"
+else
+  GENERAL_SKILL=""
+fi
 PROVIDER="${LFX_LOCAL_REVIEW_PROVIDER:-github-copilot}"
 MODEL_ID="${LFX_LOCAL_REVIEW_MODEL:-gpt-5.6-sol}"
 # Reviewing is the kind of work that rewards deliberation, so the default is
@@ -209,10 +220,27 @@ skill_for_role() {
   esac
 }
 
+# Who is at fault when a role's skill is missing, and it is not the same party
+# for every role. `general` ships with this plugin; `repo_code` and
+# `repo_learnings` are the repo's own. One shared sentence covering both owners
+# is how a broken plugin install came to tell a developer their repo "does not
+# own local review brains" — about the one reviewer their repo was never
+# supposed to own, while the brains it does own were sitting there correctly.
+missing_owner_hint() {
+  case "$1" in
+  general) printf '%s' "this reviewer ships with the plugin, so the plugin install is incomplete — it is not a problem with the repo under review" ;;
+  *) printf '%s' "this repo does not own local review brains" ;;
+  esac
+}
+
 for role in $ROLES; do
   skill="$(skill_for_role "$role")"
+  # Empty means the sibling directory itself is absent — see GENERAL_SKILL
+  # above. Name the directory we looked for; "/SKILL.md" helps nobody.
+  [ -n "$skill" ] ||
+    host_fail "the $role reviewer skill directory is missing: expected $GENERAL_SKILL_EXPECTED — $(missing_owner_hint "$role")"
   [ -f "$skill" ] ||
-    host_fail "no $role reviewer skill at $skill — this repo does not own local review brains"
+    host_fail "no $role reviewer skill at $skill — $(missing_owner_hint "$role")"
   # Unreadable or empty is as bad as absent. The child is told to load this
   # skill and follow it; if there is nothing to load it reviews with no rules
   # and still returns confident Markdown. Fail here, where it is visible.

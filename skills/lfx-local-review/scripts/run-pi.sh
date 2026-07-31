@@ -155,6 +155,23 @@ fi
 # --------------------------------------------------------------------------
 # Skill resolution
 # --------------------------------------------------------------------------
+# A skill is announced to the harness under the `name:` in its own frontmatter,
+# which is NOT its directory name. A repo reaches its brain through a stable
+# alias -- `.claude/skills/local-code-review` is a symlink to, say,
+# `newsletter-service-code-reviewer` -- so naming the directory would tell the
+# child to load a skill that does not exist under that name. Read the declared
+# name, and read it only from the frontmatter block at the top of the file.
+skill_name_of() {
+  awk '
+    NR == 1 && $0 != "---" { exit }         # no frontmatter at all
+    NR > 1 && $0 == "---"  { exit }         # end of the block: stop looking
+    NR > 1 && /^name:[[:space:]]*/ {
+      sub(/^name:[[:space:]]*/, ""); sub(/[[:space:]]+$/, "")
+      print; exit
+    }
+  ' "$1"
+}
+
 skill_for_role() {
   case "$1" in
   general) printf '%s\n' "$GENERAL_SKILL" ;;
@@ -174,6 +191,11 @@ for role in $ROLES; do
     host_fail "cannot read the $role reviewer skill at $skill"
   [ -s "$skill" ] ||
     host_fail "the $role reviewer skill at $skill is empty — it carries no rules to follow"
+  # The child is told to load a skill BY NAME, so a skill that declares no name
+  # cannot be asked for. Fail rather than fall back to the directory name: that
+  # is how the child ends up told to load something that does not exist.
+  [ -n "$(skill_name_of "$skill")" ] ||
+    host_fail "the $role reviewer skill at $skill declares no 'name:' in its frontmatter — nothing to load it by"
 done
 
 # --------------------------------------------------------------------------
@@ -265,7 +287,7 @@ role_prompt() {
   # loading to the harness — it never hands over a path to read, and never
   # restates the rules it would then have to keep in sync.
   printf 'Load the %s skill and follow it exactly. It is your entire rulebook.\n' \
-    "$(basename "$(dirname "$skill")")"
+    "$(skill_name_of "$skill")"
   # shellcheck disable=SC2016  # literal backticks for the reviewer, not expansion
   printf 'Review only the diff named above. Confirm `git rev-parse HEAD` equals\n'
   printf '%s before you rely on the working tree for anything.\n' "$TARGET_SHA"

@@ -1,6 +1,6 @@
 ---
 name: lfx-general-code-review
-description: The general code-review method for LFX local reviews — correctness, security, error handling, simplicity, naming, DRY, testing, performance and style, over one pinned commit or branch range. Carries no repo-specific rulebook. Loaded by the lfx-local-review host in either harness, headless Pi or a generic Claude subagent. Returns an ordinary Markdown review.
+description: The general code-review method for LFX local reviews — correctness, security, error handling, simplicity, naming, DRY, testing, performance and style, over one explicit pinned range, normally the single commit at the branch's tip. Carries no repo-specific rulebook. Loaded by the lfx-local-review host in either harness, headless Pi or a generic Claude subagent. Returns an ordinary Markdown review.
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->

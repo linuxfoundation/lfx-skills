@@ -63,18 +63,53 @@ if [ -n "$TMUX_MODE" ]; then
   exec tmux attach -t "$session"
 fi
 
+# Nothing here stops on its own. `tail -F` retries a vanished file forever by
+# design, so when the launcher deletes the run directory every renderer keeps
+# waiting for a transcript that will never come back -- holding this terminal,
+# or a tmux pane, open on a review that is already over. So watch the directory
+# itself and leave when it goes.
+#
+# Killing a renderer is not enough: each one is a subshell with `tail` and `jq`
+# beneath it, and those would be orphaned and keep running. Reap the children
+# by PARENT pid -- never by name pattern, which would match another agent's
+# processes on a shared machine.
+PIDS=""
+
+cleanup() {
+  local p
+  for p in $PIDS; do
+    pkill -P "$p" 2>/dev/null
+    kill "$p" 2>/dev/null
+  done
+  wait 2>/dev/null
+}
+trap cleanup INT TERM EXIT
+
+start_render() {
+  render "$1" "$2" &
+  PIDS="$PIDS $!"
+}
+
 if [ -n "$ROLE" ]; then
   case " $ROLES " in *" $ROLE "*) ;; *) die "unknown role: $ROLE (expected one of: $ROLES)" ;; esac
-  render "$DIR/sessions/$ROLE.jsonl" ""
+  start_render "$DIR/sessions/$ROLE.jsonl" ""
 else
   # All three at once. Each line is prefixed so interleaved output stays
   # attributable -- and interleaved order is NOT the report's fixed order.
-  pids=""
   for r in $ROLES; do
-    render "$DIR/sessions/$r.jsonl" "$(printf '%-15s| ' "$r")" &
-    pids="$pids $!"
+    start_render "$DIR/sessions/$r.jsonl" "$(printf '%-15s| ' "$r")"
   done
-  # shellcheck disable=SC2064
-  trap "kill $pids 2>/dev/null" INT TERM EXIT
-  wait
 fi
+
+while [ -d "$DIR" ]; do
+  sleep 1
+  alive=""
+  for p in $PIDS; do
+    kill -0 "$p" 2>/dev/null && alive=yes
+  done
+  # Every renderer gone means there is nothing left to show, even if the
+  # directory somehow outlives them.
+  [ -n "$alive" ] || break
+done
+
+printf 'watch: the run has ended and its transcripts were deleted.\n' >&2

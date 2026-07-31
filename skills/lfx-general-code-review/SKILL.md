@@ -43,10 +43,15 @@ This is local, pre-PR, author-side work and it stops at PR-open.
   `--fix` mode, no commit, no reset, no push. Never treat tool output as a
   substitute for reading the diff.
 - Run a working-tree check only while the checkout still represents the pinned
-  target closely enough for that check to mean anything — normally true in the
-  foreground post-commit cycle. If `HEAD` or tracked content has moved, skip
-  the check or say it was not run. **Never present a result from a later or
-  dirty tree as evidence about the pinned commit.**
+  target closely enough for that check to mean anything — and **check, do not
+  assume**. The host runs reviews in the background while the developer keeps
+  working, so the tree can move under you mid-review. `git rev-parse HEAD`
+  equalling the pinned target is necessary but not sufficient: confirm tracked
+  content is clean too (`git status --porcelain` empty, or
+  `git diff --quiet && git diff --cached --quiet`), because staged and unstaged
+  edits move the tree without moving `HEAD`. If either has moved, skip the
+  check or say it was not run. **Never present a result from a later or dirty
+  tree as evidence about the pinned commit.**
 - If a command you expected to be non-fixing turns out to modify tracked files,
   do not repair, reset or commit anything. Report the side effect plainly and
   leave it to the developer's session.

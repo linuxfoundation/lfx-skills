@@ -111,10 +111,23 @@ Running in the background must never mean the review is lost.
 `--base <sha>` widens the range past the first parent; the host never derives a
 base itself. `--extra "<hint>"` passes a caller hint through to every reviewer.
 
+**`--base` goes to the probe as well as the launch**, and with the same value.
+The probe is where the pins you announce come from, and where the Claude
+fallback gets its pins — so a `--base` given only at launch makes you announce
+the first-parent range while Pi reviews a wider one, and hands the fallback
+trio a base the caller never asked for. Both calls or neither.
+
+**`--extra` is yours to carry in the fallback arm.** Passing it to the launcher
+reaches the Pi children; if the harness decision is Claude, put the same hint in
+each subagent's prompt yourself, because no launcher runs to do it for you.
+
 Reviews are pinned to one commit: `target_sha` is `HEAD`, `base_sha` its first
 parent, and every reviewer gets the same values and the same explicit
-`git diff base target` range. Nothing fetches and nothing consults a remote, so
-this works offline.
+`git diff base target` range. **Resolving that range never fetches and never
+consults a remote**, so the pinning works offline. That is a claim about the
+range, not about the whole review: reviewers may read GitHub and fetch for
+context where it genuinely helps, so do not tell a developer the review itself
+runs offline.
 
 ## Reading what comes back
 

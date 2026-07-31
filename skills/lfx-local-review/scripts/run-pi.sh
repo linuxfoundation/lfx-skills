@@ -5,16 +5,17 @@
 # Run the three local reviewers as headless Pi processes and print their
 # ordinary Markdown reports.
 #
-#   run-pi.sh --repo <path> [--mode post-commit|branch] [--extra <text>]
+#   run-pi.sh [--repo <path>] [--commit <sha>] [--base <sha>] [--extra <text>]
 #   run-pi.sh --readiness [--repo <path>]      # print the harness decision only
+#
+# Reviews one commit: the diff its parent introduced. `--base` overrides the
+# parent when a caller wants a wider range; it is a parameter, not a mode, and
+# the host never derives it. Nothing here fetches or consults a remote.
 #
 # This script does two jobs and nothing else: decide whether Pi can serve this
 # run, and launch three Pi children against three physical skills. It keeps no
 # durable review result or state, and never interprets a review.
 #
-# It is not side-effect free, and saying otherwise would be a lie a reader could
-# catch: branch mode runs one `git fetch`, which updates remote-tracking refs
-# and FETCH_HEAD in the target repo. That is the only durable thing it writes.
 #
 # Everything it deliberately does NOT do: no run ids, no worktrees or
 # snapshots, no cleanup or cancellation commands, no liveness records, no
@@ -52,7 +53,8 @@ log() { printf '%s\n' "$1" >&2; }
 # Arguments
 # --------------------------------------------------------------------------
 REPO=""
-MODE="post-commit"
+COMMIT=""
+BASE_ARG=""
 EXTRA=""
 READINESS_ONLY=""
 
@@ -70,9 +72,14 @@ while [ $# -gt 0 ]; do
     REPO="$2"
     shift 2
     ;;
-  --mode)
-    need_value --mode $#
-    MODE="$2"
+  --commit)
+    need_value --commit $#
+    COMMIT="$2"
+    shift 2
+    ;;
+  --base)
+    need_value --base $#
+    BASE_ARG="$2"
     shift 2
     ;;
   --extra)
@@ -94,11 +101,6 @@ while [ $# -gt 0 ]; do
   *) host_fail "unknown option: $1" ;;
   esac
 done
-
-case "$MODE" in
-post-commit | branch) ;;
-*) host_fail "--mode must be post-commit or branch, got: $MODE" ;;
-esac
 
 # --------------------------------------------------------------------------
 # Repo resolution — a path contract, deliberately boring.
@@ -125,40 +127,33 @@ fi
 # one git call and removes the whole class of problem — without a snapshot, a
 # worktree or a patch file.
 # --------------------------------------------------------------------------
-# Fetch first, then pin — in that order. Exactly one fetch, here, before any
-# child and before any revision is pinned. The children never fetch for the
-# base: three concurrent fetches would contend on the same remote-tracking ref
-# lock, and a fetch landing mid-run could move the base out from under reviewers
-# who had already started. Pinning strictly afterwards means every pinned value
-# describes the post-fetch state, and a later fetch by anyone cannot change what
-# this run is reviewing.
+# Resolve the commit under review ONCE, before any child starts.
 #
-# Note this makes branch mode require network. That is deliberate — a branch
-# sweep measured against a stale base is a wrong answer that looks like a right
-# one — but it does mean branch mode cannot run offline. Post-commit mode needs
-# no fetch and still works.
-if [ "$MODE" = "branch" ]; then
-  log "lfx-local-review: fetching origin once to establish the branch base."
-  git -C "$REPO" fetch origin --quiet ||
-    host_fail "could not fetch origin in $REPO, so the branch base cannot be established"
-fi
-
+# Three children resolving HEAD for themselves is a race: the developer commits
+# again mid-review and the reviewers disagree about what they reviewed. Pinning
+# costs one git call and removes the whole class of problem.
 TARGET_SHA="$(git -C "$REPO" rev-parse --verify --quiet 'HEAD^{commit}')" ||
   host_fail "no commit to review in $REPO"
 
-BASE_SHA=""
-ORIGIN_MAIN_SHA=""
-if [ "$MODE" = "branch" ]; then
-  ORIGIN_MAIN_SHA="$(git -C "$REPO" rev-parse --verify --quiet 'origin/main^{commit}')" ||
-    host_fail "local origin/main is unavailable in $REPO even after fetching"
-  # The base is the MERGE-BASE, not the origin/main tip. When origin/main has
-  # advanced on a divergent line the tip is not the pre-change state, and the
-  # false-positive floor must be read from the state the patch started from.
-  BASE_SHA="$(git -C "$REPO" merge-base "$ORIGIN_MAIN_SHA" "$TARGET_SHA")" ||
-    host_fail "no merge-base between origin/main and $TARGET_SHA in $REPO"
+# An explicitly named commit is accepted only if it IS the current HEAD. The
+# point is to let a caller state what it believes it is reviewing and be told
+# when that belief is stale -- not to review arbitrary history.
+if [ -n "$COMMIT" ]; then
+  want="$(git -C "$REPO" rev-parse --verify --quiet "$COMMIT^{commit}")" ||
+    host_fail "--commit does not resolve to a commit in $REPO: $COMMIT"
+  [ "$want" = "$TARGET_SHA" ] ||
+    host_fail "--commit $COMMIT resolves to $want but HEAD is $TARGET_SHA — the working branch has moved"
+fi
+
+# The base defaults to the commit's first parent, which makes the reviewed range
+# exactly what this commit introduced. A caller may name a different base to
+# widen the range; the host neither derives nor second-guesses it, and never
+# consults a remote to do so. A root commit has no parent, which is legitimate
+# and means the range is the tree the root introduced.
+if [ -n "$BASE_ARG" ]; then
+  BASE_SHA="$(git -C "$REPO" rev-parse --verify --quiet "$BASE_ARG^{commit}")" ||
+    host_fail "--base does not resolve to a commit in $REPO: $BASE_ARG"
 else
-  # Post-commit: the base is the first parent. A root commit has none, which is
-  # legitimate and means an empty pre-change floor — not an error.
   BASE_SHA="$(git -C "$REPO" rev-parse --verify --quiet "$TARGET_SHA^" 2>/dev/null)" || true
 fi
 
@@ -209,17 +204,17 @@ pi_ready() {
 
 READINESS="$(pi_ready)" || true
 
-# The pinned values, printed with every decision. This run has already fetched
-# (branch mode) and pinned; whoever acts on the decision must use THESE values.
+# The pinned values, printed with every decision. Whoever acts on the decision
+# must use THESE values.
 #
 # `none` is an explicit sentinel, not an empty field. A root commit genuinely
-# has no base, and post-commit mode has no origin pin — but an empty value after
-# `=` is ambiguous between "no such thing" and "something went wrong and nobody
-# noticed". The Claude fallback must not have to infer which it is, and the word
-# it reads here is the same word the Pi children get in their prompts.
+# has no parent — but an empty value after `=` is ambiguous between "no such
+# thing" and "something went wrong and nobody noticed". The Claude fallback must
+# not have to infer which it is, and the word it reads here is the same word the
+# Pi children get in their prompts.
 print_pins() {
-  printf 'repo=%s\nmode=%s\ntarget_sha=%s\nbase_sha=%s\norigin_main_sha=%s\n' \
-    "$REPO" "$MODE" "$TARGET_SHA" "${BASE_SHA:-none}" "${ORIGIN_MAIN_SHA:-none}"
+  printf 'repo=%s\ntarget_sha=%s\nbase_sha=%s\n' \
+    "$REPO" "$TARGET_SHA" "${BASE_SHA:-none}"
 }
 
 if [ -n "$READINESS_ONLY" ]; then
@@ -234,9 +229,9 @@ if [ "$READINESS" != "PI_READY" ]; then
   # this and launches three Claude subagents instead.
   #
   # The pinned values go out WITH the decision, deliberately. If the host had to
-  # ask again to get them, branch mode would fetch and pin a second time, and
-  # the Claude trio could end up reviewing a different target or base than the
-  # one this decision was made about. One decision, one fetch, one set of pins.
+  # ask again to get them, HEAD could have moved in between and the Claude trio
+  # would review something other than what this decision was made about.
+  # One decision, one set of pins.
   printf '%s\n' "$READINESS"
   print_pins
   printf '\n%s\n' "$ONBOARDING"
@@ -249,15 +244,14 @@ fi
 role_prompt() {
   local role="$1" skill="$2"
   printf 'target repo: %s\n' "$REPO"
-  printf 'mode: %s\n' "$MODE"
   printf 'target_sha: %s\n' "$TARGET_SHA"
   if [ -n "$BASE_SHA" ]; then
     printf 'base_sha: %s\n' "$BASE_SHA"
+    printf 'review exactly: git diff %s %s\n' "$BASE_SHA" "$TARGET_SHA"
   else
-    printf 'base_sha: none (root commit — the pre-change false-positive floor is empty)\n'
+    printf 'base_sha: none (root commit)\n'
+    printf 'review exactly: the tree introduced by root commit %s\n' "$TARGET_SHA"
   fi
-  [ -n "$ORIGIN_MAIN_SHA" ] &&
-    printf 'origin_main_sha: %s (fetched once by the host, then pinned, immediately before this run)\n' "$ORIGIN_MAIN_SHA"
   printf 'role: %s\n' "$role"
   [ -n "$EXTRA" ] && printf 'extra: %s\n' "$EXTRA"
   printf '\n'
@@ -265,24 +259,47 @@ role_prompt() {
   # belt and braces: --skill loading alongside --no-skills works but is not
   # documented to, so the prompt does not depend on it.
   printf 'Read %s in full and follow it exactly. It is your entire rulebook.\n' "$skill"
-  printf 'Review the pinned revisions above — not a moving HEAD.\n'
+  # shellcheck disable=SC2016  # literal backticks for the reviewer, not expansion
+  printf 'Review only the diff named above. Confirm `git rev-parse HEAD` equals\n'
+  printf '%s before you rely on the working tree for anything.\n' "$TARGET_SHA"
   printf 'Return an ordinary Markdown review.\n'
 }
 
 TMPDIR_RUN="$(mktemp -d "${TMPDIR:-/tmp}/lfx-local-review.XXXXXX")" ||
   host_fail "could not create a temporary directory for reviewer output"
-# Ephemeral by construction: the captures exist only to keep three concurrent
-# children from interleaving, and they go away with the process.
+mkdir -p "$TMPDIR_RUN/sessions" ||
+  host_fail "could not create a transcript directory for reviewer output"
+# Ephemeral by construction: captures and transcripts exist only for the length
+# of the run, and they go away with the process.
 trap 'rm -rf "$TMPDIR_RUN"' EXIT
+
+# How to watch, printed BEFORE the children start and on stderr so it can never
+# be mistaken for part of a review. Reviews take minutes; a banner printed
+# afterwards would be useless.
+#
+# The transcript is what to watch, not the capture file: a child's stdout is
+# block-buffered into a file and stays at zero bytes until it exits, so tailing
+# that shows nothing until there is nothing left to wait for.
+log ""
+log "lfx-local-review: three reviewers starting on Pi. To watch them live:"
+log ""
+log "  $SKILL_DIR/scripts/watch.sh $TMPDIR_RUN"
+log "  $SKILL_DIR/scripts/watch.sh $TMPDIR_RUN general        # one role"
+log "  $SKILL_DIR/scripts/watch.sh --tmux $TMPDIR_RUN         # a pane each"
+log ""
+log "Transcripts are deleted when this run ends. They show the reviewers'"
+log "working; the review itself is the Markdown printed when they finish."
+log ""
 
 pids=""
 for role in $ROLES; do
   skill="$(skill_for_role "$role")"
   (
     cd "$REPO" || exit 97
-    exec pi -p --mode text --model "$PROVIDER/$MODEL_ID" --no-session --no-approve \
+    exec pi -p --mode text --model "$PROVIDER/$MODEL_ID" --no-approve \
       --no-skills --no-context-files --no-prompt-templates --no-extensions \
       --tools read,bash,grep,find,ls \
+      --session "$TMPDIR_RUN/sessions/$role.jsonl" \
       --skill "$skill" \
       "$(role_prompt "$role" "$skill")"
   ) >"$TMPDIR_RUN/$role.out" 2>"$TMPDIR_RUN/$role.err" </dev/null &

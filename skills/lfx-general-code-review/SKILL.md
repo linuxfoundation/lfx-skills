@@ -59,36 +59,36 @@ staged or unstaged work unless the caller explicitly asks for it.
 
 - **`target repo`** — the repository under review. Work inside it.
 - **`target_sha`** — the commit under review.
-- **`base_sha`** — the pre-change base. In post-commit mode this is
-  `target_sha`'s first parent; in branch mode it is the merge-base with the
-  local `origin/main`. A **root** commit has no base, which is normal.
-- **`mode`** — `post-commit` or `branch`.
+- **`base_sha`** — the commit it is measured against. Normally `target_sha`'s
+  first parent, so the range is exactly what this commit introduced; a caller
+  may widen it. A **root** commit has none, which is normal.
+- **`review exactly:`** — the range, stated for you. Review that and nothing
+  else.
 - **`extra: <free text>`** — an optional priority hint from the caller.
 
-Post-commit mode reviews exactly one commit:
+Read the change with the command the prompt names:
 
 ```bash
-git show --stat -p <target_sha>
+git diff --stat <base_sha> <target_sha>
+git diff <base_sha> <target_sha>
 ```
 
-Branch mode reviews the cumulative range:
+**Use `git diff` with both revisions named — not `git show`.** On a merge commit
+`git show` prints the file stat and *no diff hunks at all*, so you would see a
+list of filenames, no code, and could report "no findings" on a merge that
+carried real changes. `git diff <base_sha> <target_sha>` shows the content in
+every case.
 
-```bash
-git diff --stat <base_sha>..<target_sha>
-git diff <base_sha>..<target_sha>
-```
+For a root commit, review the tree the commit introduced.
 
-In branch mode the host fetched `origin` exactly once and pinned
-`origin_main_sha` immediately afterwards, before any reviewer started. Report
-that basis as it actually is: the base is the merge-base with an `origin/main`
-fetched at the start of this run. Saying the base is stale when it is not is as
-misleading as the reverse.
+Confirm `git rev-parse HEAD` equals `target_sha` before you rely on the working
+tree for anything. If it does not, the branch moved under you: say so and treat
+the working tree as unusable evidence.
 
-Do not refetch or re-derive **the pinned branch base** — a second fetch cannot
-improve a value that is already pinned, and re-deriving it is how three
-reviewers end up disagreeing about what they reviewed. Other read-only fetching
-and inspection stays available when you genuinely need it, as long as it does
-not change the pinned evidence.
+**The range never comes from a remote.** The host derives it from the commit and
+its parent alone — no fetch, no `origin/main`, no comparison against a mainline.
+(Reading GitHub or fetching for *context*, as the wall above allows, is
+unaffected; it just cannot change what you are reviewing.)
 
 Read supporting code at the pinned revision — `git show <target_sha>:<path>`,
 `git grep <pattern> <target_sha>`, `git ls-tree <target_sha>` — so your

@@ -76,7 +76,7 @@ review, check, status, label or approval, and no gate or merge.
 
 | Skill                               | Purpose                                                                                                                                                                                     |
 |-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `/lfx-skills:lfx-local-review`      | Run the review trio on the current repo — the general reviewer plus the repo's own code and learnings reviewers — on headless Pi when available, Claude subagents otherwise. Add `branch` for the pre-PR full-branch sweep. |
+| `/lfx-skills:lfx-local-review`      | Run the review trio on the current repo — the general reviewer plus the repo's own code and learnings reviewers — on headless Pi when available, Claude subagents otherwise. Reviews the newest commit; prints commands to watch the run live. |
 | `lfx-general-code-review`           | The general review method itself: correctness, security, error handling, simplicity, naming, DRY, testing, performance, style. Loaded by the review trio in either harness. Not invoked by hand. |
 
 Pi is what makes this **cross-model** — the same skills, judged by a different

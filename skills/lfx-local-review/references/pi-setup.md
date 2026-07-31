@@ -49,6 +49,9 @@ model is discoverable *now*, not that authentication will still hold in ten
 minutes. If it lapses mid-run the Pi run fails plainly and the whole trio is
 rerun — the host never switches harness half way through.
 
+Nothing in this path touches a network except Pi's own model calls. The launcher
+never fetches.
+
 ## Model and provider
 
 Defaults are `github-copilot` and `gpt-5.6-sol`. Override per run:

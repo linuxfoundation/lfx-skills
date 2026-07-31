@@ -1,6 +1,6 @@
 ---
 name: lfx-local-review
-description: Run the local pre-PR review trio on the current repo — the general reviewer plus the repo's own code and learnings reviewers — on headless Pi when it is available, or Claude subagents otherwise, and return their ordinary Markdown reports. Use after a commit, or with `branch` for the pre-PR full-branch sweep, in a repo that owns local review skills. Author-side only; reviewers may read GitHub but never write PR, gate or merge state.
+description: Run the local pre-PR review trio on the current repo — the general reviewer plus the repo's own code and learnings reviewers — on headless Pi when it is available, or Claude subagents otherwise, and return their ordinary Markdown reports. Use after a commit, in a repo that owns local review skills. Author-side only; reviewers may read GitHub but never write PR, gate or merge state.
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
@@ -32,7 +32,7 @@ from a service repo, where a path like `skills/lfx-local-review/...` does not
 exist:
 
 ```bash
-<dir of this SKILL.md>/scripts/run-pi.sh --repo <path> [--mode branch] [--extra "<hint>"]
+<dir of this SKILL.md>/scripts/run-pi.sh --repo <path> [--extra "<hint>"]
 ```
 
 Use the absolute path you get from that. The same rule applies to the general
@@ -44,11 +44,18 @@ Pass `--repo` when you are not standing in the repo under review. The launcher
 resolves the repo from a path only — it never searches for one by name, because
 guessing wrong means reviewing the wrong repository.
 
-It pins `target_sha`, and `base_sha` (the first parent post-commit, or the
-merge-base with `origin/main` in branch mode), before launching anything, and
-gives every reviewer the same values. Branch mode fetches `origin` exactly once
-first, so the base is current; that means branch mode needs network, while
-post-commit mode does not.
+It pins `target_sha` (the branch's newest commit) and `base_sha` (its first
+parent) once, before launching anything, and gives every reviewer the same
+values and the same explicit `git diff base target` range. Nothing fetches and
+nothing consults a remote, so this works offline.
+
+Two optional arguments exist and you will rarely need either. `--commit <sha>`
+states which commit you believe you are reviewing and fails the run if it is not
+the current `HEAD` — useful when a caller wants to be told its belief is stale
+rather than silently review something else. `--base <sha>` widens the range past
+the parent. The host never derives a base itself.
+
+While it runs it prints watch commands to stderr — see **Watching a run** below.
 
 ## Reading what comes back
 
@@ -93,18 +100,25 @@ Launch all three with `run_in_background: true`:
 | `repo_learnings` | generic | `<repo>/.claude/skills/local-learnings-review/SKILL.md` |
 
 **Use the pinned values the launcher already printed.** That same non-ready
-response carries `repo=`, `mode=`, `target_sha=`, `base_sha=` and
-`origin_main_sha=`. Do **not** run the launcher again to fetch them: in branch
-mode a second call fetches and pins a second time, and the Claude trio would
-then be reviewing something other than what the harness decision was made
-about. One decision, one fetch, one set of pins, three subagents.
+response carries `repo=`, `target_sha=` and `base_sha=`. Do **not** run the
+launcher again to get them: `HEAD` can move between two calls, and the Claude
+trio would then review something other than what the harness decision was made
+about. One decision, one set of pins, three subagents.
 
-Give every subagent those exact values, as the Pi children receive them. The
-launcher writes pins as `key=value` and prompts carry `key: value`, so
-`base_sha=none` in the decision becomes `base_sha: none` in the prompt — it
-stays the word `none`, never an empty field. A root commit has no base and an
-empty pre-change floor, and `origin_main_sha=none` in post-commit mode means
-the same thing: not applicable, not missing.
+Give every subagent those exact values, as the Pi children receive them,
+including the explicit `git diff <parent> <target>` range. The launcher writes
+pins as `key=value` and prompts carry `key: value`, so `base_sha=none` becomes
+`base_sha: none` in the prompt — it stays the word `none`, never an empty
+field. A root commit has no base, and its range is the tree the root
+introduced.
+
+**Prefer the repo's own fallback orchestrator when it has one.** If
+`<repo>/.claude/skills/local-review-fallback/SKILL.md` exists, load and follow
+it: it is that repo's own launch table for exactly these three subagents, and it
+knows where its two reviewer skills live. Pass it the absolute path of the
+central general skill — resolved from **this** file's directory as above — plus
+the pinned values. Repo prose must never guess where the plugin was installed.
+Fall back to the table above only when the repo has no such skill.
 
 Each prompt must name its one skill file and say it is the whole rulebook. It
 must also forbid **ambient** instruction discovery — do not go looking for an
@@ -132,12 +146,31 @@ cycle is incomplete — rerun all three on Claude, not the failed one alone.
 
 Fix findings in this session, then commit the fixes as their own conventional
 commits — `fix(<scope>): ...` — rather than amending. Rerun the whole trio
-afterwards. Before opening a PR, run the branch sweep (`--mode branch`) and the
-repo's own readiness and preflight checks.
+afterwards, and run the repo's own readiness and preflight checks before opening
+a PR.
 
 The existing `lfx-skills:lfx-*-code-reviewer` and `lfx-*-learnings-reviewer`
 named agents are unchanged and remain the right tool for repos that do not own
 local review skills.
+
+## Watching a run
+
+Reviews take minutes. Before launching, the launcher prints to **stderr** the
+exact commands to follow the reviewers live, with the run directory filled in:
+
+```bash
+<skill dir>/scripts/watch.sh <run-dir>                 # all three, prefixed by role
+<skill dir>/scripts/watch.sh <run-dir> general         # one role
+<skill dir>/scripts/watch.sh --tmux <run-dir>          # a pane each, then attach
+```
+
+Relay those to the developer verbatim when they ask to see progress. What they
+show is each reviewer's **transcript** — what it read, which commands it ran —
+not the review. The review is the Markdown the launcher prints at the end, and
+only that is worth citing. Transcripts are deleted when the run ends.
+
+Do not tail the capture files instead: a child's stdout is block-buffered and
+stays empty until it exits, so it shows nothing while there is anything to see.
 
 ## Reference
 

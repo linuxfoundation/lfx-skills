@@ -44,11 +44,10 @@ would quietly produce a weaker review that looks like a complete one.
 Every reviewer receives the same pinned values:
 
 - `target repo` — an absolute path
-- `mode` — `post-commit` or `branch`
 - `target_sha` — the commit under review
-- `base_sha` — the first parent (post-commit) or the merge-base with
-  `origin/main` (branch). **A root commit has none**, which is normal.
-- `origin_main_sha` — branch mode only
+- `base_sha` — what it is measured against, normally its first parent. **A root
+  commit has none**, which is normal.
+- `review exactly:` — the explicit `git diff <base> <target>` range
 - `extra` — an optional caller hint
 
 Use those values. Do not re-derive them from `HEAD`: three reviewers reading a
@@ -69,11 +68,10 @@ Neither revision alone is sufficient, because each one alone has a hole:
 
 - **Target alone** lets a patch that *adds* a waiver suppress a finding about
   that same patch — the reviewed change approving itself.
-- **Base alone** lets a waiver the patch *removes* go on suppressing. Removing a
-  waiver means "start flagging this again", and base-only reading ignores that
-  for the whole life of the branch, including the final pre-PR sweep, because
-  the base is still the merge-base then. A defect introduced by this very range
-  would stay hidden all the way to PR-open.
+- **Base alone** lets a waiver the change *removes* go on suppressing. Removing
+  a waiver means "start flagging this again", and base-only reading ignores the
+  removal entirely — so a defect introduced by the very change that removed the
+  waiver stays hidden.
 
 Requiring both closes each hole with the other:
 
@@ -89,22 +87,15 @@ a candidate unless the unchanged overlap still suppresses it at both revisions.
 ### When a newly added waiver starts applying
 
 Recorded precisely, so nobody reads the delay as a defect and "fixes" it, and
-nobody mistakes the later case for a loophole. The base differs by mode — the
-first parent post-commit, the merge-base in branch mode — so a waiver added on
-the branch applies to some reviewed ranges and not others:
+nobody mistakes the later case for a loophole:
 
-- **It cannot suppress anything in a range whose base predates it.** That covers
-  the commit that adds the waiver, whose first parent does not have it, and the
-  final cumulative branch sweep, whose merge-base predates the branch. This is
-  the property that matters: **the cumulative branch range can never approve
-  itself.**
-- **It can apply to a later post-commit review whose first parent already
-  contains it.** That is correct, not a leak. Relative to that delta the waiver
-  is pre-existing, both revisions carry it, and it is suppressing a finding
-  about a change other than the one that introduced it. It still cannot suppress
-  anything in the cumulative branch range.
-- **After merge**, future branches inherit it at both revisions and it applies
-  normally.
+- **It cannot suppress anything in the commit that adds it**, because that
+  commit's parent does not carry it. That is the property that matters: **a
+  change can never waive a finding about itself.**
+- **It can apply to a later commit whose parent already contains it.** That is
+  correct, not a leak. Relative to that change the waiver is pre-existing, both
+  revisions carry it, and it is suppressing a finding about a different change
+  than the one that introduced it.
 
 ### How to evaluate it
 
@@ -156,6 +147,52 @@ look at.
 do not fall forward to the target floor — or the reverse. An unreadable floor
 means you cannot apply the rule, not that you should apply half of it.
 
+## The fallback orchestrator
+
+When Pi is unavailable the review still runs, on three Claude subagents. The
+repo owns the small skill that launches them, because it is the thing that knows
+where its own reviewer skills live.
+
+```text
+<repo>/.claude/skills/local-review-fallback/SKILL.md      the one physical file
+<repo>/.agents/skills/local-review-fallback               tracked symlink to it
+```
+
+One body, two surfaces, matching the convention the repo already uses for its
+reviewer skills. **Never a second copy** — a duplicated body is a body that
+drifts.
+
+**What it does, and only this:** launch exactly three generic subagents in one
+parallel batch, each given one absolute skill path and the pinned values it was
+handed. It is a launch table.
+
+| Role | Skill it must load |
+|---|---|
+| `general` | the absolute path the caller passes in |
+| `repo_code` | `.claude/skills/local-code-review/SKILL.md` |
+| `repo_learnings` | `.claude/skills/local-learnings-review/SKILL.md` |
+
+**Who resolves what.** The central `lfx-local-review` skill resolves its own
+sibling `lfx-general-code-review/SKILL.md` to an absolute path and passes it in.
+Your fallback skill resolves only its own two. Do not try to work out where the
+plugin was installed — a service repo cannot know that, and guessing is how a
+review silently loads the wrong file or none at all.
+
+**What it must not contain:** any reviewer substance. No criteria, no
+severities, no floor rules, no knowledge-base awareness. All of that lives in
+the three physical skills it points at. If you find yourself explaining *how* to
+review in this file, it belongs in one of those instead.
+
+**What it passes on:** `target repo`, `target_sha`, `base_sha` (or `none`), the
+explicit `review exactly:` range, and any `extra` hint — unchanged. Each prompt
+names its one skill as the whole rulebook and forbids ambient instruction
+discovery, without forbidding the repo reads that skill directs.
+
+**Failure.** A subagent that errors, returns nothing, or returns Markdown that
+is not a review is a role-labelled host failure of the all-Claude cycle. Never
+render it as "no findings", never write an `INCOMPLETE` line on a subagent's
+behalf, and rerun all three rather than the failed one alone.
+
 ## Writing the skills
 
 Each is one physical `SKILL.md` with frontmatter and prose. Both harnesses load
@@ -197,6 +234,9 @@ host failure.
 - [ ] Obligations, not capability claims
 - [ ] Ordinary Markdown out; `INCOMPLETE — <reason>` as a first line when
       required evidence is missing
+- [ ] `.claude/skills/local-review-fallback/SKILL.md` plus its tracked
+      `.agents/skills/local-review-fallback` symlink — a launch table only, with
+      no reviewer substance in it
 - [ ] The repo's `CLAUDE.md` invokes the review from inside the repo, or passes
       a resolved `--repo <path>` — never a bare repo name for the launcher to
       look up

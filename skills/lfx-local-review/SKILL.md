@@ -111,11 +111,18 @@ Running in the background must never mean the review is lost.
 `--base <sha>` widens the range past the first parent; the host never derives a
 base itself. `--extra "<hint>"` passes a caller hint through to every reviewer.
 
-**`--base` goes to the probe as well as the launch**, and with the same value.
-The probe is where the pins you announce come from, and where the Claude
-fallback gets its pins — so a `--base` given only at launch makes you announce
-the first-parent range while Pi reviews a wider one, and hands the fallback
-trio a base the caller never asked for. Both calls or neither.
+**`--base` goes to the probe as well as the launch.** The probe is where the
+pins you announce come from, and where the Claude fallback gets its pins — so a
+`--base` given only at launch makes you announce the first-parent range while
+Pi reviews a wider one, and hands the fallback trio a base the caller never
+asked for. Both calls or neither.
+
+**Pass the caller's value to the probe, and the probe's `base_sha` to the
+launch.** Not the same token twice: `--base` may be a movable ref, and
+`--base main` resolves at each call, so the probe can print one commit and the
+launch resolve a different one after a fetch in another terminal. `--commit`
+guards only the target. Forwarding the resolved `base_sha` pins both ends of
+the range to what you announced, exactly as `--commit` does for the target.
 
 **`--extra` is yours to carry in the fallback arm.** Passing it to the launcher
 reaches the Pi children; if the harness decision is Claude, put the same hint in

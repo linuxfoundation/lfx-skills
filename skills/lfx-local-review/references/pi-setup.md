@@ -97,7 +97,7 @@ failures.
 
 The readiness and decision output prints `provider=`, `model=` and `thinking=`
 alongside the pins, so what produced a report can be confirmed without reading
-this script or the transcripts.
+this script.
 
 ## How reviewers are invoked
 
@@ -105,18 +105,12 @@ this script or the transcripts.
 pi -p --mode text --model <provider>/<model> --no-approve \
    --no-skills --no-context-files --no-prompt-templates --no-extensions \
    --tools read,bash,grep,find,ls \
-   --thinking <level> \
-   --session <run dir>/sessions/<role>.jsonl \
+   --thinking <level> --no-session \
    --skill <one absolute SKILL.md> "<role prompt>"
 ```
 
-`--session` is what makes a run watchable. It fixes each reviewer's transcript
-at a known path so `scripts/watch.sh` can follow it live — a child's stdout is
-block-buffered and shows nothing until it exits, so the transcript is the only
-thing there is to watch. The path is inside the run's temp directory, which the
-launcher deletes when the run ends: the transcripts live and die with the run
-and are never a retained report. Do not restore `--no-session` — it would leave
-nothing to watch.
+`--no-session` keeps the run ephemeral: no transcript is written and nothing
+survives it. The reviewer's Markdown on stdout is the only output.
 
 The discovery flags matter: a reviewer sees exactly the one skill it was given,
 with no ambient `AGENTS.md`, `CLAUDE.md`, project skill, prompt template or

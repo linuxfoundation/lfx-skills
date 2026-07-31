@@ -52,15 +52,15 @@ wrong means reviewing the wrong repository.
 
 ### 2a. If it prints `PI_READY` — announce, then launch Pi in the background
 
-Generate a unique **absolute** run directory that does not yet exist (see
-**Watching a run** for the exact method). Print the launch line and the watch
-commands **before** starting anything, then run:
+Run:
 
 ```bash
-<skill dir>/scripts/run-pi.sh --repo <repo> --commit <target_sha from the probe> --run-dir <run-dir>
+<skill dir>/scripts/run-pi.sh --repo <repo> --commit <target_sha from the probe>
 ```
 
-**in the background**, and tell the developer it is running and how to watch.
+**as a background task**, and tell the developer it is running. Background is
+for keeping this session responsive while a review takes minutes — there is
+nothing to watch, and no transcript is kept.
 
 Pass `--commit` with the `target_sha` the probe printed. `HEAD` can move between
 the probe and the launch — the developer commits again in another terminal — and
@@ -78,14 +78,23 @@ launch the three Opus subagents **in the background** as described in **When Pi
 is not available**, using the pins the probe already printed. Do not re-run the
 probe to get them.
 
+### Getting the review back
+
+Running in the background must never mean the review is lost.
+
+- **Keep the background task handle.** Return control to the developer after
+  starting it; do not poll, and do not build a supervisor or a report store.
+- **When the harness notifies you the task finished**, retrieve its output and
+  relay the three reports in the fixed order — or the host failure, exactly as
+  **Reading what comes back** describes.
+- **For the Opus fallback**, the same rule for all three subagents: collect
+  every one of the three results, then relay or fail as already defined. Two
+  results out of three is an incomplete cycle, not a review with a gap.
+
 ### Optional arguments
 
 `--base <sha>` widens the range past the first parent; the host never derives a
-base itself. `--run-dir <absolute path>` names the ephemeral run directory
-instead of letting the launcher invent one — that is what makes step 2a's
-announcement possible. It must be absolute and must not already exist, and it is
-deleted when the run ends. Whatever optional arguments you pass must appear in
-the announced `Running:` line too.
+base itself. `--extra "<hint>"` passes a caller hint through to every reviewer.
 
 Reviews are pinned to one commit: `target_sha` is `HEAD`, `base_sha` its first
 parent, and every reviewer gets the same values and the same explicit
@@ -189,77 +198,6 @@ a PR.
 The existing `lfx-skills:lfx-*-code-reviewer` and `lfx-*-learnings-reviewer`
 named agents are unchanged and remain the right tool for repos that do not own
 local review skills.
-
-## Watching a run
-
-Reviews take minutes, and a developer who cannot see progress assumes it hung.
-**Print the launch line and the watch commands before the reviewers start**, in
-your own message — not by hoping the launcher's stderr arrives in time. It does
-not: a harness that buffers a subprocess's stderr surfaces the launcher's own
-banner only after the run is over, which is no use to someone who wanted to
-watch it. That is a manual-test finding, not a theory.
-
-### Generate the run directory
-
-It must be **absolute**, unique, and must not already exist. Generate a name
-without creating it:
-
-```bash
-mktemp -u -d "${TMPDIR:-/tmp}/lfx-local-review.XXXXXX"
-```
-
-`-u` prints a unique name and leaves the directory uncreated, which is exactly
-what is needed: the launcher creates it and deletes it at the end of the run,
-and refuses a path that already exists — so never create it yourself and hand it
-to a delete-on-exit command. The launcher also rejects a relative path, because
-you are printing it for a second terminal that starts somewhere else.
-
-### Announce exactly what you are about to run
-
-The `Running:` line must be **byte-for-byte the command you launch** — every
-argument you pass, including `--commit` and `--run-dir`, and `--base` or
-`--extra` when you supply them, with shell-safe quoting for anything containing
-spaces. A developer who copies that line must get the same run you started. An
-announcement that omits `--commit` is worse than none: it reopens the race that
-flag exists to close.
-
-```text
-Running:
-  <skill dir>/scripts/run-pi.sh --repo <repo> --commit <target_sha> --run-dir <run-dir>
-
-Watch in another terminal:
-  <skill dir>/scripts/watch.sh <run-dir>                 # all three, prefixed by role
-  <skill dir>/scripts/watch.sh <run-dir> general         # one role
-  <skill dir>/scripts/watch.sh --tmux <run-dir>          # a pane each, then attach
-```
-
-`<skill dir>` is **this file's own directory**, resolved to an absolute path.
-That is the installed plugin's copy, and it is what a second terminal needs —
-never a path in an `lfx-skills` checkout, which the developer may not have.
-
-Then start it as a background task, as **Running it** requires. Nothing here
-runs in the foreground.
-
-### Getting the review back
-
-Running in the background must never mean the review is lost.
-
-- **Keep the background task handle.** Return control to the developer after
-  announcing; do not poll, and do not build a supervisor or a report store.
-- **When the harness notifies you the task finished**, retrieve its output and
-  relay the three reports in the fixed order — or the host failure, exactly as
-  **Reading what comes back** describes.
-- **For the Opus fallback**, the same rule for all three subagents: collect
-  every one of the three results, then relay or fail as already defined. Two
-  results out of three is an incomplete cycle, not a review with a gap.
-
-What the watch commands show is each reviewer's **transcript** — what it read,
-which commands it ran — not the review. The review is the Markdown the launcher
-prints at the end, and only that is worth citing. Transcripts are deleted when
-the run ends; there is no report file and no supervisor.
-
-Do not tail the capture files instead: a child's stdout is block-buffered and
-stays empty until it exits, so it shows nothing while there is anything to see.
 
 ## Reference
 

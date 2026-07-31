@@ -6,14 +6,7 @@
 # ordinary Markdown reports.
 #
 #   run-pi.sh [--repo <path>] [--commit <sha>] [--base <sha>] [--extra <text>]
-#             [--run-dir <absolute path>]
 #   run-pi.sh --readiness [--repo <path>]      # print the harness decision only
-#
-# --run-dir names the ephemeral run directory instead of letting this script
-# invent one, so a caller can print the watch commands BEFORE reviewers start.
-# It must be absolute and must not already exist; it is deleted when the run
-# ends, either way. Generate one without creating it:
-#   mktemp -u -d "${TMPDIR:-/tmp}/lfx-local-review.XXXXXX"
 #
 # Reviews one commit: the diff its parent introduced. `--base` overrides the
 # parent when a caller wants a wider range; it is a parameter, not a mode, and
@@ -92,7 +85,6 @@ REPO=""
 COMMIT=""
 BASE_ARG=""
 EXTRA=""
-RUN_DIR_ARG=""
 READINESS_ONLY=""
 
 # An option that takes a value must actually have one. Without this check a
@@ -122,19 +114,6 @@ while [ $# -gt 0 ]; do
   --extra)
     need_value --extra $#
     EXTRA="$2"
-    shift 2
-    ;;
-  --run-dir)
-    need_value --run-dir $#
-    # Absolute only, checked here so a bad argument fails at once rather than
-    # after repo and skill checks that have nothing to do with it. The caller
-    # prints this path for a SECOND terminal to use; a relative one resolves
-    # against whatever directory that terminal happens to be in.
-    case "$2" in
-    /*) ;;
-    *) host_fail "--run-dir must be an absolute path, because it is printed for another terminal to use: $2" ;;
-    esac
-    RUN_DIR_ARG="$2"
     shift 2
     ;;
   --readiness)
@@ -349,48 +328,14 @@ role_prompt() {
   printf 'Return an ordinary Markdown review.\n'
 }
 
-# A caller that must show the watch commands BEFORE anything starts cannot wait
-# for this script to invent a directory and announce it: a harness that buffers
-# our stderr surfaces the banner too late to be useful, which is exactly what
-# the manual test found. So the caller may name the directory up front, print
-# the watch lines itself, and only then launch.
-#
-# It must NOT already exist. This path is deleted at the end of the run, and
-# accepting an existing directory would make `--run-dir ~/src` a delete command.
-if [ -n "$RUN_DIR_ARG" ]; then
-  [ -e "$RUN_DIR_ARG" ] &&
-    host_fail "--run-dir must not already exist (it is deleted when the run ends): $RUN_DIR_ARG"
-  mkdir -p "$RUN_DIR_ARG" ||
-    host_fail "could not create --run-dir: $RUN_DIR_ARG"
-  TMPDIR_RUN="$(cd "$RUN_DIR_ARG" && pwd)"
-else
-  TMPDIR_RUN="$(mktemp -d "${TMPDIR:-/tmp}/lfx-local-review.XXXXXX")"
-fi
+TMPDIR_RUN="$(mktemp -d "${TMPDIR:-/tmp}/lfx-local-review.XXXXXX")"
 [ -n "$TMPDIR_RUN" ] ||
   host_fail "could not create a temporary directory for reviewer output"
-mkdir -p "$TMPDIR_RUN/sessions" ||
+mkdir -p "$TMPDIR_RUN" ||
   host_fail "could not create a transcript directory for reviewer output"
 # Ephemeral by construction: captures and transcripts exist only for the length
 # of the run, and they go away with the process.
 trap 'rm -rf "$TMPDIR_RUN"' EXIT
-
-# How to watch, printed BEFORE the children start and on stderr so it can never
-# be mistaken for part of a review. Reviews take minutes; a banner printed
-# afterwards would be useless.
-#
-# The transcript is what to watch, not the capture file: a child's stdout is
-# block-buffered into a file and stays at zero bytes until it exits, so tailing
-# that shows nothing until there is nothing left to wait for.
-log ""
-log "lfx-local-review: three reviewers starting on Pi. To watch them live:"
-log ""
-log "  $SKILL_DIR/scripts/watch.sh $TMPDIR_RUN"
-log "  $SKILL_DIR/scripts/watch.sh $TMPDIR_RUN general        # one role"
-log "  $SKILL_DIR/scripts/watch.sh --tmux $TMPDIR_RUN         # a pane each"
-log ""
-log "Transcripts are deleted when this run ends. They show the reviewers'"
-log "working; the review itself is the Markdown printed when they finish."
-log ""
 
 pids=""
 for role in $ROLES; do
@@ -400,8 +345,7 @@ for role in $ROLES; do
     exec pi -p --mode text --model "$PROVIDER/$MODEL_ID" --no-approve \
       --no-skills --no-context-files --no-prompt-templates --no-extensions \
       --tools read,bash,grep,find,ls \
-      --thinking "$THINKING" \
-      --session "$TMPDIR_RUN/sessions/$role.jsonl" \
+      --thinking "$THINKING" --no-session \
       --skill "$skill" \
       "$(role_prompt "$role" "$skill")"
   ) >"$TMPDIR_RUN/$role.out" 2>"$TMPDIR_RUN/$role.err" </dev/null &

@@ -75,19 +75,35 @@ fi
 # processes on a shared machine.
 PIDS=""
 
+# Order matters. Each renderer is a subshell whose foreground job is
+# `tail -F | jq`, and a shell ANNOUNCES a foreground job killed by a signal --
+# "Terminated: 15" followed by the whole pipeline, jq program and all. Killing
+# the children first leaves the subshell alive to print that, which reads
+# exactly like a crash at the end of a perfectly normal run. So take the
+# subshell down first; it cannot report a death it never sees. Its children are
+# then orphans, which is why they are collected BEFORE the parent goes and
+# killed by pid afterwards.
 cleanup() {
-  local p
+  local p k kids
   for p in $PIDS; do
-    pkill -P "$p" 2>/dev/null
+    kids="$(pgrep -P "$p" 2>/dev/null | tr '\n' ' ')"
     kill "$p" 2>/dev/null
+    for k in $kids; do kill "$k" 2>/dev/null; done
   done
-  wait 2>/dev/null
 }
 trap cleanup INT TERM EXIT
 
 start_render() {
   render "$1" "$2" &
-  PIDS="$PIDS $!"
+  local p=$!
+  PIDS="$PIDS $p"
+  # Stop the shell tracking this as a job. Ending a run means killing these
+  # renderers, and bash announces a killed job on stderr -- "Terminated: 15"
+  # followed by the whole `tail | jq` pipeline, jq program and all. That is a
+  # normal ending, but it reads exactly like a crash to whoever is watching.
+  # Disowning drops the job-table entry, so there is nothing to announce; the
+  # pids stay valid for `kill` and `kill -0`, which is all this uses them for.
+  disown "$p" 2>/dev/null || true
 }
 
 if [ -n "$ROLE" ]; then

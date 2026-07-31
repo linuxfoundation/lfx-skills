@@ -120,12 +120,20 @@ central general skill — resolved from **this** file's directory as above — p
 the pinned values. Repo prose must never guess where the plugin was installed.
 Fall back to the table above only when the repo has no such skill.
 
-**Tell each subagent to load its one skill — do not paste the skill's text into
-the prompt, and do not restate its rules.** A pasted rulebook is a second copy
-that drifts from the file, and a restated one is a summary nobody reviewed.
-Identify the skill by name where the harness has it registered, and by absolute
-path otherwise — a subagent spawned from a session in a different repo cannot
-resolve that repo's project skills by name.
+**Give each subagent its one exact skill, by both arms of this rule.** Resolve
+the selected physical `SKILL.md` and its declared frontmatter name. If the
+harness has that name registered, tell the subagent to load it by name.
+Otherwise, give the subagent the exact absolute `SKILL.md` path and tell it to
+read that file in full and follow it as its entire rulebook. Never paste,
+restate or substitute the body; fail if that exact selected file cannot be
+loaded or read.
+
+Both arms are load-bearing. The by-path arm is what serves a subagent launched
+from a session where the plugin, or another repo's project skills, are not
+registered — which is the ordinary case when the fallback runs from anywhere but
+the repo under review. A pasted rulebook is a second copy that drifts from the
+file, and a restated one is a summary nobody reviewed; reading the one selected
+physical file is neither.
 
 The prompt must also say the loaded skill is the whole rulebook, and forbid
 **ambient** instruction discovery — do not go looking for an

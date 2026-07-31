@@ -185,9 +185,21 @@ review in this file, it belongs in one of those instead.
 
 **What it passes on:** `target repo`, `target_sha`, `base_sha` (or `none`), the
 explicit `review exactly:` range, and any `extra` hint — unchanged. Each prompt
-tells its subagent to **load** its one skill and treat it as the whole rulebook
-— never pasting the skill's text into the prompt or restating its rules — and
-forbids ambient instruction discovery, without forbidding the repo reads that skill directs.
+gives its subagent one exact skill, and forbids ambient instruction discovery
+without forbidding the repo reads that skill directs.
+
+**Both arms of the load rule, stated here in full so this file never disagrees
+with the host skill.** Resolve the selected physical `SKILL.md` and its declared
+frontmatter name. If the harness has that name registered, tell the subagent to
+load it by name. Otherwise, give the subagent the exact absolute `SKILL.md` path
+and tell it to read that file in full and follow it as its entire rulebook.
+Never paste, restate or substitute the body; fail if that exact selected file
+cannot be loaded or read.
+
+The by-path arm is not a fallback of last resort — it is the ordinary case
+whenever the trio is launched from a session that has not registered this repo's
+project skills. A declared name is not the same as its alias directory, so read
+the name from the frontmatter rather than assuming the directory is it.
 
 **Failure.** A subagent that errors, returns nothing, or returns Markdown that
 is not a review is a role-labelled host failure of the all-Claude cycle. Never

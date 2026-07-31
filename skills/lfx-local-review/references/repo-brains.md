@@ -86,10 +86,25 @@ Requiring both closes each hole with the other:
 Newly widened and newly narrowed coverage behave the same way: they cannot hide
 a candidate unless the unchanged overlap still suppresses it at both revisions.
 
-An accepted cost, so nobody later "fixes" it: a waiver added for a genuinely new
-false positive does **not** take effect until the branch merges, so the author
-keeps seeing that finding for the rest of the PR. That is the anti-self-approval
-property working, not a defect.
+### When a newly added waiver starts applying
+
+Recorded precisely, so nobody reads the delay as a defect and "fixes" it, and
+nobody mistakes the later case for a loophole. The base differs by mode — the
+first parent post-commit, the merge-base in branch mode — so a waiver added on
+the branch applies to some reviewed ranges and not others:
+
+- **It cannot suppress anything in a range whose base predates it.** That covers
+  the commit that adds the waiver, whose first parent does not have it, and the
+  final cumulative branch sweep, whose merge-base predates the branch. This is
+  the property that matters: **the cumulative branch range can never approve
+  itself.**
+- **It can apply to a later post-commit review whose first parent already
+  contains it.** That is correct, not a leak. Relative to that delta the waiver
+  is pre-existing, both revisions carry it, and it is suppressing a finding
+  about a change other than the one that introduced it. It still cannot suppress
+  anything in the cumulative branch range.
+- **After merge**, future branches inherit it at both revisions and it applies
+  normally.
 
 ### How to evaluate it
 

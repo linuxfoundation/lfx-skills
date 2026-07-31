@@ -13,8 +13,8 @@ review and the host says so every time.
 ## Install and authenticate
 
 ```bash
-npm install -g @awebai/pi     # or see https://aweb.ai/docs/pi/
-pi                            # then /login, and pick your GitHub Copilot seat
+npm install -g @earendil-works/pi-coding-agent   # https://github.com/earendil-works/pi
+pi                                               # then /login, pick your Copilot seat
 ```
 
 Pi's Copilot credentials come from its own `/login`. Nothing here reads,

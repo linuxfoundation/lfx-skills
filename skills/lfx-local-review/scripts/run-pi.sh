@@ -36,8 +36,8 @@ LEARNINGS_SKILL_REL="${LFX_LOCAL_REVIEW_LEARNINGS_SKILL:-.claude/skills/local-le
 
 ONBOARDING="Pi is not available, so all three reviewers will run on Claude
 instead. That makes this a same-model review, not the cross-model one. To get
-the cross-model review, install Pi (https://aweb.ai/docs/pi/) and authenticate
-it with your Copilot seat, then run this again."
+the cross-model review, install Pi (https://github.com/earendil-works/pi) and
+authenticate it with your Copilot seat, then run this again."
 
 # Host-detected failure. Never phrased as a reviewer's INCOMPLETE — only a
 # reviewer that produced usable output may say that about its own review.
@@ -85,7 +85,10 @@ while [ $# -gt 0 ]; do
     shift
     ;;
   -h | --help)
-    sed -n '5,20p' "${BASH_SOURCE[0]}"
+    # Print the header block by shape, not by line number: a hardcoded range
+    # silently truncates the moment the header grows, which is exactly what
+    # happened when this comment block gained four lines.
+    awk 'NR >= 5 && /^#/ { print; next } NR >= 5 { exit }' "${BASH_SOURCE[0]}"
     exit 0
     ;;
   *) host_fail "unknown option: $1" ;;

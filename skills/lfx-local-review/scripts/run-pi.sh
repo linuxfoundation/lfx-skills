@@ -6,12 +6,14 @@
 # ordinary Markdown reports.
 #
 #   run-pi.sh [--repo <path>] [--commit <sha>] [--base <sha>] [--extra <text>]
-#             [--run-dir <path>]
+#             [--run-dir <absolute path>]
 #   run-pi.sh --readiness [--repo <path>]      # print the harness decision only
 #
 # --run-dir names the ephemeral run directory instead of letting this script
 # invent one, so a caller can print the watch commands BEFORE reviewers start.
-# It must not already exist; it is deleted when the run ends, either way.
+# It must be absolute and must not already exist; it is deleted when the run
+# ends, either way. Generate one without creating it:
+#   mktemp -u -d "${TMPDIR:-/tmp}/lfx-local-review.XXXXXX"
 #
 # Reviews one commit: the diff its parent introduced. `--base` overrides the
 # parent when a caller wants a wider range; it is a parameter, not a mode, and
@@ -124,6 +126,14 @@ while [ $# -gt 0 ]; do
     ;;
   --run-dir)
     need_value --run-dir $#
+    # Absolute only, checked here so a bad argument fails at once rather than
+    # after repo and skill checks that have nothing to do with it. The caller
+    # prints this path for a SECOND terminal to use; a relative one resolves
+    # against whatever directory that terminal happens to be in.
+    case "$2" in
+    /*) ;;
+    *) host_fail "--run-dir must be an absolute path, because it is printed for another terminal to use: $2" ;;
+    esac
     RUN_DIR_ARG="$2"
     shift 2
     ;;

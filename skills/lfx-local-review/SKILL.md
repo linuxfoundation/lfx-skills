@@ -52,8 +52,9 @@ wrong means reviewing the wrong repository.
 
 ### 2a. If it prints `PI_READY` — announce, then launch Pi in the background
 
-Choose a unique run directory yourself. Print the launch line and the watch
-commands **before** starting anything (see **Watching a run**), then run:
+Generate a unique **absolute** run directory that does not yet exist (see
+**Watching a run** for the exact method). Print the launch line and the watch
+commands **before** starting anything, then run:
 
 ```bash
 <skill dir>/scripts/run-pi.sh --repo <repo> --commit <target_sha from the probe> --run-dir <run-dir>
@@ -80,9 +81,11 @@ probe to get them.
 ### Optional arguments
 
 `--base <sha>` widens the range past the first parent; the host never derives a
-base itself. `--run-dir <path>` names the ephemeral run directory instead of
-letting the launcher invent one — that is what makes step 2a's announcement
-possible. It must not already exist, and it is deleted when the run ends.
+base itself. `--run-dir <absolute path>` names the ephemeral run directory
+instead of letting the launcher invent one — that is what makes step 2a's
+announcement possible. It must be absolute and must not already exist, and it is
+deleted when the run ends. Whatever optional arguments you pass must appear in
+the announced `Running:` line too.
 
 Reviews are pinned to one commit: `target_sha` is `HEAD`, `base_sha` its first
 parent, and every reviewer gets the same values and the same explicit
@@ -196,11 +199,33 @@ not: a harness that buffers a subprocess's stderr surfaces the launcher's own
 banner only after the run is over, which is no use to someone who wanted to
 watch it. That is a manual-test finding, not a theory.
 
-Choose the run directory yourself, pass it with `--run-dir`, and show it:
+### Generate the run directory
+
+It must be **absolute**, unique, and must not already exist. Generate a name
+without creating it:
+
+```bash
+mktemp -u -d "${TMPDIR:-/tmp}/lfx-local-review.XXXXXX"
+```
+
+`-u` prints a unique name and leaves the directory uncreated, which is exactly
+what is needed: the launcher creates it and deletes it at the end of the run,
+and refuses a path that already exists — so never create it yourself and hand it
+to a delete-on-exit command. The launcher also rejects a relative path, because
+you are printing it for a second terminal that starts somewhere else.
+
+### Announce exactly what you are about to run
+
+The `Running:` line must be **byte-for-byte the command you launch** — every
+argument you pass, including `--commit` and `--run-dir`, and `--base` or
+`--extra` when you supply them, with shell-safe quoting for anything containing
+spaces. A developer who copies that line must get the same run you started. An
+announcement that omits `--commit` is worse than none: it reopens the race that
+flag exists to close.
 
 ```text
 Running:
-  <skill dir>/scripts/run-pi.sh --repo <repo> --run-dir <run-dir>
+  <skill dir>/scripts/run-pi.sh --repo <repo> --commit <target_sha> --run-dir <run-dir>
 
 Watch in another terminal:
   <skill dir>/scripts/watch.sh <run-dir>                 # all three, prefixed by role
@@ -208,18 +233,25 @@ Watch in another terminal:
   <skill dir>/scripts/watch.sh --tmux <run-dir>          # a pane each, then attach
 ```
 
-Then run the launcher in the foreground.
-
 `<skill dir>` is **this file's own directory**, resolved to an absolute path.
 That is the installed plugin's copy, and it is what a second terminal needs —
 never a path in an `lfx-skills` checkout, which the developer may not have.
-Every path you print must be usable, as printed, from another terminal for the
-life of this session.
 
-`--run-dir` must not already exist; the launcher creates it and deletes it when
-the run ends. That is deliberate — the path is removed at the end, so accepting
-an existing directory would turn a mistyped argument into a delete command.
-Give it a unique name under the system temp directory.
+Then start it as a background task, as **Running it** requires. Nothing here
+runs in the foreground.
+
+### Getting the review back
+
+Running in the background must never mean the review is lost.
+
+- **Keep the background task handle.** Return control to the developer after
+  announcing; do not poll, and do not build a supervisor or a report store.
+- **When the harness notifies you the task finished**, retrieve its output and
+  relay the three reports in the fixed order — or the host failure, exactly as
+  **Reading what comes back** describes.
+- **For the Opus fallback**, the same rule for all three subagents: collect
+  every one of the three results, then relay or fail as already defined. Two
+  results out of three is an incomplete cycle, not a review with a gap.
 
 What the watch commands show is each reviewer's **transcript** — what it read,
 which commands it ran — not the review. The review is the Markdown the launcher

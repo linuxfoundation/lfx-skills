@@ -26,35 +26,68 @@ before a PR exists.
 
 ## Running it
 
+**Probe, announce, then launch in the background.** Three steps, in this order.
+Never launch a review in the foreground: it blocks this session for minutes,
+and the developer sees nothing while it happens.
+
 The launcher lives beside this file. Resolve it from **this skill's own
 directory**, not from the repo you are standing in — you are normally invoked
-from a service repo, where a path like `skills/lfx-local-review/...` does not
-exist:
+from a service repo, and the developer may have no `lfx-skills` checkout at
+all. Every path you print must be one the installed plugin actually has.
+
+### 1. Probe
 
 ```bash
-<dir of this SKILL.md>/scripts/run-pi.sh --repo <path> [--extra "<hint>"]
+<skill dir>/scripts/run-pi.sh --readiness --repo <repo>
 ```
 
-Use the absolute path you get from that. It applies to the launcher script
-alone: the Claude fallback names its three skills and hands over no skill paths
-at all.
+This launches no reviewers. It answers one question — which harness is going to
+run — and prints the pins with it: `repo=`, `target_sha=`, `base_sha=`, plus
+`provider=`, `model=` and `thinking=` so you can tell the developer what is
+about to review their code.
 
 Pass `--repo` when you are not standing in the repo under review. The launcher
-resolves the repo from a path only — it never searches for one by name, because
-guessing wrong means reviewing the wrong repository.
+resolves a repo from a path only — it never searches by name, because guessing
+wrong means reviewing the wrong repository.
 
-It pins `target_sha` (the branch's newest commit) and `base_sha` (its first
-parent) once, before launching anything, and gives every reviewer the same
-values and the same explicit `git diff base target` range. Nothing fetches and
-nothing consults a remote, so this works offline.
+### 2a. If it prints `PI_READY` — announce, then launch Pi in the background
 
-Two optional arguments exist and you will rarely need either. `--commit <sha>`
-states which commit you believe you are reviewing and fails the run if it is not
-the current `HEAD` — useful when a caller wants to be told its belief is stale
-rather than silently review something else. `--base <sha>` widens the range past
-the parent. The host never derives a base itself.
+Choose a unique run directory yourself. Print the launch line and the watch
+commands **before** starting anything (see **Watching a run**), then run:
 
-While it runs it prints watch commands to stderr — see **Watching a run** below.
+```bash
+<skill dir>/scripts/run-pi.sh --repo <repo> --commit <target_sha from the probe> --run-dir <run-dir>
+```
+
+**in the background**, and tell the developer it is running and how to watch.
+
+Pass `--commit` with the `target_sha` the probe printed. `HEAD` can move between
+the probe and the launch — the developer commits again in another terminal — and
+`--commit` turns that into a loud failure instead of a review of something other
+than what you announced.
+
+### 2b. Otherwise — say Pi would be better, then launch the fallback in the background
+
+`PI_NOT_INSTALLED`, `PI_UNAUTHENTICATED` and `PI_MODEL_UNAVAILABLE` are not
+failures. They are the other harness being chosen.
+
+Relay the launcher's onboarding message, which tells the developer how to
+install Pi and log in with GitHub Copilot for the cross-model review. Then
+launch the three Opus subagents **in the background** as described in **When Pi
+is not available**, using the pins the probe already printed. Do not re-run the
+probe to get them.
+
+### Optional arguments
+
+`--base <sha>` widens the range past the first parent; the host never derives a
+base itself. `--run-dir <path>` names the ephemeral run directory instead of
+letting the launcher invent one — that is what makes step 2a's announcement
+possible. It must not already exist, and it is deleted when the run ends.
+
+Reviews are pinned to one commit: `target_sha` is `HEAD`, `base_sha` its first
+parent, and every reviewer gets the same values and the same explicit
+`git diff base target` range. Nothing fetches and nothing consults a remote, so
+this works offline.
 
 ## Reading what comes back
 
@@ -156,19 +189,42 @@ local review skills.
 
 ## Watching a run
 
-Reviews take minutes. Before launching, the launcher prints to **stderr** the
-exact commands to follow the reviewers live, with the run directory filled in:
+Reviews take minutes, and a developer who cannot see progress assumes it hung.
+**Print the launch line and the watch commands before the reviewers start**, in
+your own message — not by hoping the launcher's stderr arrives in time. It does
+not: a harness that buffers a subprocess's stderr surfaces the launcher's own
+banner only after the run is over, which is no use to someone who wanted to
+watch it. That is a manual-test finding, not a theory.
 
-```bash
-<skill dir>/scripts/watch.sh <run-dir>                 # all three, prefixed by role
-<skill dir>/scripts/watch.sh <run-dir> general         # one role
-<skill dir>/scripts/watch.sh --tmux <run-dir>          # a pane each, then attach
+Choose the run directory yourself, pass it with `--run-dir`, and show it:
+
+```text
+Running:
+  <skill dir>/scripts/run-pi.sh --repo <repo> --run-dir <run-dir>
+
+Watch in another terminal:
+  <skill dir>/scripts/watch.sh <run-dir>                 # all three, prefixed by role
+  <skill dir>/scripts/watch.sh <run-dir> general         # one role
+  <skill dir>/scripts/watch.sh --tmux <run-dir>          # a pane each, then attach
 ```
 
-Relay those to the developer verbatim when they ask to see progress. What they
-show is each reviewer's **transcript** — what it read, which commands it ran —
-not the review. The review is the Markdown the launcher prints at the end, and
-only that is worth citing. Transcripts are deleted when the run ends.
+Then run the launcher in the foreground.
+
+`<skill dir>` is **this file's own directory**, resolved to an absolute path.
+That is the installed plugin's copy, and it is what a second terminal needs —
+never a path in an `lfx-skills` checkout, which the developer may not have.
+Every path you print must be usable, as printed, from another terminal for the
+life of this session.
+
+`--run-dir` must not already exist; the launcher creates it and deletes it when
+the run ends. That is deliberate — the path is removed at the end, so accepting
+an existing directory would turn a mistyped argument into a delete command.
+Give it a unique name under the system temp directory.
+
+What the watch commands show is each reviewer's **transcript** — what it read,
+which commands it ran — not the review. The review is the Markdown the launcher
+prints at the end, and only that is worth citing. Transcripts are deleted when
+the run ends; there is no report file and no supervisor.
 
 Do not tail the capture files instead: a child's stdout is block-buffered and
 stays empty until it exits, so it shows nothing while there is anything to see.

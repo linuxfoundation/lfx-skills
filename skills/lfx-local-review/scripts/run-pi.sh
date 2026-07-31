@@ -6,7 +6,12 @@
 # ordinary Markdown reports.
 #
 #   run-pi.sh [--repo <path>] [--commit <sha>] [--base <sha>] [--extra <text>]
+#             [--run-dir <path>]
 #   run-pi.sh --readiness [--repo <path>]      # print the harness decision only
+#
+# --run-dir names the ephemeral run directory instead of letting this script
+# invent one, so a caller can print the watch commands BEFORE reviewers start.
+# It must not already exist; it is deleted when the run ends, either way.
 #
 # Reviews one commit: the diff its parent introduced. `--base` overrides the
 # parent when a caller wants a wider range; it is a parameter, not a mode, and
@@ -85,6 +90,7 @@ REPO=""
 COMMIT=""
 BASE_ARG=""
 EXTRA=""
+RUN_DIR_ARG=""
 READINESS_ONLY=""
 
 # An option that takes a value must actually have one. Without this check a
@@ -114,6 +120,11 @@ while [ $# -gt 0 ]; do
   --extra)
     need_value --extra $#
     EXTRA="$2"
+    shift 2
+    ;;
+  --run-dir)
+    need_value --run-dir $#
+    RUN_DIR_ARG="$2"
     shift 2
     ;;
   --readiness)
@@ -328,7 +339,24 @@ role_prompt() {
   printf 'Return an ordinary Markdown review.\n'
 }
 
-TMPDIR_RUN="$(mktemp -d "${TMPDIR:-/tmp}/lfx-local-review.XXXXXX")" ||
+# A caller that must show the watch commands BEFORE anything starts cannot wait
+# for this script to invent a directory and announce it: a harness that buffers
+# our stderr surfaces the banner too late to be useful, which is exactly what
+# the manual test found. So the caller may name the directory up front, print
+# the watch lines itself, and only then launch.
+#
+# It must NOT already exist. This path is deleted at the end of the run, and
+# accepting an existing directory would make `--run-dir ~/src` a delete command.
+if [ -n "$RUN_DIR_ARG" ]; then
+  [ -e "$RUN_DIR_ARG" ] &&
+    host_fail "--run-dir must not already exist (it is deleted when the run ends): $RUN_DIR_ARG"
+  mkdir -p "$RUN_DIR_ARG" ||
+    host_fail "could not create --run-dir: $RUN_DIR_ARG"
+  TMPDIR_RUN="$(cd "$RUN_DIR_ARG" && pwd)"
+else
+  TMPDIR_RUN="$(mktemp -d "${TMPDIR:-/tmp}/lfx-local-review.XXXXXX")"
+fi
+[ -n "$TMPDIR_RUN" ] ||
   host_fail "could not create a temporary directory for reviewer output"
 mkdir -p "$TMPDIR_RUN/sessions" ||
   host_fail "could not create a transcript directory for reviewer output"

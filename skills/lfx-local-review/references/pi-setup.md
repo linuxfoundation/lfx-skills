@@ -7,8 +7,11 @@ Pi is what makes this review **cross-model**. The reviewers read the same
 skills either way; running them on a different model is the whole point,
 because a model reviewing its own work shares its own blind spots.
 
-Without Pi the trio still runs — on Claude subagents — but that is a same-model
-review and the host says so every time.
+Without Pi the trio still runs — on three Claude Opus subagents — but that is
+not the cross-model check, and the host says so every time. It is not a
+*same-model* review either: the subagents are explicitly Opus while the session
+hosting them may be a different model, so neither label is available and the
+honest statement is the negative one.
 
 ## Install and authenticate
 

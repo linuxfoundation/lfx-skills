@@ -80,8 +80,10 @@ review, check, status, label or approval, and no gate or merge.
 | `lfx-general-code-review`           | The general review method itself: correctness, security, error handling, simplicity, naming, DRY, testing, performance, style. Loaded by the review trio in either harness. Not invoked by hand. |
 
 Pi is what makes this **cross-model** — the same skills, judged by a different
-model. Without it the trio still runs on Claude, and the host says plainly that
-the result is same-model rather than cross-model evidence.
+model. Without it the trio still runs, on three Claude Opus subagents, and the
+host says plainly that this is not the cross-model check. It is not called a
+*same-model* review either: the subagents are explicitly Opus while the session
+hosting them may be a different model.
 
 The repo under review owns its own two reviewer skills at
 `.claude/skills/local-code-review/SKILL.md` and

@@ -36,9 +36,8 @@ in an `lfx-skills` checkout, not in the service repo you are standing in. The
 skill paths themselves are relative to the repo root.
 
 A missing skill is a plain failure before any reviewer starts: a repo without
-them is not set up for local review, and
-running two reviewers out of three would quietly produce a weaker review that
-looks like a complete one.
+them is not set up for local review, and running two reviewers out of three
+would quietly produce a weaker review that looks like a complete one.
 
 ## What the launcher gives your skill
 
@@ -59,48 +58,88 @@ Read evidence at the pinned revision — `git show <target_sha>:<path>`,
 `git grep <pattern> <target_sha>`, `git ls-tree <target_sha>` — so what you
 quote is what you reviewed.
 
-## The false-positive floor is read at `base_sha`
+## The false-positive floor must suppress at BOTH revisions
 
-If your learnings skill applies a floor from
-`docs/reviews/knowledge-base/known-false-positives.md`, **read it from
-`base_sha`, never from `target_sha`.**
+Ordinary knowledge-base pattern files are read at `target_sha`, as usual. The
+false-positive **floor** — `docs/reviews/knowledge-base/known-false-positives.md`
+— is different: read it at **both** `base_sha` and `target_sha`, and suppress a
+finding only when **both** floors would suppress that exact finding.
 
-This is not a detail. Reading it at the target would let a patch that adds a
-waiver suppress a finding *about that same patch* — the reviewed change
-approving itself. Reading at base also means a waiver deleted in the range
-still applies, which is the correct pre-change state.
+Neither revision alone is sufficient, because each one alone has a hole:
 
-Distinguish "absent" from "wrong type" from "unreadable". Do not treat one
+- **Target alone** lets a patch that *adds* a waiver suppress a finding about
+  that same patch — the reviewed change approving itself.
+- **Base alone** lets a waiver the patch *removes* go on suppressing. Removing a
+  waiver means "start flagging this again", and base-only reading ignores that
+  for the whole life of the branch, including the final pre-PR sweep, because
+  the base is still the merge-base then. A defect introduced by this very range
+  would stay hidden all the way to PR-open.
+
+Requiring both closes each hole with the other:
+
+| The range… | base floor | target floor | result |
+|---|---|---|---|
+| **adds** a waiver | does not suppress | suppresses | **not suppressed** |
+| **removes** a waiver | suppresses | does not suppress | **not suppressed** |
+| leaves it unchanged | suppresses | suppresses | **suppressed** |
+
+Newly widened and newly narrowed coverage behave the same way: they cannot hide
+a candidate unless the unchanged overlap still suppresses it at both revisions.
+
+An accepted cost, so nobody later "fixes" it: a waiver added for a genuinely new
+false positive does **not** take effect until the branch merges, so the author
+keeps seeing that finding for the rest of the PR. That is the anti-self-approval
+property working, not a defect.
+
+### How to evaluate it
+
+**Per candidate, semantically — never by comparing the two files.** For each
+candidate finding, ask separately "would the base floor suppress *this
+finding*?" and "would the target floor suppress *this finding*?", then suppress
+only if both answers are yes.
+
+Do **not** diff the two floors, and do not compare their Markdown byte for byte.
+Those are different questions with different answers: if the base carries a
+broad pattern and the target narrows it, a candidate matching the narrow one is
+genuinely suppressed by both, and a byte or line comparison would miss that.
+
+### Reading each floor
+
+Read and classify each revision independently, with the same sequence, and
+distinguish "absent" from "wrong type" from "unreadable". Do not treat one
 failed read as absence.
 
-**If there is no `base_sha`** — a root commit, which the host reports as
-`base_sha: none` — there is nothing to look up. The floor is empty. Do not
-attempt a lookup, and do not treat the absence of a base as a problem.
+**If a revision has no commit** — a root commit's base, which the host reports
+as `base_sha: none` — there is nothing to look up and that floor is **empty**.
+Do not attempt a lookup, and do not treat it as a problem. An empty floor
+suppresses nothing, so by the rule above nothing is suppressed.
 
-**Otherwise**, in this order:
+**Otherwise**, for each of `<base_sha>` and `<target_sha>` in turn:
 
-1. `git ls-tree <base_sha> -- docs/reviews/knowledge-base/known-false-positives.md`
-   - **nonzero exit** → `INCOMPLETE — <reason>`. The host verified the base
-     before launch, so a failure here is a genuine read problem, not absence.
-   - **exit 0, empty output** → the floor is legitimately absent, so it is
-     empty. Normal at the file's first introduction.
+1. `git ls-tree <rev> -- docs/reviews/knowledge-base/known-false-positives.md`
+   - **nonzero exit** → `INCOMPLETE — <reason>`. The host verified both
+     revisions before launch, so a failure here is a genuine read problem, not
+     absence.
+   - **exit 0, empty output** → that floor is legitimately absent, so it is
+     empty. Normal at the file's first introduction, and at a root base.
    - **exit 0, an entry** → require mode exactly `100644` and type exactly
      `blob`. Anything else — a symlink (`120000`), an executable (`100755`), a
      submodule (`160000`), a `tree` — is `INCOMPLETE — <reason>`. Do not follow
-     a symlink out of the pinned revision.
+     a symlink out of the revision you are reading.
 2. Read it **by the object ID that `ls-tree` printed**, not by path:
    `git cat-file blob <object-sha>`. The path was already resolved in step 1;
    re-resolving it invites reading a different object than the one you checked.
    - unreadable → `INCOMPLETE — <reason>`
    - empty content → a valid empty floor
-   - otherwise apply it
+   - otherwise, use it as that revision's floor
 
-**Never fall forward to the target floor** after any base-floor problem. An
-unreadable base floor means you cannot apply a floor, not that you should use a
-different one.
+**Say which revision failed.** An ambiguous or failed read produces
+`INCOMPLETE — <reason>` naming the revision, so a developer knows which side to
+look at.
 
-Ordinary knowledge-base pattern files are read at `target_sha` as usual — only
-the floor comes from base.
+**Never substitute one floor for the other.** If the base floor cannot be read,
+do not fall forward to the target floor — or the reverse. An unreadable floor
+means you cannot apply the rule, not that you should apply half of it.
 
 ## Writing the skills
 
@@ -135,8 +174,11 @@ host failure.
 - [ ] `.claude/skills/local-code-review/SKILL.md`, citing the repo's own rules
 - [ ] `.claude/skills/local-learnings-review/SKILL.md`, citing
       `docs/reviews/knowledge-base/`
-- [ ] The floor is read at `base_sha`, with the two-step absent/unreadable
-      distinction above
+- [ ] The false-positive floor is evaluated at **both** `base_sha` and
+      `target_sha`, suppressing only when both would suppress that exact
+      candidate — per candidate and semantically, never by comparing the two
+      files — with the two-step absent/wrong-type/unreadable distinction above
+      applied to each revision independently
 - [ ] Obligations, not capability claims
 - [ ] Ordinary Markdown out; `INCOMPLETE — <reason>` as a first line when
       required evidence is missing

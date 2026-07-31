@@ -111,6 +111,13 @@ Running in the background must never mean the review is lost.
 `--base <sha>` widens the range past the first parent; the host never derives a
 base itself. `--extra "<hint>"` passes a caller hint through to every reviewer.
 
+A base that would not give a real forward range is refused before anything
+starts: one that resolves to the target itself (an empty range), and one that
+already contains the target (the range runs backwards and the change reads
+inverted). A base that has simply diverged from the target is fine and is
+exactly what this parameter is for — `--base main` after `main` moved on is a
+normal call, not an error.
+
 **`--base` goes to the probe as well as the launch.** The probe is where the
 pins you announce come from, and where the Claude fallback gets its pins — so a
 `--base` given only at launch makes you announce the first-parent range while

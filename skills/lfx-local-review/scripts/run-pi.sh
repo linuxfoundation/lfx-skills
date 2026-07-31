@@ -188,6 +188,22 @@ fi
 if [ -n "$BASE_ARG" ]; then
   BASE_SHA="$(git -C "$REPO" rev-parse --verify --quiet "$BASE_ARG^{commit}")" ||
     host_fail "--base does not resolve to a commit in $REPO: $BASE_ARG"
+  # A supplied base has to produce a real, forward range. Two shapes never do,
+  # and both are worse than an error because they end with a reviewer that had
+  # nothing to review reporting nothing found:
+  #   - base IS the target: an empty diff.
+  #   - the target is in the base's history: the range runs backwards, so the
+  #     change reads inverted and additions appear as deletions.
+  #
+  # Deliberately NOT rejected: a base that is simply not an ancestor. `--base
+  # main` against a main that has moved on is the case this parameter exists
+  # for, and demanding a strict ancestor would refuse it. Measured on a
+  # divergent branch: it is neither equal nor backwards, so it passes both
+  # checks untouched. Nothing here computes a merge base or consults a remote.
+  [ "$BASE_SHA" != "$TARGET_SHA" ] ||
+    host_fail "--base $BASE_ARG resolves to the target commit $TARGET_SHA — an empty range, and a reviewer given nothing to review will find nothing"
+  ! git -C "$REPO" merge-base --is-ancestor "$TARGET_SHA" "$BASE_SHA" 2>/dev/null ||
+    host_fail "--base $BASE_ARG resolves to $BASE_SHA, which already contains $TARGET_SHA — the range runs backwards and would show the change inverted"
 else
   BASE_SHA="$(git -C "$REPO" rev-parse --verify --quiet "$TARGET_SHA^" 2>/dev/null)" || true
 fi

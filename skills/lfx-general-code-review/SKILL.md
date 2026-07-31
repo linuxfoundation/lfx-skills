@@ -126,6 +126,28 @@ cases, wrong control flow, misuse of an API's contract.
 unvalidated or unsanitized input; injection (SQL, command, XSS); broken
 authentication or authorization; unguarded sensitive operations.
 
+**Data privacy and PII** — the LFX plugin-wide data-privacy rules apply to
+every reviewer. The criteria here are self-contained: do not load a reference
+file at review time.
+
+Flag as **critical** when the change would ship real user PII — names, emails,
+LFIDs and other identifiers, images, precise geolocation, financial data,
+authentication material — into a log, a test fixture, a seed file, a committed
+sample response, or a docs example; or would persist it into a datastore, index
+document or authorization tuple **outside a field the resource's contract
+owns**. A commit message, PR body or code comment naming a person who is not
+the commit's own author or a consenting coauthor is the same violation: the DCO
+`Signed-off-by:` trailer and consenting `Co-authored-by:` trailers are the only
+exceptions.
+
+**Never reproduce the PII you are flagging.** Describe it by category and
+location — "corporate email address in the test fixture at
+`internal/fixtures/user.json:12`", "raw LFID passed to `logger.Info` at
+`internal/audit/writer.go:117`" — and write `<redacted>` in place of the value
+in any quote or diff excerpt. Your report is ordinary Markdown that a developer
+may paste into a ticket or a PR, so a finding that quotes the value leaks it a
+second time.
+
 **Error handling** — errors swallowed rather than handled; messages that leak
 sensitive detail; missing cleanup of resources, connections and file handles on
 error paths; over-broad exception catching.

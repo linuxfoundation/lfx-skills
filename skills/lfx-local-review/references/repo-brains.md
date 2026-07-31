@@ -185,8 +185,9 @@ review in this file, it belongs in one of those instead.
 
 **What it passes on:** `target repo`, `target_sha`, `base_sha` (or `none`), the
 explicit `review exactly:` range, and any `extra` hint — unchanged. Each prompt
-names its one skill as the whole rulebook and forbids ambient instruction
-discovery, without forbidding the repo reads that skill directs.
+tells its subagent to **load** its one skill and treat it as the whole rulebook
+— never pasting the skill's text into the prompt or restating its rules — and
+forbids ambient instruction discovery, without forbidding the repo reads that skill directs.
 
 **Failure.** A subagent that errors, returns nothing, or returns Markdown that
 is not a review is a role-labelled host failure of the all-Claude cycle. Never

@@ -120,8 +120,15 @@ central general skill — resolved from **this** file's directory as above — p
 the pinned values. Repo prose must never guess where the plugin was installed.
 Fall back to the table above only when the repo has no such skill.
 
-Each prompt must name its one skill file and say it is the whole rulebook. It
-must also forbid **ambient** instruction discovery — do not go looking for an
+**Tell each subagent to load its one skill — do not paste the skill's text into
+the prompt, and do not restate its rules.** A pasted rulebook is a second copy
+that drifts from the file, and a restated one is a summary nobody reviewed.
+Identify the skill by name where the harness has it registered, and by absolute
+path otherwise — a subagent spawned from a session in a different repo cannot
+resolve that repo's project skills by name.
+
+The prompt must also say the loaded skill is the whole rulebook, and forbid
+**ambient** instruction discovery — do not go looking for an
 `AGENTS.md`, `CLAUDE.md`, project skill or prompt template and adopt it as
 rules. That prohibition is about unbidden discovery, not about evidence: the
 selected skill itself directs the reviewer to read the target repo's

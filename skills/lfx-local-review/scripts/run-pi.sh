@@ -122,16 +122,11 @@ fi
 # --------------------------------------------------------------------------
 # Pin the revisions ONCE, before any child starts.
 #
-# Three children reading a moving HEAD is a race: the developer commits again
-# mid-review and the reviewers disagree about what they reviewed. Pinning costs
-# one git call and removes the whole class of problem — without a snapshot, a
-# worktree or a patch file.
-# --------------------------------------------------------------------------
-# Resolve the commit under review ONCE, before any child starts.
-#
 # Three children resolving HEAD for themselves is a race: the developer commits
 # again mid-review and the reviewers disagree about what they reviewed. Pinning
-# costs one git call and removes the whole class of problem.
+# costs one git call and removes the whole class of problem — without a
+# snapshot, a worktree or a patch file.
+# --------------------------------------------------------------------------
 TARGET_SHA="$(git -C "$REPO" rev-parse --verify --quiet 'HEAD^{commit}')" ||
   host_fail "no commit to review in $REPO"
 
@@ -172,6 +167,13 @@ for role in $ROLES; do
   skill="$(skill_for_role "$role")"
   [ -f "$skill" ] ||
     host_fail "no $role reviewer skill at $skill — this repo does not own local review brains"
+  # Unreadable or empty is as bad as absent. The child is told to load this
+  # skill and follow it; if there is nothing to load it reviews with no rules
+  # and still returns confident Markdown. Fail here, where it is visible.
+  [ -r "$skill" ] ||
+    host_fail "cannot read the $role reviewer skill at $skill"
+  [ -s "$skill" ] ||
+    host_fail "the $role reviewer skill at $skill is empty — it carries no rules to follow"
 done
 
 # --------------------------------------------------------------------------
@@ -255,10 +257,15 @@ role_prompt() {
   printf 'role: %s\n' "$role"
   [ -n "$EXTRA" ] && printf 'extra: %s\n' "$EXTRA"
   printf '\n'
-  # Naming the skill in the prompt as well as passing --skill is deliberate
-  # belt and braces: --skill loading alongside --no-skills works but is not
-  # documented to, so the prompt does not depend on it.
-  printf 'Read %s in full and follow it exactly. It is your entire rulebook.\n' "$skill"
+  # `--skill` is the loading mechanism; the prompt does not restate the rules
+  # and does not tell the child to go read a path. Measured against Pi 0.83.0:
+  # the skill is announced, and the child loads it itself — in a canary run
+  # given no reading instruction at all, it loaded the skill unprompted and
+  # answered from it. So the prompt asks for the skill BY NAME and leaves the
+  # loading to the harness — it never hands over a path to read, and never
+  # restates the rules it would then have to keep in sync.
+  printf 'Load the %s skill and follow it exactly. It is your entire rulebook.\n' \
+    "$(basename "$(dirname "$skill")")"
   # shellcheck disable=SC2016  # literal backticks for the reviewer, not expansion
   printf 'Review only the diff named above. Confirm `git rev-parse HEAD` equals\n'
   printf '%s before you rely on the working tree for anything.\n' "$TARGET_SHA"

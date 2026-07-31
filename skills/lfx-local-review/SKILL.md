@@ -26,9 +26,19 @@ before a PR exists.
 
 ## Running it
 
+The launcher lives beside this file. Resolve it from **this skill's own
+directory**, not from the repo you are standing in — you are normally invoked
+from a service repo, where a path like `skills/lfx-local-review/...` does not
+exist:
+
 ```bash
-skills/lfx-local-review/scripts/run-pi.sh --repo <path> [--mode branch] [--extra "<hint>"]
+<dir of this SKILL.md>/scripts/run-pi.sh --repo <path> [--mode branch] [--extra "<hint>"]
 ```
+
+Use the absolute path you get from that. The same rule applies to the general
+skill you hand a Claude subagent: `<dir of this SKILL.md>/../lfx-general-code-review/SKILL.md`,
+resolved to an absolute path before you pass it on. The Pi launcher already
+resolves both this way; the fallback must match it.
 
 Pass `--repo` when you are not standing in the repo under review. The launcher
 resolves the repo from a path only — it never searches for one by name, because
@@ -76,25 +86,42 @@ Launch all three with `run_in_background: true`:
 
 | Role | Subagent | Skill it must load |
 |---|---|---|
-| `general` | generic | `skills/lfx-general-code-review/SKILL.md` (in the plugin) |
+| `general` | generic | `<dir of this SKILL.md>/../lfx-general-code-review/SKILL.md` |
 | `repo_code` | generic | `<repo>/.claude/skills/local-code-review/SKILL.md` |
 | `repo_learnings` | generic | `<repo>/.claude/skills/local-learnings-review/SKILL.md` |
 
-Get the pinned values first with:
+**Use the pinned values the launcher already printed.** That same non-ready
+response carries `repo=`, `mode=`, `target_sha=`, `base_sha=` and
+`origin_main_sha=`. Do **not** run the launcher again to fetch them: in branch
+mode a second call fetches and pins a second time, and the Claude trio would
+then be reviewing something other than what the harness decision was made
+about. One decision, one fetch, one set of pins, three subagents.
 
-```bash
-skills/lfx-local-review/scripts/run-pi.sh --readiness --repo <path> [--mode branch]
-```
+Give every subagent those exact values, as the Pi children receive them, and a
+`base_sha: none` stays `none` — a root commit has no base and an empty
+pre-change floor.
 
-and give every subagent the same `target repo`, `mode`, `target_sha`,
-`base_sha` and — in branch mode — `origin_main_sha`, exactly as the Pi children
-receive them. Each prompt must name its one skill file and say it is the whole
-rulebook, and must forbid loading any other instruction source, including any
-`AGENTS.md` or `CLAUDE.md` the subagent stumbles across.
+Each prompt must name its one skill file and say it is the whole rulebook. It
+must also forbid **ambient** instruction discovery — do not go looking for an
+`AGENTS.md`, `CLAUDE.md`, project skill or prompt template and adopt it as
+rules. That prohibition is about unbidden discovery, not about evidence: the
+selected skill itself directs the reviewer to read the target repo's
+conventions and docs in order to judge the change, and those reads are the
+review's evidence and remain in scope. Forbid picking up instructions nobody
+selected; do not forbid reading the repo.
 
 **Never mix harnesses.** The choice is made once, before any reviewer starts.
 If a Pi child fails mid-run, do not relaunch that role on Claude — a trio split
 across two models is not a review of anything. Rerun the whole trio.
+
+Claude subagents fail the same way Pi children do, and are reported the same
+way. If a subagent errors, returns nothing, or returns Markdown that is not a
+review, that is a **role-labelled host failure of the all-Claude cycle** — say
+`GENERAL REVIEW FAILED — <what happened>` and which harness it was. Never
+render it as "no findings", and never write an `INCOMPLETE` line on the
+subagent's behalf. A subagent that *does* return `INCOMPLETE — <reason>` as its
+first line has spoken for itself: pass it through untouched. Either way the
+cycle is incomplete — rerun all three on Claude, not the failed one alone.
 
 ## After the review
 

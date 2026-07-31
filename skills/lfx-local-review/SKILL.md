@@ -67,6 +67,21 @@ the probe and the launch — the developer commits again in another terminal —
 `--commit` turns that into a loud failure instead of a review of something other
 than what you announced.
 
+**If the launch prints a harness decision instead of reports.** The launcher
+checks readiness again before it starts any child, because a launch can also be
+run with no probe before it and starting three children blind is worse. So the
+harness can lapse in the gap — a token expires, someone runs `pi logout` in
+another terminal — and then this second call prints `PI_NOT_INSTALLED`,
+`PI_UNAUTHENTICATED` or `PI_MODEL_UNAVAILABLE` with the pins and the onboarding
+message, exits 0, and starts nothing.
+
+That is the harness decision being remade, not a failed review. **No Pi child
+ran**, so nothing is mixed and nothing needs rerunning. Tell the developer Pi
+went away between the probe and the launch, then follow **2b** using the pins
+*this* call printed — they are the current ones, and you do not probe a third
+time. Never report the Pi run as finished, and never read a decision block as a
+review that found nothing.
+
 ### 2b. Otherwise — say Pi would be better, then launch the fallback in the background
 
 `PI_NOT_INSTALLED`, `PI_UNAUTHENTICATED` and `PI_MODEL_UNAVAILABLE` are not
@@ -123,6 +138,10 @@ Two different things can go wrong, and they must not be blurred:
 
 Either way the cycle is incomplete: fix nothing on that basis, and rerun the
 whole trio on the same harness.
+
+A launch that prints a harness **decision** instead of reports is neither of
+these, and is not a reason to rerun anything — see **2a**: no reviewer started,
+so the decision simply stands and the fallback runs.
 
 ## When Pi is not available
 

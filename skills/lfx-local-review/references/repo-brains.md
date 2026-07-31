@@ -65,19 +65,34 @@ waiver suppress a finding *about that same patch* — the reviewed change
 approving itself. Reading at base also means a waiver deleted in the range
 still applies, which is the correct pre-change state.
 
-Distinguish "absent" from "unreadable", and do not treat one `git show` failure
-as absence:
+Distinguish "absent" from "wrong type" from "unreadable". Do not treat one
+failed read as absence.
+
+**If there is no `base_sha`** — a root commit, which the host reports as
+`base_sha: none` — there is nothing to look up. The floor is empty. Do not
+attempt a lookup, and do not treat the absence of a base as a problem.
+
+**Otherwise**, in this order:
 
 1. `git ls-tree <base_sha> -- docs/reviews/knowledge-base/known-false-positives.md`
-   - exit 0, empty output → the floor is legitimately absent. An empty floor is
-     valid, including at a root commit and at the file's first introduction.
-   - exit 0, entry is not a regular `blob` → `INCOMPLETE — <reason>`
-   - nonzero → `INCOMPLETE — <reason>` (the host validated the base before
-     launch, so a failure here is a genuine read problem)
-2. Read the blob. Unreadable → `INCOMPLETE — <reason>`. Empty content → a valid
-   empty floor. Otherwise apply it.
+   - **nonzero exit** → `INCOMPLETE — <reason>`. The host verified the base
+     before launch, so a failure here is a genuine read problem, not absence.
+   - **exit 0, empty output** → the floor is legitimately absent, so it is
+     empty. Normal at the file's first introduction.
+   - **exit 0, an entry** → require mode exactly `100644` and type exactly
+     `blob`. Anything else — a symlink (`120000`), an executable (`100755`), a
+     submodule (`160000`), a `tree` — is `INCOMPLETE — <reason>`. Do not follow
+     a symlink out of the pinned revision.
+2. Read it **by the object ID that `ls-tree` printed**, not by path:
+   `git cat-file blob <object-sha>`. The path was already resolved in step 1;
+   re-resolving it invites reading a different object than the one you checked.
+   - unreadable → `INCOMPLETE — <reason>`
+   - empty content → a valid empty floor
+   - otherwise apply it
 
-**Never fall forward to the target floor** after any base-floor problem.
+**Never fall forward to the target floor** after any base-floor problem. An
+unreadable base floor means you cannot apply a floor, not that you should use a
+different one.
 
 Ordinary knowledge-base pattern files are read at `target_sha` as usual — only
 the floor comes from base.
@@ -96,8 +111,9 @@ its own situation has reason to doubt the rest. State *obligations* instead:
 > Do not edit tracked source or config, run auto-fix formatters or generators,
 > commit, reset, or push. Report what you find; the developer's session fixes
 > it. Ordinary non-fixing builds, tests and linters are fine even when they
-> leave caches or binaries behind. Never post to GitHub or touch a PR, gate or
-> merge.
+> leave caches or binaries behind. Reading GitHub is fine — a linked issue, an
+> upstream API, a referenced PR. Never *write* GitHub state: no comment,
+> review, check, status, label or approval, and never gate or merge.
 
 Both roles should also observe the shared bar: confidence floor 80, severities
 limited to critical / important, no nits, and evidence with a repo-relative

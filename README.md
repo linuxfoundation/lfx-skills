@@ -70,8 +70,9 @@ Cross-repo developer workflows that apply across every LFX repo.
 
 ### Local review skills (2)
 
-Author-side, pre-PR review that runs on your machine and stops at PR-open. It
-never touches GitHub, a PR, a gate or a merge.
+Author-side, pre-PR review that runs on your machine and stops at PR-open.
+Reviewers may read GitHub and fetch, but never write GitHub state: no comment,
+review, check, status, label or approval, and no gate or merge.
 
 | Skill                               | Purpose                                                                                                                                                                                     |
 |-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

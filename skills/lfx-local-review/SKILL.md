@@ -1,6 +1,6 @@
 ---
 name: lfx-local-review
-description: Run the local pre-PR review trio on the current repo — the general reviewer plus the repo's own code and learnings reviewers — on headless Pi when it is available, or Claude subagents otherwise, and return their ordinary Markdown reports. Use after a commit, or with `branch` for the pre-PR full-branch sweep, in a repo that owns local review skills. Author-side only; it never touches a PR, gate or merge.
+description: Run the local pre-PR review trio on the current repo — the general reviewer plus the repo's own code and learnings reviewers — on headless Pi when it is available, or Claude subagents otherwise, and return their ordinary Markdown reports. Use after a commit, or with `branch` for the pre-PR full-branch sweep, in a repo that owns local review skills. Author-side only; reviewers may read GitHub but never write PR, gate or merge state.
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->

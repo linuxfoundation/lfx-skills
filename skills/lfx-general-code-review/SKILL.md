@@ -1,6 +1,6 @@
 ---
 name: lfx-general-code-review
-description: The general code-review method for LFX local reviews — correctness, security, error handling, simplicity, naming, DRY, testing, performance and style, over one pinned commit or branch range. Carries no repo-specific rulebook. Loaded by the local-review host in either harness (headless Pi or a Claude subagent) and by the lfx-general-code-reviewer agent. Returns an ordinary Markdown review.
+description: The general code-review method for LFX local reviews — correctness, security, error handling, simplicity, naming, DRY, testing, performance and style, over one pinned commit or branch range. Carries no repo-specific rulebook. Loaded by the lfx-local-review host in either harness, headless Pi or a generic Claude subagent. Returns an ordinary Markdown review.
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
@@ -19,8 +19,12 @@ carry **no repo-specific rulebook** — sibling reviewers cover the target repo'
 written conventions and its empirical review knowledge base. Never import
 conventions from another repo.
 
-This file is the single source of the review method. The same text is used
-whether a headless Pi process or a Claude subagent is running it.
+This file is the single source of the general review method **for local
+review**. The `lfx-local-review` host loads this same text whether it is running
+a headless Pi process or a generic Claude subagent, so the two harnesses cannot
+drift apart. The separately named `lfx-general-code-reviewer` agent is not in
+that set: it still carries its own body, and will only load this file once
+deterministic central-skill loading by a subagent has been demonstrated.
 
 ## The wall
 
@@ -74,8 +78,12 @@ git diff --stat <base_sha>..<target_sha>
 git diff <base_sha>..<target_sha>
 ```
 
-In branch mode, say in your report that the comparison base came from the
-caller's local `origin/main`, so nobody mistakes it for a freshly fetched one.
+In branch mode the host fetched `origin` exactly once and pinned
+`origin_main_sha` immediately afterwards, before any reviewer started. Report
+that basis as it actually is: the base is the merge-base with an `origin/main`
+fetched at the start of this run. Do not fetch again yourself — a second fetch
+cannot improve a value that is already pinned, and saying the base is stale
+when it is not is as misleading as the reverse.
 
 Read supporting code at the pinned revision — `git show <target_sha>:<path>`,
 `git grep <pattern> <target_sha>`, `git ls-tree <target_sha>` — so your

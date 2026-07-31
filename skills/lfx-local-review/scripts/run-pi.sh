@@ -246,6 +246,23 @@ pi_ready() {
     printf 'PI_UNAUTHENTICATED\n'
     return 1
   }
+  # Signed out, Pi does NOT fail here: measured on 0.80.10 and reported the same
+  # for 0.83, `--list-models <provider>` exits 0 and prints
+  # `No models matching "<provider>"`. So the nonzero arm above only catches a
+  # broken binary, and without this check a plain logged-out install would be
+  # labelled PI_MODEL_UNAVAILABLE — sending the developer to hunt a model name
+  # when all they need is `/login`. No row at all for the provider is a login
+  # problem; rows but not ours is a model problem.
+  #
+  # A provider name that is simply wrong also lands here and is reported as
+  # unauthenticated. That is the deliberate trade: a mistyped
+  # LFX_LOCAL_REVIEW_PROVIDER is rare and self-inflicted, being logged out is
+  # neither, and both are told to run /login by the same onboarding message.
+  printf '%s' "$listing" |
+    awk -v p="$PROVIDER" '$1==p {f=1} END{exit f?0:1}' || {
+    printf 'PI_UNAUTHENTICATED\n'
+    return 1
+  }
   printf '%s' "$listing" |
     awk -v p="$PROVIDER" -v m="$MODEL_ID" '$1==p && $2==m {f=1} END{exit f?0:1}' || {
     printf 'PI_MODEL_UNAVAILABLE\n'

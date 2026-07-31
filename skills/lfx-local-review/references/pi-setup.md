@@ -41,8 +41,8 @@ It prints one of:
 |---|---|
 | `PI_READY` | the trio will run on Pi |
 | `PI_NOT_INSTALLED` | `pi` is not on `PATH` |
-| `PI_UNAUTHENTICATED` | `pi` cannot list models for the provider |
-| `PI_MODEL_UNAVAILABLE` | the provider does not serve the configured model |
+| `PI_UNAUTHENTICATED` | `pi` lists **no** models for the provider — normally not logged in, since a signed-out `pi` exits 0 and prints `No models matching "<provider>"` rather than failing |
+| `PI_MODEL_UNAVAILABLE` | the provider lists models, but not the configured one |
 
 The last three are **not failures**. They are the decision to run the whole
 trio on Claude instead, and the host prints the setup message with them.

@@ -27,11 +27,16 @@ Override per run when a repo keeps them elsewhere:
 ```bash
 LFX_LOCAL_REVIEW_CODE_SKILL=path/to/code/SKILL.md \
 LFX_LOCAL_REVIEW_LEARNINGS_SKILL=path/to/learnings/SKILL.md \
-  skills/lfx-local-review/scripts/run-pi.sh --repo <path>
+  <skill dir>/scripts/run-pi.sh --repo <path>
 ```
 
-Paths are relative to the repo root. A missing skill is a plain failure before
-any reviewer starts: a repo without them is not set up for local review, and
+`<skill dir>` is the directory holding the `lfx-local-review` `SKILL.md`,
+resolved to an absolute path; a `skills/lfx-local-review/...` path only exists
+in an `lfx-skills` checkout, not in the service repo you are standing in. The
+skill paths themselves are relative to the repo root.
+
+A missing skill is a plain failure before any reviewer starts: a repo without
+them is not set up for local review, and
 running two reviewers out of three would quietly produce a weaker review that
 looks like a complete one.
 

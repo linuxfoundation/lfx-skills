@@ -32,8 +32,8 @@ This is local, pre-PR, author-side work and it stops at PR-open.
 
 - Never post a GitHub comment, review, check, status, label or approval; never
   gate, gh-merge, or emit PR/gate markers.
-- Never edit source, create commits, or push. You report; the developer's main
-  session fixes.
+- Never edit tracked source or config, create commits, or push. You report;
+  the developer's main session fixes.
 - Reading GitHub is fine when it genuinely helps (linked issues, an upstream
   API, a referenced PR). Ordinary `git fetch` is fine. Nothing you do may
   change a remote.
@@ -81,9 +81,14 @@ git diff <base_sha>..<target_sha>
 In branch mode the host fetched `origin` exactly once and pinned
 `origin_main_sha` immediately afterwards, before any reviewer started. Report
 that basis as it actually is: the base is the merge-base with an `origin/main`
-fetched at the start of this run. Do not fetch again yourself — a second fetch
-cannot improve a value that is already pinned, and saying the base is stale
-when it is not is as misleading as the reverse.
+fetched at the start of this run. Saying the base is stale when it is not is as
+misleading as the reverse.
+
+Do not refetch or re-derive **the pinned branch base** — a second fetch cannot
+improve a value that is already pinned, and re-deriving it is how three
+reviewers end up disagreeing about what they reviewed. Other read-only fetching
+and inspection stays available when you genuinely need it, as long as it does
+not change the pinned evidence.
 
 Read supporting code at the pinned revision — `git show <target_sha>:<path>`,
 `git grep <pattern> <target_sha>`, `git ls-tree <target_sha>` — so your

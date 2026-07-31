@@ -9,8 +9,12 @@
 #   run-pi.sh --readiness [--repo <path>]      # print the harness decision only
 #
 # This script does two jobs and nothing else: decide whether Pi can serve this
-# run, and launch three Pi children against three physical skills. It holds no
-# state, writes nothing durable, and never interprets a review.
+# run, and launch three Pi children against three physical skills. It keeps no
+# durable review result or state, and never interprets a review.
+#
+# It is not side-effect free, and saying otherwise would be a lie a reader could
+# catch: branch mode runs one `git fetch`, which updates remote-tracking refs
+# and FETCH_HEAD in the target repo. That is the only durable thing it writes.
 #
 # Everything it deliberately does NOT do: no run ids, no worktrees or
 # snapshots, no cleanup or cancellation commands, no liveness records, no
@@ -204,9 +208,15 @@ READINESS="$(pi_ready)" || true
 
 # The pinned values, printed with every decision. This run has already fetched
 # (branch mode) and pinned; whoever acts on the decision must use THESE values.
+#
+# `none` is an explicit sentinel, not an empty field. A root commit genuinely
+# has no base, and post-commit mode has no origin pin — but an empty value after
+# `=` is ambiguous between "no such thing" and "something went wrong and nobody
+# noticed". The Claude fallback must not have to infer which it is, and the word
+# it reads here is the same word the Pi children get in their prompts.
 print_pins() {
   printf 'repo=%s\nmode=%s\ntarget_sha=%s\nbase_sha=%s\norigin_main_sha=%s\n' \
-    "$REPO" "$MODE" "$TARGET_SHA" "${BASE_SHA:-}" "${ORIGIN_MAIN_SHA:-}"
+    "$REPO" "$MODE" "$TARGET_SHA" "${BASE_SHA:-none}" "${ORIGIN_MAIN_SHA:-none}"
 }
 
 if [ -n "$READINESS_ONLY" ]; then

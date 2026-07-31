@@ -23,8 +23,14 @@ copies or passes them.
 ## Check what this repo will do
 
 ```bash
-skills/lfx-local-review/scripts/run-pi.sh --readiness --repo <path>
+<skill dir>/scripts/run-pi.sh --readiness --repo <path>
 ```
+
+`<skill dir>` is the directory holding the `lfx-local-review` `SKILL.md` — the
+one this file sits under. Resolve it to an absolute path and use that. The
+commands below are written the same way. A path like
+`skills/lfx-local-review/...` only works from an `lfx-skills` checkout, and you
+are normally standing in a service repo where it does not exist.
 
 It prints one of:
 
@@ -48,7 +54,7 @@ rerun — the host never switches harness half way through.
 Defaults are `github-copilot` and `gpt-5.6-sol`. Override per run:
 
 ```bash
-LFX_LOCAL_REVIEW_MODEL=gpt-5.5 skills/lfx-local-review/scripts/run-pi.sh --repo <path>
+LFX_LOCAL_REVIEW_MODEL=gpt-5.5 <skill dir>/scripts/run-pi.sh --repo <path>
 LFX_LOCAL_REVIEW_PROVIDER=<provider> ...
 ```
 
@@ -78,4 +84,6 @@ merged into a successful report.
 shell, git, builds and tests when useful, read-only GitHub inspection. Pi and
 Claude reviewers have the same trust posture; nothing here restricts what they
 *can* do, and no claim to the contrary should be made about either. What keeps
-a review honest is the instructions in the skill: report, never modify.
+a review honest is the instructions in the skill: report, and never
+intentionally modify tracked source, tracked config, Git history, or remote
+review state. Disposable build, test and cache artifacts are expected and fine.

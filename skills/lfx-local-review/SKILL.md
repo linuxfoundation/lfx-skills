@@ -19,8 +19,8 @@ before a PR exists.
 - Never create or update a GitHub label, status, check, review, approval or
   comment. Never feed a conductor, gate or escalation. Never merge.
 - Never touch `.github/**`, Copilot instructions, PR skills or workflows.
-- Reviewer children never edit source, commit or push. **You** — the main
-  session — fix what they find.
+- Reviewer children never edit tracked source or config, commit or push.
+  **You** — the main session — fix what they find.
 - No report file, no background supervisor, no retained results. The run lives
   and dies with this session.
 
@@ -62,11 +62,13 @@ Two different things can go wrong, and they must not be blurred:
   `INCOMPLETE — <reason>`. That is the reviewer's own statement about its own
   work. Pass it through untouched; never rewrite or summarise it away.
 - **A reviewer process failed.** Nonzero exit, a signal, or exit 0 with no
-  output. The launcher prints a role-labelled failure to stderr and exits
-  nonzero. **Never render that as "no findings"** — a reviewer that produced
-  nothing has reviewed nothing. Never invent an `INCOMPLETE` line on a
-  reviewer's behalf; only a reviewer that actually produced output may say
-  that.
+  output. The launcher exits nonzero and reports the failure in **both**
+  streams: under that role's heading on stdout, so a redirected report is never
+  silently missing a reviewer, and on stderr with the child's captured stderr.
+  A failed child's own partial output is discarded rather than shown.
+  **Never render that as "no findings"** — a reviewer that produced nothing has
+  reviewed nothing. Never invent an `INCOMPLETE` line on a reviewer's behalf;
+  only a reviewer that actually produced output may say that.
 
 Either way the cycle is incomplete: fix nothing on that basis, and rerun the
 whole trio on the same harness.
@@ -97,9 +99,12 @@ mode a second call fetches and pins a second time, and the Claude trio would
 then be reviewing something other than what the harness decision was made
 about. One decision, one fetch, one set of pins, three subagents.
 
-Give every subagent those exact values, as the Pi children receive them, and a
-`base_sha: none` stays `none` — a root commit has no base and an empty
-pre-change floor.
+Give every subagent those exact values, as the Pi children receive them. The
+launcher writes pins as `key=value` and prompts carry `key: value`, so
+`base_sha=none` in the decision becomes `base_sha: none` in the prompt — it
+stays the word `none`, never an empty field. A root commit has no base and an
+empty pre-change floor, and `origin_main_sha=none` in post-commit mode means
+the same thing: not applicable, not missing.
 
 Each prompt must name its one skill file and say it is the whole rulebook. It
 must also forbid **ambient** instruction discovery — do not go looking for an

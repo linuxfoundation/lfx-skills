@@ -59,8 +59,8 @@ Run:
 ```
 
 **as a background task**, and tell the developer it is running. Background is
-for keeping this session responsive while a review takes minutes — there is
-nothing to watch, and no transcript is kept.
+for keeping this session responsive while a review takes minutes. Pi does not
+save a session, and the run keeps nothing beyond the reports it prints.
 
 Pass `--commit` with the `target_sha` the probe printed. `HEAD` can move between
 the probe and the launch — the developer commits again in another terminal — and

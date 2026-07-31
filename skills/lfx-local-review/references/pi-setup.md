@@ -109,8 +109,8 @@ pi -p --mode text --model <provider>/<model> --no-approve \
    --skill <one absolute SKILL.md> "<role prompt>"
 ```
 
-`--no-session` keeps the run ephemeral: no transcript is written and nothing
-survives it. The reviewer's Markdown on stdout is the only output.
+`--no-session` means Pi does not save a session. The reviewer's Markdown on
+stdout is the only output, and nothing survives the run.
 
 The discovery flags matter: a reviewer sees exactly the one skill it was given,
 with no ambient `AGENTS.md`, `CLAUDE.md`, project skill, prompt template or

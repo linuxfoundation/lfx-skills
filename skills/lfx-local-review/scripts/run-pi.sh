@@ -267,7 +267,7 @@ READINESS="$(pi_ready)" || true
 # Pi children get in their prompts.
 # Pins, plus what the review will actually be run by. The harness line is here
 # so a developer confirming a manual test can see which model and thinking level
-# produced a report without reading the script or the transcripts.
+# produced a report without reading this script.
 print_pins() {
   printf 'repo=%s\ntarget_sha=%s\nbase_sha=%s\n' \
     "$REPO" "$TARGET_SHA" "${BASE_SHA:-none}"
@@ -328,13 +328,13 @@ role_prompt() {
   printf 'Return an ordinary Markdown review.\n'
 }
 
+# One temporary capture directory per run. `mktemp -d` creates it, so there is
+# nothing left to make afterwards.
 TMPDIR_RUN="$(mktemp -d "${TMPDIR:-/tmp}/lfx-local-review.XXXXXX")"
 [ -n "$TMPDIR_RUN" ] ||
-  host_fail "could not create a temporary directory for reviewer output"
-mkdir -p "$TMPDIR_RUN" ||
-  host_fail "could not create a transcript directory for reviewer output"
-# Ephemeral by construction: captures and transcripts exist only for the length
-# of the run, and they go away with the process.
+  host_fail "could not create a temporary capture directory for reviewer output"
+# Ephemeral by construction: the captures exist only for the length of the run,
+# and they go away with the process.
 trap 'rm -rf "$TMPDIR_RUN"' EXIT
 
 pids=""

@@ -40,3 +40,6 @@ megalinter-reports/
 
 # Superpowers specs and plans (local only)
 docs/superpowers/
+
+# OAS local agent instances and worktrees
+local-agents/

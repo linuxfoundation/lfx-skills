@@ -68,6 +68,32 @@ Cross-repo developer workflows that apply across every LFX repo.
 | `/lfx-skills:lfx-cdp-snowflake-connectors` | Scaffold a CDP snowflake-connector data source in `crowd.dev`; retained centrally from `main`.                                                                               |
 | `/lfx-skills:lfx-data-engineer`            | Generate PR-ready dbt models, SQL transformations, and tests for `lf-dbt`, including medallion architecture, sqlfluff conventions, macros, and validation workflow guidance. |
 
+### Local review skills (2)
+
+Author-side, pre-PR review that runs on your machine and stops at PR-open.
+Reviewers may read GitHub and fetch, but never write GitHub state: no comment,
+review, check, status, label or approval, and no gate or merge.
+
+| Skill                               | Purpose                                                                                                                                                                                     |
+|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/lfx-skills:lfx-local-review`      | Run the review trio on the current repo — the general reviewer plus the repo's own code and learnings reviewers — on headless Pi when available, Claude subagents otherwise. Reviews the newest commit and runs in the background. |
+| `lfx-general-code-review`           | The general review method itself: correctness, security, error handling, simplicity, naming, DRY, testing, performance, style. Loaded by the review trio in either harness. Not invoked by hand. |
+
+Pi is what makes this **cross-model** — the same skills, judged by a different
+model. Without it the trio still runs, on three Claude Opus subagents, and the
+host says plainly that this is not the cross-model check. It is not called a
+*same-model* review either: the subagents are explicitly Opus while the session
+hosting them may be a different model.
+
+The repo under review owns its own two reviewer skills at
+`.claude/skills/local-code-review/SKILL.md` and
+`.claude/skills/local-learnings-review/SKILL.md`; a repo without them is not set
+up for local review. See
+[`references/repo-brains.md`](skills/lfx-local-review/references/repo-brains.md)
+to author them, and
+[`references/pi-setup.md`](skills/lfx-local-review/references/pi-setup.md) to
+install Pi.
+
 ### Platform skill (1)
 
 | Skill                              | Purpose                                                                                                              |

@@ -63,12 +63,49 @@ LFX_LOCAL_REVIEW_PROVIDER=<provider> ...
 
 `pi --list-models <provider>` shows what your seat actually serves.
 
+## Authenticating
+
+```text
+Install Pi:
+  npm install -g @earendil-works/pi-coding-agent
+
+Authenticate:
+  pi
+  /login
+```
+
+In Pi's login/provider picker, **choose GitHub Copilot** and complete login with
+the Copilot-enabled GitHub account/seat. Then rerun local review.
+
+Name it explicitly when you relay this. "Authenticate your provider" leaves a
+developer guessing which of several to pick, and picking a different one
+produces a working Pi that this launcher will still reject for the wrong model.
+
+## Thinking level
+
+Reviewers run at **`high`** by default, because reviewing rewards deliberation
+more than it rewards speed. Override with `LFX_LOCAL_REVIEW_THINKING`; Pi
+accepts `off`, `minimal`, `low`, `medium`, `high`, `xhigh` and `max`.
+
+```bash
+LFX_LOCAL_REVIEW_THINKING=max <skill dir>/scripts/run-pi.sh --repo <path>
+```
+
+An unrecognised value fails the run before any child starts, rather than being
+rejected by three children at once — which would read as three unrelated
+failures.
+
+The readiness and decision output prints `provider=`, `model=` and `thinking=`
+alongside the pins, so what produced a report can be confirmed without reading
+this script or the transcripts.
+
 ## How reviewers are invoked
 
 ```text
 pi -p --mode text --model <provider>/<model> --no-approve \
    --no-skills --no-context-files --no-prompt-templates --no-extensions \
    --tools read,bash,grep,find,ls \
+   --thinking <level> \
    --session <run dir>/sessions/<role>.jsonl \
    --skill <one absolute SKILL.md> "<role prompt>"
 ```

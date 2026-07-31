@@ -28,6 +28,11 @@ SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GENERAL_SKILL="$(cd "$SKILL_DIR/../lfx-general-code-review" && pwd)/SKILL.md"
 PROVIDER="${LFX_LOCAL_REVIEW_PROVIDER:-github-copilot}"
 MODEL_ID="${LFX_LOCAL_REVIEW_MODEL:-gpt-5.6-sol}"
+# Reviewing is the kind of work that rewards deliberation, so the default is
+# high rather than Pi's own. Pi 0.83 accepts off, minimal, low, medium, high,
+# xhigh and max; an unknown value is rejected here rather than by three
+# children at once, where it would read as three unrelated failures.
+THINKING="${LFX_LOCAL_REVIEW_THINKING:-high}"
 ROLES="general repo_code repo_learnings"
 
 # Repo-owned reviewer skills. Overridable so a repo that keeps them elsewhere
@@ -35,10 +40,27 @@ ROLES="general repo_code repo_learnings"
 CODE_SKILL_REL="${LFX_LOCAL_REVIEW_CODE_SKILL:-.claude/skills/local-code-review/SKILL.md}"
 LEARNINGS_SKILL_REL="${LFX_LOCAL_REVIEW_LEARNINGS_SKILL:-.claude/skills/local-learnings-review/SKILL.md}"
 
+# A homepage link is not a path to a working reviewer. Give the three commands,
+# name the provider to pick, and say what to do next -- the developer is in the
+# middle of something else and this is an interruption, not a tutorial.
 ONBOARDING="Pi is not available, so all three reviewers will run on Claude
-instead. That makes this a same-model review, not the cross-model one. To get
-the cross-model review, install Pi (https://github.com/earendil-works/pi) and
-authenticate it with your Copilot seat, then run this again."
+instead. That is not the cross-model review: Pi with GitHub Copilot
+GPT-5.6 Sol at thinking high is the intended cross-model check.
+
+Install Pi:
+  npm install -g @earendil-works/pi-coding-agent
+
+Authenticate:
+  pi
+  /login
+
+In Pi's login/provider picker, choose GitHub Copilot and complete login with the
+Copilot-enabled GitHub account/seat. Then rerun local review.
+
+Detail: references/pi-setup.md beside this skill, or
+https://github.com/earendil-works/pi
+
+Continuing now with the Claude fallback."
 
 # Host-detected failure. Never phrased as a reviewer's INCOMPLETE — only a
 # reviewer that produced usable output may say that about its own review.
@@ -48,6 +70,13 @@ host_fail() {
 }
 
 log() { printf '%s\n' "$1" >&2; }
+
+# Validated here rather than at assignment: host_fail is defined just above, and
+# calling it earlier would print "command not found" instead of a typed failure.
+case "$THINKING" in
+off | minimal | low | medium | high | xhigh | max) ;;
+*) host_fail "LFX_LOCAL_REVIEW_THINKING must be one of off, minimal, low, medium, high, xhigh, max — got: $THINKING" ;;
+esac
 
 # --------------------------------------------------------------------------
 # Arguments
@@ -236,9 +265,14 @@ READINESS="$(pi_ready)" || true
 # thing" and "something went wrong and nobody noticed". The Claude fallback must
 # not have to infer which it is, and the word it reads here is the same word the
 # Pi children get in their prompts.
+# Pins, plus what the review will actually be run by. The harness line is here
+# so a developer confirming a manual test can see which model and thinking level
+# produced a report without reading the script or the transcripts.
 print_pins() {
   printf 'repo=%s\ntarget_sha=%s\nbase_sha=%s\n' \
     "$REPO" "$TARGET_SHA" "${BASE_SHA:-none}"
+  printf 'provider=%s\nmodel=%s\nthinking=%s\n' \
+    "$PROVIDER" "$MODEL_ID" "$THINKING"
 }
 
 if [ -n "$READINESS_ONLY" ]; then
@@ -328,6 +362,7 @@ for role in $ROLES; do
     exec pi -p --mode text --model "$PROVIDER/$MODEL_ID" --no-approve \
       --no-skills --no-context-files --no-prompt-templates --no-extensions \
       --tools read,bash,grep,find,ls \
+      --thinking "$THINKING" \
       --session "$TMPDIR_RUN/sessions/$role.jsonl" \
       --skill "$skill" \
       "$(role_prompt "$role" "$skill")"

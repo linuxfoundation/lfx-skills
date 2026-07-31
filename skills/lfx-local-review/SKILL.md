@@ -243,9 +243,18 @@ cycle is incomplete — rerun all three on Claude, not the failed one alone.
 ## After the review
 
 Fix findings in this session, then commit the fixes as their own conventional
-commits — `fix(<scope>): ...` — rather than amending. Rerun the whole trio
-afterwards, and run the repo's own readiness and preflight checks before opening
-a PR.
+commits — `fix(<scope>): ...` — rather than amending.
+
+**Rerun with the original base, not the default one.** A plain rerun pins
+`base_sha` to the new `HEAD`'s first parent — which is the commit you just
+reviewed — so it reviews the fix by itself. It can then come back with nothing
+to say while every finding from the first review is still sitting untouched in
+the original commit, and "no findings" on a fix is easily misread as "the
+findings are fixed". Pass `--base <the base_sha the first probe printed>` so
+the range stays the original change *plus* its fixes, and keep passing that
+same value for every later fix cycle.
+
+Then run the repo's own readiness and preflight checks before opening a PR.
 
 The existing `lfx-skills:lfx-*-code-reviewer` and `lfx-*-learnings-reviewer`
 named agents are unchanged and remain the right tool for repos that do not own

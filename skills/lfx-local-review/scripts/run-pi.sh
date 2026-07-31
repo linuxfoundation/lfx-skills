@@ -233,6 +233,18 @@ missing_owner_hint() {
   esac
 }
 
+# Present but unusable is a different sentence from absent, and must not borrow
+# the one above: the file is there and it IS owned, so "does not own local
+# review brains" would simply be false. What the developer needs here is where
+# to go and repair it — a truncated or half-written skill is as plausible a way
+# for a bad install to land as a missing one.
+damaged_owner_hint() {
+  case "$1" in
+  general) printf '%s' "this reviewer ships with the plugin — reinstall the plugin rather than looking in the repo under review" ;;
+  *) printf '%s' "this is the repo's own reviewer skill — repair it in the repo" ;;
+  esac
+}
+
 for role in $ROLES; do
   skill="$(skill_for_role "$role")"
   # Empty means the sibling directory itself is absent — see GENERAL_SKILL
@@ -245,14 +257,14 @@ for role in $ROLES; do
   # skill and follow it; if there is nothing to load it reviews with no rules
   # and still returns confident Markdown. Fail here, where it is visible.
   [ -r "$skill" ] ||
-    host_fail "cannot read the $role reviewer skill at $skill"
+    host_fail "cannot read the $role reviewer skill at $skill — $(damaged_owner_hint "$role")"
   [ -s "$skill" ] ||
-    host_fail "the $role reviewer skill at $skill is empty — it carries no rules to follow"
+    host_fail "the $role reviewer skill at $skill is empty — it carries no rules to follow; $(damaged_owner_hint "$role")"
   # The child is told to load a skill BY NAME, so a skill that declares no name
   # cannot be asked for. Fail rather than fall back to the directory name: that
   # is how the child ends up told to load something that does not exist.
   [ -n "$(skill_name_of "$skill")" ] ||
-    host_fail "the $role reviewer skill at $skill declares no 'name:' in its frontmatter — nothing to load it by"
+    host_fail "the $role reviewer skill at $skill declares no 'name:' in its frontmatter — nothing to load it by; $(damaged_owner_hint "$role")"
 done
 
 # --------------------------------------------------------------------------

@@ -32,7 +32,14 @@ one repo: the target repo. Before diffing:
   look for a sibling or child directory with the matching repo name (or
   walk up from a changed file path until you find a `.git` directory). Use
   that repo's root as the working directory for every subsequent `git`
-  command in this review.
+  **and `gh`** command in this review. `gh pr view`, `gh api`, `git
+  fetch`, `git diff`, and `git log` all resolve their repo from the
+  current working directory's git remote; if the shell is anywhere but
+  the target repo root, `gh pr view` will silently target a _different_
+  repo's PR (the LFX workspace root or a sibling repo you happened to be
+  in), and the ingested title/body/log will belong to that other PR. Pass
+  `--repo <owner>/<target-repo>` on every `gh` call in this review as a
+  belt-and-suspenders defense.
 - Use repo-qualified paths (for example `lfx-self-serve/apps/lfx-one/...`)
   when referring to files across repos.
 - Abort with `INCOMPLETE - target repo not found` if you cannot identify a
@@ -65,6 +72,78 @@ If the caller explicitly asks for staged or uncommitted work, also run
 If no git repository exists, use the Read tool to examine the files mentioned
 in context.
 
+**When a PR exists for the target branch, extend PII-check scope beyond
+the latest commit.** In default post-commit mode the general review scope
+above stays at `git show HEAD`, but the committed-artifacts PII check must
+inspect every commit currently in the PR — real PII added in an earlier
+commit on this branch and still present at PR head would otherwise be
+invisible. When a PR is found:
+
+- Fetch the PR body and title (they are not in git history). Every
+  `gh` call in this review MUST pass `--repo <owner>/<target-repo>` —
+  never rely on cwd repo resolution here, since a reviewer launched
+  from the LFX workspace root or a sibling repo would otherwise read a
+  different repo's PR:
+
+  ```bash
+  gh pr view --repo <owner>/<target-repo> \
+    --json number,title,body,baseRefName \
+    --jq '. | "PR #\(.number)\n\(.title)\n\nbase: \(.baseRefName)\n\n\(.body)"'
+  ```
+
+  against the current branch's PR (or an explicit PR number when the
+  caller supplies one).
+
+- Additionally, for the **PII pass only**, expand the diff to the
+  cumulative base-to-HEAD range **and** inspect every commit's
+  message and patch. Once a PR is merged, its full history — including
+  intermediate commits and their messages — stays in the repository
+  forever, so a PII leak in a commit message or in a commit that is
+  later reverted is still a shipped disclosure. All commands below
+  MUST run with the target repo's root (resolved in Step 1) as cwd;
+  from anywhere else, `git fetch`/`git diff`/`git log` operate on
+  whatever repo happens to contain cwd:
+
+  ```bash
+  # Run these from the target repo root resolved in Step 1.
+  gh pr view --repo <owner>/<target-repo> --json baseRefName \
+    --jq '.baseRefName'   # e.g. main
+  git fetch origin
+
+  # Cumulative tree delta (final-state coverage).
+  git diff "origin/<baseRefName>...HEAD"
+
+  # Per-commit coverage: each commit's message AND patch.
+  # A three-dot diff cannot see PII that was added and later
+  # removed on this branch, or PII in intermediate commit messages
+  # (author name/email trailers, ticket bodies pasted into
+  # commit messages, etc.). git log -p closes both gaps.
+  git log --format=fuller -p "origin/<baseRefName>..HEAD"
+  ```
+
+  Use both outputs as input to the "Committed artifacts" and "Data
+  Privacy / PII" checks below, in addition to the PR body and title.
+  For the PII pass, an emission is a finding when it appears on an
+  **added or newly-authored** line — a `+` hunk line in the cumulative
+  diff or in any per-commit patch, a commit message body, or a commit
+  trailer other than the DCO/attribution trailers permitted by hard
+  rule 4 in `skills/lfx/references/data-privacy.md`. Deletions on the
+  `-` side of a patch are **not** findings: a PR that removes existing
+  PII is doing the right thing, and re-flagging the removed value
+  would incentivize the reviewer to obstruct redaction PRs. Add-then-
+  remove leaks are still caught, because the earlier per-commit patch
+  contains the value on a `+` line and that commit's message is also
+  inspected. Other criteria (correctness, security, performance, etc.)
+  continue to review only the latest commit unless the caller passes
+  the `branch` keyword.
+
+If `gh` reports no PR for the branch, skip PR-body analysis, skip the
+cumulative-diff expansion, and skip the per-commit `git log -p` pass;
+note that in the review (do not fail the review). Sanitize any fetched
+text before use — if the PR body, title, any diff hunk, or any commit
+message contains real user PII, treat that as a finding rather than
+reproducing it in your review output (see the `<redacted>` rule below).
+
 **Focus your review on the changed code, not the entire codebase.** Only
 examine surrounding code for context when needed to understand the changes.
 
@@ -94,6 +173,169 @@ Evaluate the changed code against these criteria:
 - Are there SQL injection, XSS, or other injection vulnerabilities?
 - Are authentication and authorization properly implemented?
 - Are sensitive operations properly guarded?
+
+**Data Privacy / PII**:
+
+Apply the LFX plugin-wide data-privacy rules (documented in the `lfx-skills`
+plugin at `skills/lfx/references/data-privacy.md`; the criteria below are
+self-contained — no file load required at review time). Flag as **Critical**
+when the change would ship real user PII into a log, test fixture, seed file,
+committed sample response, or docs example, or would persist PII into a
+datastore/index document/FGA tuple **outside a field the resource contract
+owns**. Apply the exceptions carried in the specific bullets below when
+deciding severity.
+
+**Findings must not reproduce the PII they flag.** Because this agent
+publishes findings into a PR review, quoting the raw value re-leaks it into
+a GitHub comment. When flagging a PII violation, describe the PII by
+**category and location only** (for example, "corporate email address at
+`src/handlers/foo.ts:42` in test fixture" or "raw LFID passed to
+`logger.Info` at `internal/audit/writer.go:117`"), and refer to the
+offending value as `<redacted>` in any inline quote or code excerpt. The
+same rule applies to git-diff snippets in findings: elide the actual value
+with `<redacted>` before including the snippet.
+
+- Do new test files, fixtures, seed data, or mocked responses use fabricated
+  values (`user-*@example.com`, `Test User`, reserved phone blocks, fixed
+  UUIDs) rather than values copied from a real user, ticket, or Snowflake
+  query?
+- Do new **log lines on the general application logger** include raw
+  emails, names, phone numbers, LFIDs, GitHub/Discord handles, or other
+  PII (including user-linked UIDs such as user UID, member UID, persona
+  UID, Auth0 `sub`)? If yes, flag as **Critical unconditionally**. The
+  audit exception does NOT rescue a general-logger emission, even when
+  the surrounding file or handler is audit-named (e.g., `internal/audit/`
+  writing to `logger.Info(...)`). Non-user resource UIDs that do NOT
+  reference a natural person (project UID, meeting UID, committee UID,
+  mailing-list UID, etc.), request IDs, correlation IDs, and trace IDs
+  are permitted. **Resource UIDs that reference a person or the person's
+  financial relationship — invoice UID, subscription UID, order UID,
+  membership UID — are linked pseudonyms per the canonical taxonomy
+  (`skills/lfx/references/data-privacy.md`) and are NOT eligible for
+  this allowlist; treat them like user UIDs and flag raw logging as
+  Critical.** Plain hashes such as truncated `sha256(email)` are not
+  safe pseudonyms; a service-specific keyed HMAC is required.
+- **Narrow audit-log exception.** Raw PII in a log emission is _not_
+  flagged only when ALL of the following hold, matching the canonical
+  rule at `skills/lfx/references/data-privacy.md` "Logging exception
+  (narrow)": (a) the emission goes to a **dedicated audit sink** — a
+  distinct logger such as `AuditLogger`, a dedicated audit NATS subject,
+  or an `audit_log`-shaped writer — **not the general application
+  logger**; (b) the code path is clearly named for audit (e.g.,
+  `internal/audit/`, `audit_log`, `AuditLogger`); (c) a code comment on
+  the emission names the specific policy or requirement that mandates
+  the raw field (regulatory, security, or contract), citing the policy
+  identifier and section; (d) the same value does not also flow to the
+  general application logger, error log, metrics, tracing spans, or
+  user-visible error responses; **(e) the raw field is part of the
+  audit record's declared schema** — i.e., a documented field in the
+  audit event's contract, data model, or protobuf/JSON schema — **not
+  an ad-hoc addition tacked onto the log emission**. Missing any one of
+  (a)–(e) → flag as Critical. Gate (e) is easy to miss: verify that the
+  audit event's schema/contract actually enumerates this field; a raw
+  PII value that is merely emitted from an audit-named code path with a
+  policy comment, but is not part of the audit event's declared shape,
+  still fails the exception.
+- **Authentication material has no audit exception.** Passwords, API
+  keys, JWTs, session cookies, MFA seeds, and private keys are **never**
+  eligible for the audit exception above, regardless of how well
+  gates (a)-(e) are satisfied. Flag as **Critical** any log emission
+  (application, audit, error, metrics, tracing, or elsewhere) that
+  contains a credential in plaintext or reversibly-encoded form. When
+  emitting a finding about credential logging, describe the category
+  and location only (e.g., "raw JWT emitted at
+  `internal/audit/writer.go:117`") and replace the value with
+  `<redacted>` in any inline snippet — do not paste the credential
+  itself into the review comment.
+- Do new **error messages, error responses, tracing spans, metrics tags,
+  or user-visible error text** include raw PII (as defined above)? If
+  yes, flag as Critical. **The audit exception does NOT apply to these
+  sinks** — the canonical rule explicitly excludes them, so an "audit
+  path" justification here is invalid.
+- Do new KV writes, index documents, Postgres columns, or cache entries
+  persist PII that is NOT part of the resource contract? If yes, flag as
+  Critical. Contract-owned PII fields (documented in the owning service's
+  schema/contract docs) are permitted — do not flag those. FGA tuples
+  carry structural IDs only (see the FGA guidance in
+  `skills/lfx-platform-architecture/SKILL.md`), so any PII value
+  appearing as a tuple `user` or `object` component is always Critical
+  regardless of contract.
+- **Biometric identifiers and health information (taxonomy categories
+  (11) and (12)) are GDPR Article 9 special categories.** The canonical
+  rule at `skills/lfx/references/data-privacy.md` (under _What counts
+  as PII_) states these categories are not permitted in logs, fixtures,
+  indexes, or caches under any exception in this policy, and that any
+  system that genuinely needs to process them must be reviewed
+  separately by the LFX security team. Flag any newly-added biometric
+  or health field surfacing in the review — in a log call, fixture,
+  index document, cache entry, KV write, Postgres column, generated
+  doc, or anywhere else — as **Critical**, and route the finding to
+  the LFX security team. Do not attempt to adjudicate whether
+  primary-datastore persistence is permitted: that decision is out of
+  scope for this reviewer and belongs to the security team's separate
+  review.
+- Do committed code comments, **PR title**, PR body, migration comments,
+  docs snippets, reproduction steps, screenshot captions, or committed
+  screenshot/image files hard-code **any real user PII**? The full canonical taxonomy (from
+  `skills/lfx/references/data-privacy.md`, enumerated inline here so this
+  reviewer stays self-contained) is:
+  (1) real names — full, first, middle, or last;
+  (2) email addresses (personal, corporate, LFID-linked);
+  (3) phone numbers;
+  (4) physical or mailing addresses;
+  (5) government or national IDs (SSN, passport, tax ID);
+  (6) financial data (payment cards, bank accounts, invoice/subscription/
+  order/membership IDs tied to a person);
+  (7) authentication material (passwords, API keys, JWTs, session cookies,
+  MFA seeds, private keys);
+  (8) precise geolocation and IP addresses (LFX's operational default
+  treats all raw client IPs as personal data);
+  (9) photo, avatar, or signature images tied to an individual;
+  (10) date of birth (and other precise dates that uniquely identify a
+  person — date of death, exact hire date combined with role, etc.);
+  (11) biometric identifiers (fingerprints, facial-recognition
+  templates, voiceprints, retinal/iris scans, gait, keystroke
+  dynamics) — GDPR Article 9 special category, no exception in this
+  policy applies;
+  (12) health information (medical conditions, diagnoses,
+  prescriptions, insurance records, mental-health notes, disability
+  status, genetic data) — GDPR Article 9 / US HIPAA-scope, no
+  exception in this policy applies; and
+  (13) linked pseudonyms — LFID, GitHub username, Discord user ID, Slack
+  user ID, Auth0 `sub`, Snowflake login, or any handle that can be joined
+  back to a real person via internal systems.
+  If yes to any category, flag as **Critical** and recommend redaction.
+  Applies whether the PII appears in source code, a migration file, a
+  Markdown doc, the PR title, the PR body/description, or an attached
+  asset (screenshot in `docs/`, PNG in a fixture) — anything that lands
+  in the repo history OR the PR metadata (title/body). **The DCO /
+  author-attribution exceptions permit real identity ONLY in commit
+  metadata — the git-author `name <email>` header, the `Signed-off-by:`
+  trailer, and a consenting coauthor's `Co-authored-by:` trailer per
+  canonical hard rule 4. They do NOT permit real PII in the artifact
+  surfaces enumerated above** (source code, code comments, migration
+  comments, docs snippets, PR title, PR body, ticket text, reproduction
+  steps, screenshot captions, or attached screenshot/image files),
+  regardless of whose PII it is — including the contributor's own. Any
+  real user PII outside of commit-metadata trailers on those surfaces is
+  Critical.
+- For dbt/data-engineer changes: are new PII-bearing columns tagged with
+  `config.meta.contains_pii: true` and a `config.meta.data_retention`
+  key present? Flag missing tags as **Important** (not Critical — this
+  is metadata hygiene, not a security defect per this reviewer's own
+  Critical rubric of exposed secrets, logic errors, or data corruption
+  risks). Do not enforce a specific `data_retention` value: this
+  reviewer runs against many repos, and the `"undefined"` placeholder
+  is a convention documented in `skills/lfx-data-engineer/SKILL.md`
+  (see the _PII Tagging_ section) and
+  `skills/lfx-data-engineer/references/testing-patterns.md` (see the
+  _PII Tagging_ section).
+  That convention applies only when the target repo explicitly points
+  at this reviewer or at `lfx-data-engineer` for its dbt conventions
+  (per the _Do not import conventions from another repo unless the
+  target repo explicitly points to them_ rule below); otherwise, the
+  presence of a `data_retention` key is enough and the value is the
+  target repo's business.
 
 **Error Handling**:
 

@@ -89,7 +89,7 @@ The repo under review owns its own two reviewer skills at
 `.claude/skills/local-code-review/SKILL.md` and
 `.claude/skills/local-learnings-review/SKILL.md`; a repo without them is not set
 up for local review. See
-[`skills/lfx-local-review/references/repo-brains.md`](skills/lfx-local-review/references/repo-brains.md)
+[`references/repo-brains.md`](skills/lfx-local-review/references/repo-brains.md)
 to author them, and
 [`references/pi-setup.md`](skills/lfx-local-review/references/pi-setup.md) to
 install Pi.

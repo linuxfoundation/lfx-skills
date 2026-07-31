@@ -150,6 +150,51 @@ Do not assume a direct JOIN between tables. The relation type (JOIN, subquery, C
 
 Once all table names are known, collect column schemas using the LFX BI Layer MCP tools. Only fall back to the manual query when BI Layer lookup fails for a specific table.
 
+> ⚠️ **Data Privacy — real user data ahead.** This phase asks the user to
+> paste Snowflake results (or provide a path to an exported CSV/JSON/TSV, see
+> the fallback in Step 3, Option B below) that will contain real emails,
+> usernames, LFIDs, and org data. Read
+> [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)
+> before proceeding. The rules for this skill:
+>
+> - Use pasted or file-imported PII **only** to derive column mappings and
+>   validate transformer logic. Do **not** embed pasted values as example
+>   rows, comments, test fixtures, or docs into any file written to disk.
+> - Every column-mapping example, code comment, and generated fixture MUST
+>   use the safe alternatives from the reference (`user-1@example.com`,
+>   `testuser01`, reserved UUIDs). Never hard-code a real user's email or
+>   LFID into `transformer.ts` or `buildSourceQuery.ts`.
+> - **When the user provides a file path (Step 3, Option B)**: prefer a
+>   sanitized/minimized export (e.g., only the columns needed for mapping,
+>   `LIMIT 20`, no full customer datasets). Read only what you need; do
+>   not copy the file into the repo or reference its path in generated code
+>   or docs; and remind the user to delete the export from disk once
+>   mapping is confirmed. Never `git add` a Snowflake export file.
+> - If the generated code introduces logging (via `console.log`, an existing
+>   logger, or a `throw new Error(...)` message), it MUST NOT include the
+>   user's email, LFID, name, or platform username. **Note**: in this
+>   skill, the `sourceId` argument to `buildMemberIdentities()` is the
+>   user ID column (see the transformer rules below at Touch Point 9), so
+>   `sourceId` — and **any source column that is mapped to `sourceId` in
+>   Phase 3's confirmed mapping**, such as `REGISTRATION_ID` in the
+>   sample prompt below — is a linked pseudonym and is NOT a safe log
+>   fallback either. Log only correlators that do not locate an
+>   individual activity record: the CDP `project_slug`, the batch or
+>   pipeline `run_id` / invocation identifier that groups many rows, or
+>   the source table name plus a **coarse** (day-level) time bucket that
+>   deliberately aggregates across many rows. **Do NOT** log row-level
+>   activity timestamps (e.g., `UPDATED_TS`), source-row primary keys, or
+>   any "source-scoped resource ID" that pinpoints a single row — those
+>   join back to a person via the row's user-ID column and are linked
+>   pseudonyms per the canonical taxonomy (same rule as
+>   `skills/lfx-data-engineer/SKILL.md` §PII Hard Rules, macro-logging
+>   bullet). When a user-linked correlator is truly needed for a specific
+>   log line, emit a service-specific **keyed-HMAC pseudonym** per
+>   [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)
+>   ("Logging exception"), not a raw hash.
+> - When in doubt (e.g., a column looks synthetic but might be a real handle),
+>   stop and ask the user before writing the file.
+
 ### Step 0 — Check BI Layer connectivity
 
 Use `ToolSearch` with query `"LFX BI Layer get_all_sources"` to check whether the BI Layer tools are available in the current session.
@@ -222,21 +267,24 @@ If no relevant metrics are found, or the returned dimensions don't cover the fie
 
 #### Option B — manual paste (fallback)
 
-Generate a sample data query using **only explicit column names from the registry** (never `*`) and ask the user to run it in Snowflake:
+Generate a sample data query using **only explicit column names from the registry** (never `*`), and per the Phase 2 data-privacy callout above, **narrow the SELECT to the columns needed for mapping** — do not request every column from every table. Use the Step 2 heuristics (below) to pick candidates: identity columns (EMAIL, USER_NAME, LOGIN, HANDLE, LF_USERNAME, LFID), org columns (ACCOUNT_NAME, COMPANY, ORGANIZATION), activity/timestamp columns (`UPDATED*`, `MODIFIED*`, `CREATED*`), and any `_ID` columns that are candidates for `sourceId`. **Exclude** free-text payloads (raw email bodies, comments, notes), base64/binary blob columns, huge JSON columns, and any column whose registry description does not suggest identity/org/activity/timestamp — these expand the PII exposure without helping mapping derivation. If a column's role is genuinely ambiguous from the registry alone (name and description don't disambiguate), add just that column to the SELECT and note the ambiguity to the user — one column at a time, not the entire row:
 
 ```sql
 SELECT
-  main.col1, main.col2, main.col3,  -- all columns from main table registry
-  j1.col1, j1.col2,                  -- all columns from each JOIN table
-  ...
+  -- Identity/org/activity candidates from the main table registry:
+  main.EMAIL, main.USER_NAME, main.LF_USERNAME,
+  main.ACCOUNT_NAME, main.UPDATED_TS, main.<candidate_id_col>,
+  -- Identity/org candidates from each JOIN table:
+  j1.<identity_or_org_cols_only>,
+  -- Omit: raw email bodies, notes, blob payloads, base64 fields, large JSON
 FROM DB.SCHEMA.MAIN_TABLE main
 LEFT JOIN DB.SCHEMA.JOIN_TABLE1 j1 ON main.join_key = j1.pk
--- ... all joins
+-- ... joins limited to tables whose columns actually contribute to mapping
 LIMIT 20;
 ```
 
 Ask the user:
-> "Please run this query in Snowflake and paste the result or provide a path to the exported file (CSV, JSON, or TSV). I'll use the actual data values to auto-derive column mappings before asking for your confirmation."
+> "Please run this query in Snowflake and paste the result or provide a path to the exported file (CSV, JSON, or TSV). I've limited the SELECT to identity/org/activity/timestamp candidates per the Phase 2 minimization rule; if a role is ambiguous and you want me to include another column, tell me and I'll widen the SELECT with your confirmation. I'll use the actual data values to auto-derive column mappings before asking for your confirmation."
 
 ---
 
@@ -658,8 +706,9 @@ Note: the LFX BI Layer MCP does not support arbitrary SQL execution — the test
 ### Dry-Run Validation
 
 When the user pastes results, for each row:
-- Apply transformer logic in-chat (show inputs → outputs)
-- Show the resulting `IActivityData` + segment slug
+
+- Apply transformer logic **internally** (do not echo raw values into chat); when showing inputs → outputs, **redact real PII values in both the input row and the resulting `IActivityData`** — replace real emails, LFIDs, platform usernames, GitHub/Discord/Slack handles, names, phone numbers, and any other PII from the canonical taxonomy (see [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)) with per-row tokens (`<email:row1>`, `<username:row1>`, `<lfid:row1>`) or reserved placeholders (`user-1@example.com`, `testuser01`); never paste raw rows or pre-redaction `IActivityData` into chat, review artifacts, or files on disk
+- Show the resulting `IActivityData` + segment slug (redacted per above)
 - Flag immediately: null email, missing USERNAME identity, unexpected activity type, null sourceId, null timestamp
 - If any issue found: loop back to the relevant Phase 3 sub-section, fix the mapping, regenerate the affected file
 

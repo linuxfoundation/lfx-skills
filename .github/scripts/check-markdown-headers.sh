@@ -19,8 +19,11 @@
 
 set -euo pipefail
 
-COPYRIGHT="Copyright The Linux Foundation and each contributor to LFX."
-SPDX="SPDX-License-Identifier: MIT"
+# Matched with the comment delimiters, not as bare text, so that prose which
+# happens to contain the sentence cannot satisfy the check and a header left
+# inside frontmatter as a YAML comment is not mistaken for a real one.
+COPYRIGHT="<!-- Copyright The Linux Foundation and each contributor to LFX. -->"
+SPDX="<!-- SPDX-License-Identifier: MIT -->"
 
 YAML_KEY='^[A-Za-z_][A-Za-z0-9_.-]*:'
 
@@ -48,8 +51,12 @@ classify() {
       # A rule, and the `---` found above is a later rule.
       echo plain
     fi
-  elif sed -n '2p' "$file" | grep -qE "$YAML_KEY"; then
-    # Opens like frontmatter but never closes.
+  elif sed -n '2,$p' "$file" | grep -qE "$YAML_KEY"; then
+    # Opens like frontmatter but never closes. Scanned the same way as the
+    # branch above rather than on the single line below the delimiter, for
+    # the same reason: frontmatter may open with YAML comments, and judging
+    # on that one line would read this as a rule and then let a header
+    # sitting inside the broken frontmatter satisfy the check.
     echo unterminated
   else
     echo plain

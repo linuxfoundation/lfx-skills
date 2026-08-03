@@ -9,7 +9,10 @@
 # them assert on the message, not just the exit code — a check that fails for
 # the wrong reason is its own bug.
 
-set -uo pipefail
+# The checker is expected to exit non-zero for most cases here, so its exit
+# status is captured through `if` rather than `$?` — a bare `out=$(...)` would
+# abort the run under -e on the first case that is supposed to fail.
+set -euo pipefail
 
 CHECKER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/check-markdown-headers.sh"
 HEADER='<!-- Copyright The Linux Foundation and each contributor to LFX. -->
@@ -31,12 +34,11 @@ run_case() {
     git add case.md
   ) >/dev/null 2>&1
 
-  out=$(cd "$dir" && "$CHECKER" 2>&1)
-  rc=$?
+  if out=$(cd "$dir" && "$CHECKER" 2>&1); then rc=0; else rc=$?; fi
   rm -rf "$dir"
 
   local got="ok"
-  [ $rc -ne 0 ] && got="bad"
+  [ "$rc" -ne 0 ] && got="bad"
 
   if [ "$got" != "$expect" ]; then
     echo "FAIL  $name — expected $expect, got $got"
@@ -67,7 +69,7 @@ run_case "plain file, no header" bad "within 4 lines of line 1" \
 
 Body."
 
-run_case "plain file, copyright but no SPDX" bad "missing 'SPDX-License-Identifier: MIT'" \
+run_case "plain file, copyright but no SPDX" bad "missing '<!-- SPDX-License-Identifier: MIT -->'" \
 "<!-- Copyright The Linux Foundation and each contributor to LFX. -->
 
 # Title"
@@ -116,6 +118,25 @@ run_case "unterminated frontmatter" bad "unterminated YAML frontmatter" \
 "---
 name: thing
 description: never closed
+
+# Title"
+
+# The key sits below a YAML comment, so the classification cannot be decided
+# on the line under the delimiter alone — otherwise this reads as a rule and
+# the header inside the broken frontmatter satisfies the check.
+run_case "unterminated frontmatter opening with YAML comments" bad "unterminated YAML frontmatter" \
+"---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
+name: thing
+description: never closed
+
+# Title"
+
+# --- the header has to be a comment, not prose ----------------------------
+run_case "bare prose copyright is not a header" bad "within 4 lines of line 1" \
+"Copyright The Linux Foundation and each contributor to LFX.
+SPDX-License-Identifier: MIT
 
 # Title"
 

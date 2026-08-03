@@ -7,28 +7,26 @@ name: License Header Check
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
-  # Covers every file without YAML frontmatter. The shared workflow greps the
-  # first four lines, so files whose frontmatter pushes the header further down
-  # are excluded here and checked by frontmatter-header-check below.
+  # Every non-markdown file. Markdown is left to markdown-header-check, which
+  # can reach past frontmatter and also enforces the SPDX line.
   license-header-check:
     name: License Header Check
     uses: linuxfoundation/lfx-public-workflows/.github/workflows/license-header-check.yml@8313b4b18b95d750f99a78d5ea160d851afbc40b
     with:
       copyright_line: "Copyright The Linux Foundation and each contributor to LFX."
-      include_files: "*.md"
-      exclude_pattern: "SKILL.md,agents"
 
-  # Covers the markdown the job above cannot reach: SKILL.md and agent
-  # definitions, where `---` owns line 1 and the header sits below the
-  # closing `---`.
-  frontmatter-header-check:
-    name: License Header Check (frontmatter markdown)
+  # Every markdown file, frontmatter or not.
+  markdown-header-check:
+    name: License Header Check (markdown)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Check License Headers
-        run: ./.github/scripts/check-frontmatter-headers.sh
+        run: ./.github/scripts/check-markdown-headers.sh

@@ -2,13 +2,13 @@
 name: lfx-v2-secrets
 description: >
   Guide an agent through wiring up secrets for LFX V2 microservices using External Secrets
-  Operator (ESO) + IRSA. Handles both new services (full infrastructure setup) and existing
-  services (add a secret to an already-configured service) by checking whether the ESO
+  Operator (External Secret Operator) + IRSA. Handles both new services (full infrastructure setup) and existing
+  services (add a secret to an already-configured service) by checking whether the External Secret Operator
   objects exist before deciding which steps to run. Use this skill whenever someone says
-  "set up secrets", "wire up ESO", "add a secret to this service", "IRSA configuration",
+  "set up secrets", "wire up External Secret Operator", "add a secret to this service", "IRSA configuration",
   "External Secrets for V2", or any mention of AWS Secrets Manager integration with
   Kubernetes for LFX V2 services.
-allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, WebFetch
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, WebFetch
 ---
 
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
@@ -19,7 +19,7 @@ allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, WebFetch
 
 Secrets for LFX V2 microservices are managed through **External Secrets Operator (ESO)**
 combined with **IAM Roles for Service Accounts (IRSA)** on AWS. This provides a secure,
-GitOps-driven way to sync secrets from AWS Secrets Manager into Kubernetes.
+GitOps-driven way to sync secrets from **AWS Secrets Manager (SM)** into Kubernetes.
 
 ---
 
@@ -27,11 +27,12 @@ GitOps-driven way to sync secrets from AWS Secrets Manager into Kubernetes.
 
 ### How It Works
 
-1. A **Kubernetes ServiceAccount** is annotated with an **IRSA role ARN**
-2. ESO's **SecretStore** uses that ServiceAccount's JWT token to authenticate to AWS
-3. ESO watches **ExternalSecret** manifests and syncs matching secrets from AWS SM into K8s Secrets
-4. Application deployments reference the K8s Secret via environment variable or volume mount
-5. Local development skips ESO entirely and injects secret values directly via `environment` in values
+1. Local development: secret values are supplied directly — External Secrets Operator (ESO) is not involved.
+   See [Local Testing Before Committing](#local-testing-before-committing).
+2. A **Kubernetes ServiceAccount** is annotated with an **IRSA role ARN**
+3. External Secret Operator's **SecretStore** uses that ServiceAccount's JWT token to authenticate to AWS
+4. External Secret Operator watches **ExternalSecret** manifests and syncs matching secrets from AWS Secrets Manager into K8s Secrets
+5. Application deployments reference the K8s Secret via environment variable or volume mount
 
 ### Key Constants
 
@@ -46,9 +47,58 @@ These values are fixed and apply across all V2 services:
 | IAM account — staging | `844790888233` |
 | IAM account — prod | `372256339901` |
 | IRSA role ARN pattern | `arn:aws:iam::<account-id>:role/<service>` |
-| AWS SM path pattern | `<3rd-party-service>/<lfx-v2-service-name>/[<secret_type>]` |
+| AWS Secrets Manager path pattern | `<3rd-party-service>/<lfx-v2-service-name>/[<secret_type>]` |
 | ServiceAccount annotation key | `eks.amazonaws.com/role-arn` |
-| ESO JWT auth field | `spec.provider.aws.auth.jwt.serviceAccountRef` |
+| External Secret Operator JWT auth field | `spec.provider.aws.auth.jwt.serviceAccountRef` |
+
+---
+
+## Local Testing Before Committing
+
+Before opening any PR, validate that the service reads the values correctly under the exact
+key names you intend to use in AWS Secrets Manager. Getting a field name wrong after the fact means a second
+round of PRs across `lfx-secrets-management` and `lfx-v2-argocd` — cheaper to catch it now.
+
+### Option A: Local `.env` backed by `op item get`
+
+Resolve values at load time by shelling out to the 1Password CLI, so no secret material is
+ever written to disk:
+
+```bash
+# .env — resolved via `set -a && source .env`, never committed
+SUPABASE_API_KEY=$(op item get "LFX v2 supabase" --vault "LFX V2 - Development" --fields api_key --reveal)
+AUTH0_CLIENT_ID=$(op item get "auth0 LFX V2 Committee Service" --vault "LFX V2 - Development" --fields auth0_client_id --reveal)
+```
+
+- Requires `op signin` first.
+- `--reveal` is needed for concealed/password fields, or `op` returns a masked value.
+- `--vault` should be the environment vault you're targeting (`LFX V2 - Development` for normal
+  local work).
+- The item and field names passed to `op` are the same strings that go in the `item:` and
+  `fields:` keys in [Step 4](#step-4-add-entry-to-lfx-secrets-management) — a typo here surfaces
+  now instead of after a merge.
+- `.env` must be gitignored.
+
+### Option B: Hand-created K8s Secret
+
+For running the service in a **local cluster** where the deployment already reads from
+`secretKeyRef`:
+
+```bash
+kubectl create secret generic <service>-secrets \
+  --namespace <service-namespace> \
+  --from-literal=<field_name>='<value>'
+```
+
+- Name the Secret and its keys exactly as the `ExternalSecret` will produce them
+  (`<service>-secrets`, and field names matching the `fields:`/`rename_fields:` values from
+  Step 4) so the `environment` block written in [Step 5](#step-5-wire-secrets-into-service-environment-in-lfx-v2-argocd)
+  needs no edits once External Secret Operator takes over.
+- Delete the hand-created Secret before External Secret Operator is deployed to the same namespace — External Secret Operator's
+  `creationPolicy: Owner` will otherwise conflict with a Secret it did not create.
+
+Once the service works against locally supplied values, proceed to
+[Step 1](#step-1-gather-information-from-the-user) with the field names confirmed.
 
 ---
 
@@ -71,7 +121,7 @@ If not already provided in the initial request, ask the user for:
 
 1. **List of secrets** — LFX V2 secrets come from either 1Password or Auth0:
 
-   **1Password sources** (e.g., API keys, SMTP credentials, etc):
+   **1Password sources** (e.g., API keys, SMTP credentials):
    - **Secret name** (e.g., "LinkedIn Credentials", "SMTP Credentials")
    - **Third-party service** that provides the secret (e.g., `litellm`, `github`)
    - **1Password item name** — exact name as it appears in the vault
@@ -81,7 +131,7 @@ If not already provided in the initial request, ask the user for:
    - **Auth0 client name** — exact display name in Auth0 (e.g., `LFX V2 Invite Service`)
    - **Credential type** — `auth0` (produces `client_id` + `client_secret`) or `auth0_jwt` (produces `client_id` + `client_public_key` + `client_private_key`; standard for LFX V2 microservices)
    - **Auto-rotate** — yes/no; default `true` for `auth0_jwt` V2 services
-   - **AWS SM path** — follows `auth0/<ClientName_With_Underscores>` convention (e.g., `auth0/LFX_V2_Invite_Service`)
+   - **AWS Secrets Manager path** — follows `auth0/<ClientName_With_Underscores>` convention (e.g., `auth0/LFX_V2_Invite_Service`)
 
    > Field renames are applied automatically — always prefix with `auth0_` (e.g., `client_id` → `auth0_client_id`, `client_secret` → `auth0_client_secret`, `client_private_key` → `auth0_client_private_key`). Do not ask the user for these.
 
@@ -126,7 +176,7 @@ Auth0 secrets:
 
 ---
 
-## Step 2: Check Whether ESO Is Already Configured
+## Step 2: Check Whether External Secret Operator Is Already Configured
 
 Before making any changes, look up the service's infrastructure details and determine whether
 `SecretStore` and `ExternalSecret` objects already exist.
@@ -134,7 +184,7 @@ Before making any changes, look up the service's infrastructure details and dete
 ### 2a. Fetch IAM service account definitions
 
 Fetch `iam-service-account-definitions.yaml` directly from GitHub:
-```
+```text
 https://raw.githubusercontent.com/linuxfoundation/lfx-v2-opentofu/main/iam-service-account-definitions.yaml
 ```
 If the fetch fails (e.g., auth error), ask the user to provide the service's namespace and eso_service_tag.
@@ -143,7 +193,7 @@ Look up the entry for `<service>`:
 - **`namespace`** — note the value; defaults to `<service>` if not set. Confirm with the user only if the entry is missing entirely.
 - **`eso_service_tag`** — note the value; defaults to `<service>` if not set. If the file is inaccessible or the entry is missing, ask the user to confirm the tag (suggest `<service>` as the default).
 
-### 2b. Check for existing ESO objects
+### 2b. Check for existing External Secret Operator objects
 
 Determine whether `SecretStore` and `ExternalSecret` objects already exist for this service
 by fetching from GitHub. The service repo name matches the service name (e.g., `lfx-v2-committee-service`
@@ -151,8 +201,8 @@ lives at `github.com/linuxfoundation/lfx-v2-committee-service`).
 
 Fetch these three URLs (a 404 means the file doesn't exist yet):
 
-```
-# ESO custom resources in lfx-v2-argocd
+```text
+# External Secret Operator custom resources in lfx-v2-argocd
 https://raw.githubusercontent.com/linuxfoundation/lfx-v2-argocd/main/custom-resources/<service>/SecretStore.yaml
 https://raw.githubusercontent.com/linuxfoundation/lfx-v2-argocd/main/custom-resources/<service>/ExternalSecret.yaml
 
@@ -161,7 +211,7 @@ https://raw.githubusercontent.com/linuxfoundation/<service>/main/charts/<service
 ```
 
 If any fetch returns a non-404 auth error, fall back to checking the local filesystem if the
-repo is checked out, or ask the user whether ESO is already configured for this service.
+repo is checked out, or ask the user whether External Secret Operator is already configured for this service.
 
 **If all three files are present** → skip to [Step 4](#step-4-add-entry-to-lfx-secrets-management).
 
@@ -169,9 +219,9 @@ repo is checked out, or ask the user whether ESO is already configured for this 
 
 ---
 
-## Step 3: Set Up ESO Infrastructure (New Services Only)
+## Step 3: Set Up External Secret Operator Infrastructure (New Services Only)
 
-Run this step only when Step 2 found that ESO is not yet configured. This touches three repos
+Run this step only when Step 2 found that External Secret Operator is not yet configured. This touches three repos
 and must be done before writing any secrets.
 
 ### Step 3a: Add IAM Service Account Entry in `lfx-v2-opentofu`
@@ -291,7 +341,7 @@ spec:
             strategy: Extract
 ```
 
-> **Tag-based discovery**: ESO finds and merges all AWS SM secrets tagged
+> **Tag-based discovery**: External Secret Operator finds and merges all AWS Secrets Manager secrets tagged
 > `service-<eso_service_tag>: enabled` into a single Kubernetes Secret named
 > `<service>-secrets`. No manual `data` list is needed — new secrets are picked up
 > automatically after the next sync.
@@ -324,7 +374,7 @@ In the [lfx-secrets-management](https://github.com/linuxfoundation/lfx-secrets-m
 add an entry for each secret to `secrets/lfx/<service>.yml` — one file per LFX V2 service.
 If the file doesn't exist yet, create it. If it already exists, append the new entry.
 
-> **Important**: All secrets must be stored as JSON in AWS SM, even single-field ones.
+> **Important**: All secrets must be stored as JSON in AWS Secrets Manager, even single-field ones.
 > Two equivalent ways to express this:
 >
 > ```yaml
@@ -384,9 +434,9 @@ Supabase API Key:
 
 > **Tips**:
 >
-> - Each secret becomes a separate AWS SM path entry
+> - Each secret becomes a separate AWS Secrets Manager path entry
 > - The `path` must include the service name: `<3rd-party-service>/<service>` (e.g., `atlassian/lfx-v2-committee-service`)
-> - The `tags` list must include the service tag (`eso_service_tag` from Step 2a) so the secret is identifiable by service
+> - The `tags` list must include the name of the fully qualified service name so the secret is identifiable
 > - Use the `envs` list to sync to all three environments in parallel
 > - The `source.onepassword.item` should match exactly the name in 1Password vaults
 > - Field names should be descriptive enough to avoid duplicates (`litellm_api_key`, not just `api_key`)
@@ -454,7 +504,7 @@ Supabase API Key:
 > - Path: `atlassian/lfx-v2-committee-service` ✓ — `api_key` ✗
 
 > **Important**: After the `lfx-secrets-management` PR is merged, the secret must be deployed
-> to AWS SM before the `lfx-v2-argocd` PR can merge — ArgoCD will fail to sync if the secret
+> to AWS Secrets Manager before the `lfx-v2-argocd` PR can merge — ArgoCD will fail to sync if the secret
 > doesn't exist yet.
 >
 > **For 1Password secrets**: trigger the
@@ -489,16 +539,17 @@ environment variable. Reference the Kubernetes Secret created by the ExternalSec
 
 > Before writing `secretKeyRef.name`, verify the K8s Secret name from `ExternalSecret.yaml`
 > in `lfx-v2-argocd/custom-resources/<service>/` — check `spec.target.name`. It is typically
-> `<service>-secrets` but must match exactly.
+> `<service>-secrets` but must match exactly. Field names here should already match what was
+> exercised in [Local Testing Before Committing](#local-testing-before-committing).
 
 > Tag-based discovery means new secrets are picked up automatically — no changes to
-> `ExternalSecret.yaml` are needed as long as the AWS SM tag matches the service.
+> `ExternalSecret.yaml` are needed as long as the AWS Secrets Manager tag matches the service.
 
 > **lfx-self-serve**: If the service is `lfx-self-serve` and `values/dev/lfx-self-serve.yaml`
 > or `values/global/lfx-self-serve.yaml` are modified, apply the same change to
 > `values/dev/lfx-self-serve-branch.yaml` as well. The K8s Secret for `lfx-self-serve`
 > is named `pcc-secrets` — use that as `secretKeyRef.name` instead of `lfx-self-serve-secrets`.
-> Note: the `eso_service_tag` for `lfx-self-serve` is `pcc` (so the AWS SM resource tag is
+> Note: the `eso_service_tag` for `lfx-self-serve` is `pcc` (so the AWS Secrets Manager resource tag is
 > `service-pcc: enabled` and the K8s Secret is `pcc-secrets`), but the service tag in the
 > `tags:` list should be `lfx-self-serve` — the human-readable service name.
 
@@ -542,17 +593,18 @@ After completing all applicable steps, verify the setup:
   - [ ] `values/dev/<service>.yaml` has IRSA role ARN + `automountServiceAccountToken: true` *(new services only)*
   - [ ] `values/staging/<service>.yaml` has IRSA role ARN + `automountServiceAccountToken: true` *(new services only)*
   - [ ] `values/prod/<service>.yaml` has IRSA role ARN + `automountServiceAccountToken: true` *(new services only)*
-  - [ ] `values/global/<service>.yaml` has `environment` block with `secretKeyRef` entries for all secrets
+  - [ ] `environment` block with `secretKeyRef` entries exists for each secret — in `values/global/<service>.yaml` for all-environment secrets, or in each relevant per-environment file (`values/dev|staging|prod/<service>.yaml`) for scoped secrets
   - [ ] **lfx-self-serve only**: `lfx-self-serve-branch` updated alongside any `lfx-self-serve` values file change
 
 **Configuration checks:**
 
 - [ ] IRSA role ARN format is correct: `arn:aws:iam::<account-id>:role/<service>`
 - [ ] All account IDs are correct (dev=`788942260905`, staging=`844790888233`, prod=`372256339901`)
-- [ ] AWS SM secret config tags (`tags:` field) are specific enough to scope the deploy workflow run
-- [ ] AWS SM resource tag on each secret matches `eso_service_tag`: `service-<eso_service_tag>: enabled`
+- [ ] AWS Secrets Manager secret config tags (`tags:` field) are specific enough to scope the deploy workflow run
+- [ ] AWS Secrets Manager resource tag on each secret matches `eso_service_tag`: `service-<eso_service_tag>: enabled`
 - [ ] All secrets are stored as JSON (list form fields or `store_as_json: true`)
 - [ ] `ExternalSecret` target name is `<service>-secrets` and `secretKeyRef` names match
+- [ ] Field names were exercised locally (see Local Testing) and match the `fields:`/`rename_fields:` values
 
 **1Password setup** *(1Password sources only)*:
 
@@ -570,7 +622,7 @@ Real examples in the codebase:
 |---------|---------------|-----------|
 | Email Service | SMTP credentials | `lfx-v2-email-service` chart, lfx-v2-argocd values |
 | Invite Service | JWT secret | `lfx-v2-invite-service` chart (LFXV2-1783), lfx-v2-argocd values |
-| Committee Service | Auth0 JWT client secret (`auth0_jwt`, auto-rotate, renamed fields) | `secrets/lfx/auth0_clients.yml` in lfx-secrets-management |
+| Committee Service | Auth0 JWT client secret (`auth0_jwt`, auto-rotate, renamed fields) | `secrets/lfx/lfx-v2-committee-service.yml` in lfx-secrets-management |
 
 Check these repos for the exact file structure and conventions used in production.
 
@@ -582,7 +634,7 @@ Check these repos for the exact file structure and conventions used in productio
 
 1. User asks: "Set up JWT secret for invite-service"
 2. Collect: service name, 1Password item name, field names, environments (Step 1)
-3. Check for existing ESO objects — none found, proceed with Step 3
+3. Check for existing External Secret Operator objects — none found, proceed with Step 3
 4. Follow Steps 3–5 in order
 5. Verify using the checklist above
 6. Open PRs for `lfx-v2-opentofu`, `lfx-secrets-management`, service Helm chart, and `lfx-v2-argocd`
@@ -592,7 +644,7 @@ Check these repos for the exact file structure and conventions used in productio
 
 1. User asks: "Add SMTP secret to email-service"
 2. Collect: service name, 1Password item name, field names, environments (Step 1)
-3. Check for existing ESO objects — found, skip Step 3
+3. Check for existing External Secret Operator objects — found, skip Step 3
 4. Follow Steps 4–5
 5. Verify using the checklist above
 6. Open PRs for `lfx-secrets-management` and `lfx-v2-argocd`
@@ -601,7 +653,7 @@ Check these repos for the exact file structure and conventions used in productio
 ### Adding an Auth0 client key pair to an existing service
 
 1. User asks: "Add the LFX V2 Persona Service auth0 client to lfx-v2-persona-service"
-2. Check for existing ESO objects — found, skip Step 3
+2. Check for existing External Secret Operator objects — found, skip Step 3
 3. Add sync entry in lfx-secrets-management (Step 4)
 4. Coordinate with the Platform Engineering team to deploy the auto-rotated secret
 5. Wire into deployment in values charts (Step 5)
@@ -613,9 +665,9 @@ Check these repos for the exact file structure and conventions used in productio
 Check in order:
 
 1. **Pod events** — `kubectl describe pod <pod>` to see if the SecretStore mounted
-2. **ESO logs** — `kubectl logs -n external-secrets-system deployment/external-secrets`
-3. **AWS SM permissions** — verify IRSA role has `SecretsManager:GetSecretValue` on the path
-4. **Secret exists in AWS SM** — lfx-secrets-management automation has synced the secret
+2. **External Secret Operator logs** — `kubectl logs -n external-secrets-system deployment/external-secrets`
+3. **AWS Secrets Manager permissions** — verify IRSA role has `SecretsManager:GetSecretValue` on the path
+4. **Secret exists in AWS Secrets Manager** — lfx-secrets-management automation has synced the secret
 5. **ExternalSecret status** — `kubectl describe externalsecret <name>` shows sync status
 6. **Topology/firewalling** — pod can reach AWS API endpoint (check SecurityGroup, NACL, DNS)
 
@@ -625,8 +677,8 @@ Check in order:
 
 This skill serves both platform engineers and application developers:
 
-- **For experienced infrastructure engineers**: Use technical terms freely (IRSA, JWT auth, ESO operator).
-- **For application developers touching secrets for the first time**: Explain what ESO is
+- **For experienced infrastructure engineers**: Use technical terms freely (IRSA, JWT auth, External Secret Operator operator).
+- **For application developers touching secrets for the first time**: Explain what External Secret Operator is
   (*"it automatically copies secrets from AWS into Kubernetes"*) and IRSA (*"it proves
   your pod is who it claims to be when talking to AWS"*).
 - **For non-technical users**: Avoid "Kubernetes", "IRSA", "operator", "manifest". Instead say

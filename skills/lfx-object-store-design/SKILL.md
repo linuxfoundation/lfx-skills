@@ -53,6 +53,39 @@ Do **not** invoke for:
   (`/lfx-skills:lfx-object-store-ops`).
 - FGA relation modeling detail (owning service's FGA contract docs).
 
+## Where the upload endpoint lives
+
+Everything in this skill (Heimdall middleware, the ruleset-driven
+`Cache-Control`, NATS indexing events) assumes the upload/download endpoint
+is implemented in the owning **Go backend resource-API service**, reached
+through the **Traefik LFX API Gateway** route, which authorizes the
+request via Heimdall before it ever reaches the service. That placement is
+**preferred** and should be the default for any new
+attachment/logo/document capability on a service that already has an HTTP
+resource API — the gateway terminates the request there, Heimdall
+authorizes it against the real user identity, and the rest of this skill
+applies as written.
+
+The Angular UI's SSR/BFF (`lfx-self-serve`) is a separate route on the same
+Traefik ingress (a UI route, not the API gateway route) — the browser
+talks to the SSR there, never directly to the API gateway route or a
+resource API, so the SSR is what terminates the user's browser connection
+for every request, uploads included. When the SSR needs data from a
+resource API, it acts as a client of the Traefik LFX API Gateway route,
+the same way any other caller would. Implementing the S3 client directly
+inside the SSR (rather than proxying to a backend resource API) is the
+**exception**, justified only when the owning capability has no HTTP
+resource API to proxy to — for example, user profile data (including the
+avatar) is owned by `lfx-v2-auth-service` exclusively via NATS, with no
+API-gateway-routed HTTP surface for the SSR to call. Don't default to an
+SSR-local implementation out of convenience when a backend resource API
+already exists or is planned; route the upload there instead.
+
+When the SSR does need to proxy an upload through to a backend resource
+API (the common case going forward, as more services gain HTTP surfaces),
+see "SSR/BFF proxy transport" below for the required streaming and
+auth-forwarding pattern.
+
 ## Hard requirements
 
 These are non-negotiable across all services:
@@ -137,6 +170,40 @@ S3 multipart upload is also normally paired with presigned part URLs,
 which hard requirement #1 already forbids — don't confuse S3's
 "multipart upload" (an API for large objects) with the HTTP body encoding
 `multipart/form-data` above; they share a word but are unrelated.
+
+### SSR/BFF proxy transport
+
+When `lfx-self-serve`'s SSR proxies an upload through to a backend resource
+API (see "Where the upload endpoint lives" above), the browser's request
+terminates at the SSR — the browser cannot reach the resource API's
+Traefik LFX API Gateway route directly, and the SSR holds the
+session/access token, not the browser. The SSR therefore makes a second,
+server-to-server HTTP call that must:
+
+- **Forward the user's own access token, not an M2M token.** Heimdall
+  authorizes the request against the real user's FGA relations for that
+  route; substituting a service-to-service M2M token would authorize as
+  the wrong principal (or fail entirely if the ruleset requires a user
+  relation the M2M identity doesn't have).
+- **Reuse the already-buffered body; don't introduce streaming
+  machinery.** The SSR already buffers the incoming request once
+  (`express.raw` or a multipart parser, per "Upload body encoding" above)
+  to validate content type and size against the 20 MB cap. Pass that same
+  buffer as the outgoing request body rather than copying it or piping it
+  through an intermediate stream — at 20 MB, a second in-memory reference
+  costs nothing, and true request-body streaming is unnecessary for the
+  same reason resumable uploads are out of scope above. This differs from
+  the download direction: `lfx-self-serve`'s existing `streamRequest` /
+  `proxyStreamRequest` (`ApiClientService` / `MicroserviceProxyService`)
+  pipe a fetch `Response.body` straight to the Express response instead of
+  buffering a full download, because the response size isn't bounded by
+  the same 20 MB contract the way uploads are — don't reach for that
+  pattern on the upload side, it solves a problem that doesn't exist here.
+- **Propagate the resource API's response, not a re-derived one.** The
+  BFF should return the backend's `201` + metadata (or its error) as-is
+  rather than reshaping the response, so `public_url` and any validation
+  errors originate from the single source of truth (the resource API),
+  not from SSR-side assumptions about what the backend did.
 
 ### Upload flow
 

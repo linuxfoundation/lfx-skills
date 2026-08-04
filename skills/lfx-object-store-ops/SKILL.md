@@ -72,6 +72,13 @@ for cases that would otherwise require nested loops (see
   policies. The existing `lfx-one-project-logos-png-*` buckets in `s3.tf`
   are a legacy anti-pattern — do not copy them.
 - Versioning and SSE enabled; names interpolate `${terraform.workspace}`.
+  Bucket versioning here is a data-protection feature (recovery from
+  accidental delete/overwrite) — it is unrelated to the design skill's
+  cache-busting query parameter (`/lfx-skills:lfx-object-store-design`,
+  "Download flow"), which is an app-generated hint in `public_url`, not the
+  S3 `VersionId` this setting produces. Do not conflate the two: enabling
+  bucket versioning does not, by itself, invalidate CDN caches or change
+  what the cache-busting parameter needs to look like.
 - **Lifecycle rules are mandatory alongside versioning.** With versioning
   on, `DeleteObject` only adds a delete marker and every overwrite retains
   the prior payload as a noncurrent version — without lifecycle
@@ -90,13 +97,19 @@ for cases that would otherwise require nested loops (see
   `cloudfront-distribution-with-s3` module is a structural reference only
   and must not be copied (deprecated OAI, `forwarded_values`, TLSv1).
 - Managed cache and origin-request policies that honor the origin
-  `Cache-Control` header (services set it per object at upload). The
-  design skill's cache-busting query parameter (see
+  `Cache-Control` header (services set it per object at upload — the
+  design skill's baseline is a short TTL, `public, max-age=86400`, since
+  the cache-busting parameter is a hint rather than an immutable version).
+  The design skill's cache-busting query parameter (see
   `/lfx-skills:lfx-object-store-design`) must be included in the cache
   key — a managed policy that strips query strings (such as the default
   `CachingOptimized` policy) will keep serving a stale object after the
   version parameter changes. Use a custom cache policy that forwards that
-  parameter if the default managed policies exclude it.
+  parameter if the default managed policies exclude it. Do not set a
+  distribution-level TTL floor/default longer than the origin's
+  `Cache-Control` value — that would override the service's short-TTL
+  intent and reintroduce indefinite staleness for any persisted copy of
+  the URL.
 - One standardized `default_cache_behavior` (GET/HEAD); no per-path
   `ordered_cache_behavior` blocks — this keeps dynamic blocks out of the
   loop.

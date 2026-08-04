@@ -127,13 +127,35 @@ The service's own download route always exists and is always authoritative
   `CDN_URL_PREFIX` is configured, the CDN serves the file directly from the
   private bucket via origin authorization, and `public_url` in the upload
   response points clients there instead of the service route. Use a
-  cache-busting query parameter (not a path segment) for the version/hash,
-  since this is a hint, not a guarantee that old versions remain hosted —
-  and make sure the CDN's cache policy includes that query parameter in its
-  cache key (a cache policy that strips query strings will keep serving a
-  stale object after the version parameter changes). When
-  `CDN_URL_PREFIX` is unset, the service's own download route is the only
-  path and serves the file after the ruleset authorizes the request.
+  cache-busting query parameter (not a path segment) for the version hint —
+  for example `?v=<upload-unix-timestamp>` or `?v=<content-hash-prefix>`.
+  Either works; pick one convention per service and use it consistently.
+  The S3 object `VersionId` is **not recommended** for this hint, even
+  though it also changes on every overwrite: `VersionId` is an addressing
+  mechanism (`GetObject` accepts it to fetch that exact historical
+  version), and code will eventually be tempted to use it that way. If it
+  ever is, a stale persisted `public_url` stops self-healing — instead of
+  the CDN converging to the current object after its TTL expires, the
+  origin fetch pins to that literal old version until an ops lifecycle
+  rule prunes it. Make sure the CDN's cache policy includes the
+  cache-busting query parameter in its cache key (a cache policy that
+  strips query strings will keep serving a stale object after the version
+  parameter changes).
+
+  Because the version hint is only a cache-busting signal and not an
+  immutable identifier, set a **short TTL**, not a long or "immutable" one:
+  `Cache-Control: public, max-age=86400` (1 day) is the baseline
+  recommendation. This bounds how long any copy of the URL that was
+  persisted elsewhere (for example, denormalized into another service's
+  search index or a downstream record) can keep serving stale bytes after
+  the underlying file changes — that copy converges to the current image
+  within the TTL window even if nothing ever refreshes the persisted URL
+  string itself. Do not set a multi-year or `immutable` Cache-Control on
+  these responses; that only makes sense for content-addressed paths (for
+  example, hashed static JS bundle filenames), which this is not.
+
+  When `CDN_URL_PREFIX` is unset, the service's own download route is the
+  only path and serves the file after the ruleset authorizes the request.
 - **Service-API-only files** (attachments, legal docs): never CDN-fronted,
   regardless of `CDN_URL_PREFIX`. The service streams from S3 after the
   ruleset authorizes the request, with `Content-Disposition: attachment`
@@ -178,7 +200,13 @@ timeout 120s. Download routes should set `responseBuffering: false`.
   service serves a list of files to a client — that's a Query Service
   concern (see "API patterns" above).
 - **Cache-Control:** set the native `CacheControl` field on `PutObject` and
-  restore it on download.
+  restore it on download. For CDN-fronted objects, use the short-TTL value
+  from "Download flow" above (`public, max-age=86400`), not a long-lived or
+  `immutable` value.
+- **Not S3 bucket versioning.** The cache-busting hint in `public_url` is
+  unrelated to the S3 bucket's own versioning feature (see "Download
+  flow"). The object store code should never need to read or reason about
+  `VersionId` at all.
 
 ## Helm chart contract
 

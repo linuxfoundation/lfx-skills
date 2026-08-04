@@ -128,11 +128,18 @@ match the ruleset (`public, ...` when the ruleset allows anonymous reads;
 ### Collection (multiple files per resource)
 
 ```text
-POST   /resources/{uid}/documents                     Upload (multipart/form-data)
+POST   /resources/{uid}/documents                     Upload (multipart/form-data: file + sibling metadata fields)
 GET    /resources/{uid}/documents/{doc_uid}            Fetch metadata (including CDN URL, if applicable)
 GET    /resources/{uid}/documents/{doc_uid}/download   Download binary
 DELETE /resources/{uid}/documents/{doc_uid}            Delete
 ```
+
+Collection uploads are multipart because there is no separate
+metadata-create step: the document's identity and metadata (for example, a
+required display `name`, an optional `description` or folder placement)
+arrive in the same request as the binary — the sibling-fields case
+described under "Upload body encoding" below. `committee-service`'s
+`upload-committee-document` endpoint is the reference shape.
 
 There is no collection-listing REST endpoint. Listing multiple attachments
 (or the parent resources that carry a singleton file as an attribute) is a
@@ -161,14 +168,17 @@ body — not of the body's encoding. Either raw or multipart give identical
 progress-event granularity in the browser; this is not a reason to prefer
 one over the other.
 
-**Resumable/chunked uploads are out of scope.** The 20 MB cap (see "Hard
-requirements") exists specifically so a single buffered request is always
-sufficient — protocols like tus.io or S3's own multipart-upload API
-(`CreateMultipartUpload`/`UploadPart`/`CompleteMultipartUpload`) solve a
-dropped-connection problem that doesn't meaningfully occur at this size.
-S3 multipart upload is also normally paired with presigned part URLs,
-which hard requirement #1 already forbids — don't confuse S3's
-"multipart upload" (an API for large objects) with the HTTP body encoding
+**Resumable/chunked uploads are out of scope.** This is a deliberate
+scope/complexity decision, not an impossibility claim: at ≤ 20 MB (see
+"Hard requirements"), a failed upload is cheap to retry from the start, so
+the machinery a resumable protocol adds — offset tracking, part
+reassembly, expiry of abandoned sessions (tus.io, or S3's own
+multipart-upload API: `CreateMultipartUpload`/`UploadPart`/
+`CompleteMultipartUpload`) — is not worth carrying for this file-size
+class. If a future use case genuinely needs larger files, that's a
+design-change conversation (revisiting the 20 MB cap and this skill), not
+something to bolt on per-service. Also don't confuse S3's "multipart
+upload" (an API for large objects) with the HTTP body encoding
 `multipart/form-data` above; they share a word but are unrelated.
 
 ### SSR/BFF proxy transport

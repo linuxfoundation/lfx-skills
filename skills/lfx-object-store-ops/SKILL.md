@@ -96,20 +96,24 @@ for cases that would otherwise require nested loops (see
   `forwarded_values` patterns — the ITX
   `cloudfront-distribution-with-s3` module is a structural reference only
   and must not be copied (deprecated OAI, `forwarded_values`, TLSv1).
-- Managed cache and origin-request policies that honor the origin
-  `Cache-Control` header (services set it per object at upload — the
-  design skill's baseline is a short TTL, `public, max-age=86400`, since
-  the cache-busting parameter is a hint rather than an immutable version).
-  The design skill's cache-busting query parameter (see
-  `/lfx-skills:lfx-object-store-design`) must be included in the cache
-  key — a managed policy that strips query strings (such as the default
-  `CachingOptimized` policy) will keep serving a stale object after the
-  version parameter changes. Use a custom cache policy that forwards that
-  parameter if the default managed policies exclude it. Do not set a
-  distribution-level TTL floor/default longer than the origin's
-  `Cache-Control` value — that would override the service's short-TTL
-  intent and reintroduce indefinite staleness for any persisted copy of
-  the URL.
+- Managed cache and origin-request policies that honor the per-object
+  `Cache-Control` header. This header is **object metadata set by the
+  service at upload** (`PutObject`'s `CacheControl` field), not an origin
+  or bucket configuration — the design skill's baseline is a short TTL,
+  `public, max-age=86400`, since the cache-busting parameter is a hint
+  rather than an immutable version. The design skill's cache-busting query
+  parameter (see `/lfx-skills:lfx-object-store-design`) must be included
+  in the cache key — a managed policy that strips query strings (such as
+  the default `CachingOptimized` policy) will keep serving a stale object
+  after the version parameter changes. Use a custom cache policy that
+  forwards that parameter if the default managed policies exclude it.
+  In that cache policy, set **`min_ttl = 0`** — Minimum TTL is the only
+  setting that overrides a shorter per-object `max-age` upward, and any
+  nonzero value would defeat the service's short-TTL intent for persisted
+  copies of the URL. `default_ttl` is different: it applies only when an
+  object carries no `Cache-Control` metadata at all, never overriding a
+  present header — keep it short (≤ 1 day) as a safety net for objects
+  uploaded without the metadata.
 - One standardized `default_cache_behavior` (GET/HEAD); no per-path
   `ordered_cache_behavior` blocks — this keeps dynamic blocks out of the
   loop.

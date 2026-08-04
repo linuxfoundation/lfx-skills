@@ -311,7 +311,12 @@ timeout 120s. Download routes should set `responseBuffering: false`.
 - **Cache-Control:** set the native `CacheControl` field on `PutObject` and
   restore it on download. For CDN-fronted objects, use the short-TTL value
   from "Download flow" above (`public, max-age=86400`), not a long-lived or
-  `immutable` value.
+  `immutable` value. The value stored at upload must match the file's
+  access model — `public, max-age=86400` only in CDN-fronted (public)
+  buckets; `private, ...` for service-API-only files — so restoring it on
+  download is always ruleset-consistent (the mandatory public/private
+  bucket split in "Hard requirements" is what guarantees a bucket never
+  mixes the two).
 - **Not S3 bucket versioning.** The cache-busting hint in `public_url` is
   unrelated to the S3 bucket's own versioning feature (see "Download
   flow"). The object store code should never need to read or reason about

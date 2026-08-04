@@ -82,7 +82,7 @@ These are non-negotiable across all services:
 ### Singleton file (exactly one file of a type per resource)
 
 ```text
-POST   /resources/{uid}/logo-upload      Upload or replace (multipart/form-data)
+POST   /resources/{uid}/logo-upload      Upload or replace (raw body)
 GET    /resources/{uid}/logo-download    Download
 DELETE /resources/{uid}/logo             Remove
 ```
@@ -105,6 +105,38 @@ There is no collection-listing REST endpoint. Listing multiple attachments
 (or the parent resources that carry a singleton file as an attribute) is a
 Query Service concern, not a service API concern. Set `Cache-Control` on the
 download response per the ruleset, same as the singleton case.
+
+### Upload body encoding
+
+Prefer a **raw request body** (`Content-Type` set to the file's own MIME
+type, body is the file bytes) when the upload carries nothing but the file
+itself — this is the common case for a singleton like logo/avatar upload.
+`Content-Type` already conveys the one thing multipart's per-part headers
+exist to convey; there's no second field to disambiguate, so a multipart
+parser adds a dependency and code path for no benefit.
+
+Use **`multipart/form-data`** only when the request needs to carry sibling
+fields alongside the file in the same request — for example, a collection
+upload that also takes a caption, a document-type field, or a
+client-supplied filename. Multiple files in one request is the other case
+that requires it. Don't default to multipart out of habit; pick it because
+a specific sibling field is actually needed.
+
+Progress reporting (`XHR.upload.onprogress`, or a `fetch` request body
+stream) is a property of the transport — one HTTP request carrying a
+body — not of the body's encoding. Either raw or multipart give identical
+progress-event granularity in the browser; this is not a reason to prefer
+one over the other.
+
+**Resumable/chunked uploads are out of scope.** The 20 MB cap (see "Hard
+requirements") exists specifically so a single buffered request is always
+sufficient — protocols like tus.io or S3's own multipart-upload API
+(`CreateMultipartUpload`/`UploadPart`/`CompleteMultipartUpload`) solve a
+dropped-connection problem that doesn't meaningfully occur at this size.
+S3 multipart upload is also normally paired with presigned part URLs,
+which hard requirement #1 already forbids — don't confuse S3's
+"multipart upload" (an API for large objects) with the HTTP body encoding
+`multipart/form-data` above; they share a word but are unrelated.
 
 ### Upload flow
 

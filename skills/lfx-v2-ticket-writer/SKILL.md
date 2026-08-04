@@ -82,6 +82,39 @@ and ask them to confirm or adjust.
 Ask targeted questions based on type. Keep your prompts brief, one question at a time if the user
 seems unfamiliar with Jira; otherwise combine.
 
+> ⚠️ **No real user PII in the ticket — applies to every ticket type
+> (Bug, Story, Task, Epic).** Ticket descriptions, acceptance criteria,
+> reproduction steps, screenshots, environment notes, and any linked
+> attachments must not include real user emails, names, LFIDs, phone
+> numbers, addresses, government IDs, financial identifiers, IP
+> addresses, or other PII. Substitute a safe placeholder
+> (`user-a@example.com`, "the affected committee chair", "member with
+> role X") and, if the specific user matters, tell the assignee to look
+> it up out-of-band. See
+> [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)
+> for the full taxonomy and safe alternatives.
+>
+> **This is a submission precondition, not an offer.** If the user's
+> draft contains real user PII in any field, do NOT proceed to Step 4.
+> Redact/replace every occurrence with a placeholder first and confirm
+> the redacted draft with the user. The ticket may only be submitted
+> after every real-PII value has been removed or replaced.
+>
+> **There is no business-need exception for Jira tickets.** Hard rule 4
+> in [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)
+> forbids real user PII in commit messages, PR bodies, tickets, or code
+> comments and enumerates only two narrow exceptions — the contributor's
+> own DCO `Signed-off-by:` trailer and git-author / `Co-authored-by:`
+> attribution — **neither of which applies to Jira ticket text**. Hard
+> rule 5 makes clear that a business justification is *necessary but not
+> sufficient*: no explanation the user can offer unlocks PII in ticket
+> surfaces. If the user insists on including a real identifier, halt the
+> workflow entirely. Cite hard rule 4 briefly, explain that the ticket
+> cannot be submitted with the raw identifier in any field, and hold
+> until the user provides a redacted draft. Do NOT proceed to Step 4
+> after "hearing them out" — the gate remains closed until the value is
+> replaced.
+
 ### Bug
 
 Ask for:

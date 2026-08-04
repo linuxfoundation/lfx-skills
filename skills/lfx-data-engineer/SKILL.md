@@ -389,6 +389,67 @@ See [references/key-macros.md](references/key-macros.md) for full documentation 
 
 ## Data Governance
 
+### PII Hard Rules
+
+The plugin-wide data-privacy rules live in
+[`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md). Read
+that doc before generating any of the following:
+
+- **dbt seeds, fixtures, `dbt show` examples in docs, or unit-test rows** —
+  never paste values copied from a production Snowflake query. Fabricate with
+  `user-1@example.com`, `Test User`, `testuser01`, reserved phone blocks, and
+  fixed UUIDs. Use `dbt_utils.generate_surrogate_key` on synthetic inputs, not
+  real primary keys.
+- **New models in any layer (bronze, silver, gold, platinum) that expose
+  email, name, phone, address, or linked pseudonyms (LFID, GitHub handle,
+  Discord ID)** — the column MUST be PII-tagged
+  (`config.meta.contains_pii: true`) and MUST include
+  `config.meta.data_retention: "undefined"` per the existing convention
+  documented in the *PII Tagging* section below and
+  [`references/testing-patterns.md`](references/testing-patterns.md) (see
+  the "PII Tagging" section there and the checklist item at
+  `references/testing-patterns.md:349-350`). Do not invent an alternative
+  retention value and do not omit the field; the `"undefined"` placeholder
+  is the convention until the shared testing-patterns.md guidance is
+  updated. Any downstream `dbt show` or docs snippet MUST use the safe
+  alternatives from `data-privacy.md`.
+- **Logging or `RAISE`/`ASSERT` output inside macros or Python models** —
+  never emit raw PII. Use a correlator that does not locate an individual
+  record: dbt's `invocation_id` / `run_started_at`, the model name plus
+  source table name, batch identifier, warehouse `query_tag`, or an
+  aggregate grouping key (source-table name + time bucket). Do **not** use
+  `activity UID`, a specific row's surrogate key, or `source_table + row
+  number` — those are joinable back to a specific person's activity record
+  and are therefore linked pseudonyms per the canonical PII taxonomy. If a
+  user-linked correlator is genuinely required, emit a service-specific
+  **keyed-HMAC pseudonym** per the canonical rule in
+  [`../lfx/references/data-privacy.md`](../lfx/references/data-privacy.md)
+  ("Logging exception"). Plain hashes such as `sha256(email)` are not
+  acceptable.
+- **Any code path that would persist a PII column into a schema where the
+  column is not part of the documented contract** — stop and ask the user
+  first; the answer is usually "drop the column."
+
+The three filters below have distinct, non-interchangeable roles. Pick the
+right one for the layer and source:
+
+- **`gdpr_filter_email(email_field)` / `gdpr_filter_email_list(field, delim)`**
+  (see [`references/key-macros.md`](references/key-macros.md)): these are
+  the GDPR enforcement macros. Any model that surfaces email addresses to
+  downstream consumers — bronze, silver, gold, or platinum — MUST filter
+  through the appropriate variant so GDPR-suppressed addresses are removed.
+- **`comprehensive_email_filter(email_field)`** (see
+  [`references/key-macros.md`](references/key-macros.md), "Email Validation
+  Macros"): a data-quality filter (format validation + test-address
+  exclusion). Apply it where you need clean, deliverable email addresses;
+  it is not a GDPR substitute.
+- **`WHERE NOT _fivetran_deleted`** (see
+  [`references/medallion-architecture.md`](references/medallion-architecture.md),
+  Bronze Layer key patterns): bronze-layer-only, and only for sources
+  whose ingest sets the Fivetran soft-delete column. Silver/gold/platinum
+  and non-Fivetran sources do not have this column and MUST NOT reference
+  it.
+
 ### PII Tagging
 
 Columns containing personally identifiable information (names, emails, addresses, etc.) must be tagged in the YML file. Use `config.meta` — not top-level `meta`.

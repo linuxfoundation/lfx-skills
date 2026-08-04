@@ -230,14 +230,14 @@ Create a single commit that summarizes all changes made to address the review fe
 
 ### Commit Message Format
 
-The commit message must clearly state what review feedback was addressed, so that both git history readers and PR reviewers can understand what happened:
+The commit message must clearly state what review feedback was addressed, so that both git history readers and PR reviewers can understand what happened. **Do NOT include real reviewer GitHub handles in the commit message body** — the LFX plugin-wide PII rule at `skills/lfx/SKILL.md` (hard rule 4 in `skills/lfx/references/data-privacy.md`) treats GitHub handles as linked pseudonyms and prohibits them in commit messages except in the DCO `Signed-off-by:` trailer and consenting `Co-authored-by:` trailers. A reviewer is neither the DCO signer nor a coauthor, so their handle does not qualify. Bot reviewer names (e.g. `copilot[bot]`, `coderabbitai[bot]`) are tool identifiers, not linked pseudonyms, and may appear in commit bodies. Human reviewer identity is captured by the linked PR — readers can consult the PR thread history for who requested what:
 
 ```
 fix(review): address PR #[number] review feedback
 
-Address review comments from @[human-reviewer], botname[bot]:
+Address review comments from the reviewers on PR #[number]:
 
-- [file]: [what was changed and why] (per @[human-reviewer])
+- [file]: [what was changed and why]
 - [file]: [what was changed and why] (per botname[bot])
 - [file]: responded to question about [topic]
 
@@ -250,7 +250,7 @@ Note: The `--signoff` flag automatically appends the `Signed-off-by:` trailer, d
 
 - **One commit per review iteration**, don't create separate commits per comment. Reviewers want to see a single cohesive response to their feedback.
 - **Reference the PR number** in the commit subject.
-- **Credit human reviewers**, mention who asked for each change. This helps when reading git blame later. **Never `@mention` bot reviewers** in commit messages, use their plain name without the `@` prefix (e.g., `copilot[bot]` not `@copilot[bot]`).
+- **Do not include real reviewer handles in commit messages.** Bot reviewer names (e.g. `copilot[bot]`) are tool identifiers and may appear — but never with an `@` prefix, since tagging bots causes them to re-trigger. Human reviewer identity belongs in the PR thread reply and the PR summary comment (Steps 9 and 11), which are not persistent commit-message content and are not in the scope of hard rule 4.
 - **Include `--signoff` and `-S`**, `--signoff` is required for DCO compliance, `-S` for GPG-signed commits. Both are enforced on LFX repos.
 - **List every change**, the commit body should be a complete record. Someone reading the commit message should know exactly what review feedback was addressed without needing to read the diff.
 
@@ -259,9 +259,9 @@ git add [specific files that were changed]
 git commit -S --signoff -m "$(cat <<'EOF'
 fix(review): address PR #[number] review feedback
 
-Address review comments from @[human-reviewer], botname[bot]:
+Address review comments from the reviewers on PR #[number]:
 
-- path/to/file.ts: renamed variable per reviewer suggestion (per @alice)
+- path/to/file.ts: renamed variable per reviewer suggestion
 - path/to/component.html: added loading guard for stats display (per copilot[bot])
 - path/to/service.ts: explained error handling approach (no code change)
 

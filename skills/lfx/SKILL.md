@@ -204,6 +204,11 @@ preserves the useful research workflow without adding another central skill.
 - **`references/service-types.md`**: thin routing stub. For native, wrapper,
   proxy, or V2 Go service-class depth, forward to
   `/lfx-skills:lfx-platform-architecture`.
+- **`references/data-privacy.md`**: canonical hard rules for handling PII in
+  test data, logs, persisted stores, tickets, PRs, and code comments. Read
+  before generating fixtures/examples, before adding a log line that includes
+  a user field, or before writing a user identifier into a KV, index doc,
+  FGA tuple, or Jira ticket.
 
 Never load all references by default. Start with the smallest one.
 
@@ -212,26 +217,40 @@ Never load all references by default. Start with the smallest one.
 Each auto-fires on its own triggers; can also be invoked explicitly. These
 ship in this same `lfx-skills` plugin.
 
-| Topic                                                                | Skill                        |
-| -------------------------------------------------------------------- | ---------------------------- |
-| Platform composition, V2 service classes, write/read/access-check flows, cross-repo owners | `/lfx-skills:lfx-platform-architecture` |
-| Go coding conventions after routing to a service repo                 | That repo's path-scoped `<short-repo-name>-dev` skill |
-| ITX wrapper plumbing (OAuth2 M2M, ID mapping, v1 KV sync)             | `/lfx-skills:lfx-itx-integration`       |
-| Intercom app workflow and Fin AI optimization                         | `/lfx-skills:lfx-intercom`              |
+| Topic                                                                                      | Skill                                                 |
+|--------------------------------------------------------------------------------------------|-------------------------------------------------------|
+| Platform composition, V2 service classes, write/read/access-check flows, cross-repo owners | `/lfx-skills:lfx-platform-architecture`               |
+| Go coding conventions after routing to a service repo                                      | That repo's path-scoped `<short-repo-name>-dev` skill |
+| ITX wrapper plumbing (OAuth2 M2M, ID mapping, v1 KV sync)                                  | `/lfx-skills:lfx-itx-integration`                     |
+| Intercom app workflow and Fin AI optimization                                              | `/lfx-skills:lfx-intercom`                            |
+| Object storage capability in a service (uploads, S3, CDN, local dev)                       | `/lfx-skills:lfx-object-store-design`                 |
+| Object storage backend provisioning (buckets, CloudFront, IRSA)                            | `/lfx-skills:lfx-object-store-ops`                    |
+
+### `-ops` skill convention
+
+Skills whose names end in `-ops` are written for **members of the
+linuxfoundation GitHub org** (Ops/infrastructure audience). They are
+provided for that audience's use and are not gated by the skill itself.
+Before routing a task to an `-ops` skill, check whether the current GitHub
+user is an org member (for example, `gh api
+orgs/linuxfoundation/members/$(gh api user -q .login)` — a `204` means
+member). If membership cannot be confirmed, decline the provisioning
+request and say so; do not substitute the corresponding design skill as a
+stand-in, since design skills explicitly exclude provisioning work.
 
 ## Workflow skills (this plugin)
 
 Seven workflow skills ship alongside the architecture skills in this same
 `lfx-skills` plugin. Forward to them by name when relevant.
 
-| Topic                                | Skill                   |
-| ------------------------------------ | ----------------------- |
-| Onboarding and first-time setup      | `/lfx-skills:lfx-setup`            |
-| DCO and GPG signing                  | `/lfx-skills:lfx-git-setup`        |
-| Cross-repo personal PR dashboard     | `/lfx-skills:lfx-pr-catchup`       |
-| GitHub PR review threads             | `/lfx-skills:lfx-pr-resolve`       |
-| Local multi-branch journey worktrees | `/lfx-skills:lfx-test-journey`     |
-| Snowflake access requests            | `/lfx-skills:lfx-snowflake-access` |
+| Topic                                | Skill                                      |
+|--------------------------------------|--------------------------------------------|
+| Onboarding and first-time setup      | `/lfx-skills:lfx-setup`                    |
+| DCO and GPG signing                  | `/lfx-skills:lfx-git-setup`                |
+| Cross-repo personal PR dashboard     | `/lfx-skills:lfx-pr-catchup`               |
+| GitHub PR review threads             | `/lfx-skills:lfx-pr-resolve`               |
+| Local multi-branch journey worktrees | `/lfx-skills:lfx-test-journey`             |
+| Snowflake access requests            | `/lfx-skills:lfx-snowflake-access`         |
 | CDP Snowflake connector scaffolding  | `/lfx-skills:lfx-cdp-snowflake-connectors` |
 
 ## Cross-repo path convention
@@ -258,3 +277,29 @@ unsure. Never assume `../../<repo>/`.
   from this skill alone.
 - `lfx-self-serve` is the canonical Self Serve repo; legacy deployment
   artifacts may say `lfx-v2-ui`, which is deployment naming only.
+- **Never generate real user PII (real emails, names, usernames, phone
+  numbers, LFIDs, GitHub/Discord handles, addresses, etc.) in test data,
+  fixtures, examples, logs, commits, PRs, or tickets. Never persist PII
+  outside a field the resource contract requires. When in doubt, stop and
+  ask the user.** *Exceptions to the commit/PR/ticket/comment
+  prohibition (hard rule 4 in `references/data-privacy.md`) are limited
+  to two, each scoped tightly:* **every contributor's own DCO
+  `Signed-off-by:` trailer** required by DCO (see `lfx-git-setup`) —
+  the commit author's signoff is always required, and each coauthor
+  who participated as a contributor MUST add their own
+  `Signed-off-by:` line alongside their `Co-authored-by:` trailer; and
+  author attribution — the commit's own git-author identity
+  (name + email), plus `Co-authored-by:` trailers only for individuals
+  who actually co-authored the change and consented to real-identity
+  attribution (`Co-authored-by:` is not a DCO trailer and is not
+  produced by `--signoff`). Neither exception permits a non-contributor's
+  PII (an affected end user, support contact, member org's staff, etc.)
+  in commit messages, PR bodies, tickets, or code comments. *A separate
+  narrow exception applies to hard rule 2 (the no-PII-in-logs default): a
+  dedicated audit-log code path may emit raw PII only when **every**
+  condition in the canonical "Logging exception (narrow)" section of
+  `references/data-privacy.md` is satisfied — do not memorize a fixed
+  gate count here; consult the canonical section, since gates may be
+  added or refined over time. Authentication material is unconditionally
+  excluded from that exception.* Full rules and safe alternatives:
+  [`references/data-privacy.md`](references/data-privacy.md).

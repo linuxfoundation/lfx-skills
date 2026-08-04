@@ -85,11 +85,18 @@ For running the service in a **local cluster** where the deployment already read
 `secretKeyRef`:
 
 ```bash
-kubectl create secret generic <service>-secrets \
-  --namespace <service-namespace> \
-  --from-literal=<field_name>='<value>'
+op item get "<1Password item name>" --vault "LFX V2 - Development" --fields <field_name> --reveal | \
+  kubectl create secret generic <service>-secrets \
+    --namespace <service-namespace> \
+    --from-file=<field_name>=/dev/stdin
 ```
 
+- Requires `op signin` first (same as Option A).
+- Piping through `op` keeps the value out of shell history and `kubectl`'s process arguments —
+  never use `--from-literal` with a real secret value.
+- Repeat the `op item get | kubectl create secret ... --from-file` pair per field, or build up a
+  single `kubectl create secret generic` call with multiple `--from-file=<field_name>=<(op item get ...)>`
+  process substitutions if the Secret has more than one key.
 - Name the Secret and its keys exactly as the `ExternalSecret` will produce them
   (`<service>-secrets`, and field names matching the `fields:`/`rename_fields:` values from
   Step 4) so the `environment` block written in [Step 5](#step-5-wire-secrets-into-service-environment-in-lfx-v2-argocd)

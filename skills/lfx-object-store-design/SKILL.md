@@ -317,7 +317,7 @@ env:
   - name: S3_SERVER_PROTO
     value: "http"
   - name: S3_REGION
-    value: "us-east-1"
+    value: "us-west-2"
   - name: S3_STYLE
     value: "path"
   - name: S3_SERVICE
@@ -357,7 +357,7 @@ a service owns more than one):
 | Variable                                      | Required   | Description                                                                                                                                                                                                                 |
 |-----------------------------------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `S3_BUCKET`                                   | yes        | Bucket name. Local default may be chart-derived; deployed value comes from `lfx-v2-argocd`.                                                                                                                                 |
-| `AWS_REGION`                                  | yes        | AWS region. Any non-empty string is accepted by nats-s3; `us-east-1` is the conventional local default.                                                                                                                     |
+| `AWS_REGION`                                  | yes        | AWS region. Any non-empty string is accepted by nats-s3; `us-west-2` is the conventional local default, matching the deployed environment's region. No code fallback — required, like `S3_BUCKET`.                          |
 | `S3_ENDPOINT_URL`                             | no         | Endpoint override. Local: `http://localhost:5222` (sidecar). Empty: real AWS S3. Also used for non-AWS S3-compatible backends — do not use its presence to infer "local".                                                   |
 | `S3_CREATE_MISSING_BUCKET`                    | no         | Explicit boolean gate for the service calling `CreateBucket` at startup. `true` only in local values. `false`/unset everywhere else, including any deployed environment that happens to set `S3_ENDPOINT_URL`.              |
 | `CDN_URL_PREFIX`                              | no         | Public, browser-reachable CDN base URL interpolated into `public_url` responses — never an in-cluster-only address. Local: an `IngressRoute` address on `k8s.orb.local` for the nginx-s3-gateway. Empty: omit `public_url`. |

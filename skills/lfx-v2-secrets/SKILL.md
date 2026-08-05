@@ -221,6 +221,10 @@ Look up the entry for `<service>`:
 
 - **`namespace`** — note the value; defaults to `<service>` if not set. Confirm with the user
   only if the entry is missing entirely.
+- **`service_account`** — note the value; defaults to `<service>` if not set. This is the
+  actual K8s ServiceAccount name and **must** be used (not `<service>`) everywhere a
+  ServiceAccount is named or referenced in Steps 3b/3c below, or ESO authenticates as the
+  wrong ServiceAccount and AWS auth fails.
 - **`eso_service_tag`** — note the value; defaults to `<service>` if not set. If the file is
   inaccessible or the entry is missing, ask the user to confirm the tag (suggest `<service>` as
   the default).
@@ -321,10 +325,13 @@ Add to `charts/<service>/values.yaml`:
 ```yaml
 serviceAccount:
   create: true
-  name: "<service>"
+  name: "<service_account>"
   annotations: {}
   automountServiceAccountToken: true
 ```
+
+Use the `service_account` value read in 2a (defaults to `<service>` — only substitute a
+different literal if that field was explicitly overridden in `iam-service-account-definitions.yaml`).
 
 ### Step 3c: Create Custom Resources in `lfx-v2-argocd`
 
@@ -349,10 +356,14 @@ spec:
       auth:
         jwt:
           serviceAccountRef:
-            name: <service>
+            name: <service_account>
       region: us-west-2
       service: SecretsManager
 ```
+
+`serviceAccountRef.name` must be the actual K8s ServiceAccount name — the `service_account`
+value from 2a (defaults to `<service>`), not always `<service>` itself. A mismatch here means
+ESO requests a token for the wrong ServiceAccount and AWS authentication fails.
 
 Create `custom-resources/<service>/ExternalSecret.yaml` (only if missing):
 

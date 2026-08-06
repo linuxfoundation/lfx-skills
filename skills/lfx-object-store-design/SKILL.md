@@ -53,6 +53,39 @@ Do **not** invoke for:
   (`/lfx-skills:lfx-object-store-ops`).
 - FGA relation modeling detail (owning service's FGA contract docs).
 
+## Where the upload endpoint lives
+
+Everything in this skill (Heimdall middleware, the ruleset-driven
+`Cache-Control`, NATS indexing events) assumes the upload/download endpoint
+is implemented in the owning **Go backend resource-API service**, reached
+through the **Traefik LFX API Gateway** route, which authorizes the
+request via Heimdall before it ever reaches the service. That placement is
+**preferred** and should be the default for any new
+attachment/logo/document capability on a service that already has an HTTP
+resource API — the gateway terminates the request there, Heimdall
+authorizes it against the real user identity, and the rest of this skill
+applies as written.
+
+The Angular UI's SSR/BFF (`lfx-self-serve`) is a separate route on the same
+Traefik ingress (a UI route, not the API gateway route) — the browser
+talks to the SSR there, never directly to the API gateway route or a
+resource API, so the SSR is what terminates the user's browser connection
+for every request, uploads included. When the SSR needs data from a
+resource API, it acts as a client of the Traefik LFX API Gateway route,
+the same way any other caller would. Implementing the S3 client directly
+inside the SSR (rather than proxying to a backend resource API) is the
+**exception**, justified only when the owning capability has no HTTP
+resource API to proxy to — for example, user profile data (including the
+avatar) is owned by `lfx-v2-auth-service` exclusively via NATS, with no
+API-gateway-routed HTTP surface for the SSR to call. Don't default to an
+SSR-local implementation out of convenience when a backend resource API
+already exists or is planned; route the upload there instead.
+
+When the SSR does need to proxy an upload through to a backend resource
+API (the common case going forward, as more services gain HTTP surfaces),
+see "SSR/BFF proxy transport" below for the required streaming and
+auth-forwarding pattern.
+
 ## Hard requirements
 
 These are non-negotiable across all services:
@@ -82,7 +115,7 @@ These are non-negotiable across all services:
 ### Singleton file (exactly one file of a type per resource)
 
 ```text
-POST   /resources/{uid}/logo-upload      Upload or replace (multipart/form-data)
+POST   /resources/{uid}/logo-upload      Upload or replace (raw body)
 GET    /resources/{uid}/logo-download    Download
 DELETE /resources/{uid}/logo             Remove
 ```
@@ -95,16 +128,92 @@ match the ruleset (`public, ...` when the ruleset allows anonymous reads;
 ### Collection (multiple files per resource)
 
 ```text
-POST   /resources/{uid}/documents                     Upload (multipart/form-data)
+POST   /resources/{uid}/documents                     Upload (multipart/form-data: file + sibling metadata fields)
 GET    /resources/{uid}/documents/{doc_uid}            Fetch metadata (including CDN URL, if applicable)
 GET    /resources/{uid}/documents/{doc_uid}/download   Download binary
 DELETE /resources/{uid}/documents/{doc_uid}            Delete
 ```
 
+Collection uploads are multipart because there is no separate
+metadata-create step: the document's identity and metadata (for example, a
+required display `name`, an optional `description` or folder placement)
+arrive in the same request as the binary — the sibling-fields case
+described under "Upload body encoding" below. `committee-service`'s
+`upload-committee-document` endpoint is the reference shape.
+
 There is no collection-listing REST endpoint. Listing multiple attachments
 (or the parent resources that carry a singleton file as an attribute) is a
 Query Service concern, not a service API concern. Set `Cache-Control` on the
 download response per the ruleset, same as the singleton case.
+
+### Upload body encoding
+
+Prefer a **raw request body** (`Content-Type` set to the file's own MIME
+type, body is the file bytes) when the upload carries nothing but the file
+itself — this is the common case for a singleton like logo/avatar upload.
+`Content-Type` already conveys the one thing multipart's per-part headers
+exist to convey; there's no second field to disambiguate, so a multipart
+parser adds a dependency and code path for no benefit.
+
+Use **`multipart/form-data`** only when the request needs to carry sibling
+fields alongside the file in the same request — for example, a collection
+upload that also takes a caption, a document-type field, or a
+client-supplied filename. Multiple files in one request is the other case
+that requires it. Don't default to multipart out of habit; pick it because
+a specific sibling field is actually needed.
+
+Progress reporting (`XHR.upload.onprogress`, or a `fetch` request body
+stream) is a property of the transport — one HTTP request carrying a
+body — not of the body's encoding. Either raw or multipart give identical
+progress-event granularity in the browser; this is not a reason to prefer
+one over the other.
+
+**Resumable/chunked uploads are out of scope.** This is a deliberate
+scope/complexity decision, not an impossibility claim: at ≤ 20 MB (see
+"Hard requirements"), a failed upload is cheap to retry from the start, so
+the machinery a resumable protocol adds — offset tracking, part
+reassembly, expiry of abandoned sessions (tus.io, or S3's own
+multipart-upload API: `CreateMultipartUpload`/`UploadPart`/
+`CompleteMultipartUpload`) — is not worth carrying for this file-size
+class. If a future use case genuinely needs larger files, that's a
+design-change conversation (revisiting the 20 MB cap and this skill), not
+something to bolt on per-service. Also don't confuse S3's "multipart
+upload" (an API for large objects) with the HTTP body encoding
+`multipart/form-data` above; they share a word but are unrelated.
+
+### SSR/BFF proxy transport
+
+When `lfx-self-serve`'s SSR proxies an upload through to a backend resource
+API (see "Where the upload endpoint lives" above), the browser's request
+terminates at the SSR — the browser cannot reach the resource API's
+Traefik LFX API Gateway route directly, and the SSR holds the
+session/access token, not the browser. The SSR therefore makes a second,
+server-to-server HTTP call that must:
+
+- **Forward the user's own access token, not an M2M token.** Heimdall
+  authorizes the request against the real user's FGA relations for that
+  route; substituting a service-to-service M2M token would authorize as
+  the wrong principal (or fail entirely if the ruleset requires a user
+  relation the M2M identity doesn't have).
+- **Reuse the already-buffered body; don't introduce streaming
+  machinery.** The SSR already buffers the incoming request once
+  (`express.raw` or a multipart parser, per "Upload body encoding" above)
+  to validate content type and size against the 20 MB cap. Pass that same
+  buffer as the outgoing request body rather than copying it or piping it
+  through an intermediate stream — at 20 MB, a second in-memory reference
+  costs nothing, and true request-body streaming is unnecessary for the
+  same reason resumable uploads are out of scope above. This differs from
+  the download direction: `lfx-self-serve`'s existing `streamRequest` /
+  `proxyStreamRequest` (`ApiClientService` / `MicroserviceProxyService`)
+  pipe a fetch `Response.body` straight to the Express response instead of
+  buffering a full download, because the response size isn't bounded by
+  the same 20 MB contract the way uploads are — don't reach for that
+  pattern on the upload side, it solves a problem that doesn't exist here.
+- **Propagate the resource API's response, not a re-derived one.** The
+  BFF should return the backend's `201` + metadata (or its error) as-is
+  rather than reshaping the response, so `public_url` and any validation
+  errors originate from the single source of truth (the resource API),
+  not from SSR-side assumptions about what the backend did.
 
 ### Upload flow
 
@@ -127,13 +236,35 @@ The service's own download route always exists and is always authoritative
   `CDN_URL_PREFIX` is configured, the CDN serves the file directly from the
   private bucket via origin authorization, and `public_url` in the upload
   response points clients there instead of the service route. Use a
-  cache-busting query parameter (not a path segment) for the version/hash,
-  since this is a hint, not a guarantee that old versions remain hosted —
-  and make sure the CDN's cache policy includes that query parameter in its
-  cache key (a cache policy that strips query strings will keep serving a
-  stale object after the version parameter changes). When
-  `CDN_URL_PREFIX` is unset, the service's own download route is the only
-  path and serves the file after the ruleset authorizes the request.
+  cache-busting query parameter (not a path segment) for the version hint —
+  for example `?v=<upload-unix-timestamp>` or `?v=<content-hash-prefix>`.
+  Either works; pick one convention per service and use it consistently.
+  The S3 object `VersionId` is **not recommended** for this hint, even
+  though it also changes on every overwrite: `VersionId` is an addressing
+  mechanism (`GetObject` accepts it to fetch that exact historical
+  version), and code will eventually be tempted to use it that way. If it
+  ever is, a stale persisted `public_url` stops self-healing — instead of
+  the CDN converging to the current object after its TTL expires, the
+  origin fetch pins to that literal old version until an ops lifecycle
+  rule prunes it. Make sure the CDN's cache policy includes the
+  cache-busting query parameter in its cache key (a cache policy that
+  strips query strings will keep serving a stale object after the version
+  parameter changes).
+
+  Because the version hint is only a cache-busting signal and not an
+  immutable identifier, set a **short TTL**, not a long or "immutable" one:
+  `Cache-Control: public, max-age=86400` (1 day) is the baseline
+  recommendation. This bounds how long any copy of the URL that was
+  persisted elsewhere (for example, denormalized into another service's
+  search index or a downstream record) can keep serving stale bytes after
+  the underlying file changes — that copy converges to the current image
+  within the TTL window even if nothing ever refreshes the persisted URL
+  string itself. Do not set a multi-year or `immutable` Cache-Control on
+  these responses; that only makes sense for content-addressed paths (for
+  example, hashed static JS bundle filenames), which this is not.
+
+  When `CDN_URL_PREFIX` is unset, the service's own download route is the
+  only path and serves the file after the ruleset authorizes the request.
 - **Service-API-only files** (attachments, legal docs): never CDN-fronted,
   regardless of `CDN_URL_PREFIX`. The service streams from S3 after the
   ruleset authorizes the request, with `Content-Disposition: attachment`
@@ -178,7 +309,18 @@ timeout 120s. Download routes should set `responseBuffering: false`.
   service serves a list of files to a client — that's a Query Service
   concern (see "API patterns" above).
 - **Cache-Control:** set the native `CacheControl` field on `PutObject` and
-  restore it on download.
+  restore it on download. For CDN-fronted objects, use the short-TTL value
+  from "Download flow" above (`public, max-age=86400`), not a long-lived or
+  `immutable` value. The value stored at upload must match the file's
+  access model — `public, max-age=86400` only in CDN-fronted (public)
+  buckets; `private, ...` for service-API-only files — so restoring it on
+  download is always ruleset-consistent (the mandatory public/private
+  bucket split in "Hard requirements" is what guarantees a bucket never
+  mixes the two).
+- **Not S3 bucket versioning.** The cache-busting hint in `public_url` is
+  unrelated to the S3 bucket's own versioning feature (see "Download
+  flow"). The object store code should never need to read or reason about
+  `VersionId` at all.
 
 ## Helm chart contract
 
@@ -289,7 +431,7 @@ env:
   - name: S3_SERVER_PROTO
     value: "http"
   - name: S3_REGION
-    value: "us-east-1"
+    value: "us-west-2"
   - name: S3_STYLE
     value: "path"
   - name: S3_SERVICE
@@ -329,7 +471,7 @@ a service owns more than one):
 | Variable                                      | Required   | Description                                                                                                                                                                                                                 |
 |-----------------------------------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `S3_BUCKET`                                   | yes        | Bucket name. Local default may be chart-derived; deployed value comes from `lfx-v2-argocd`.                                                                                                                                 |
-| `AWS_REGION`                                  | yes        | AWS region. Any non-empty string is accepted by nats-s3; `us-east-1` is the conventional local default.                                                                                                                     |
+| `AWS_REGION`                                  | yes        | AWS region. Any non-empty string is accepted by nats-s3; `us-west-2` is the conventional local default, matching the deployed environment's region. No code fallback — required, like `S3_BUCKET`.                          |
 | `S3_ENDPOINT_URL`                             | no         | Endpoint override. Local: `http://localhost:5222` (sidecar). Empty: real AWS S3. Also used for non-AWS S3-compatible backends — do not use its presence to infer "local".                                                   |
 | `S3_CREATE_MISSING_BUCKET`                    | no         | Explicit boolean gate for the service calling `CreateBucket` at startup. `true` only in local values. `false`/unset everywhere else, including any deployed environment that happens to set `S3_ENDPOINT_URL`.              |
 | `CDN_URL_PREFIX`                              | no         | Public, browser-reachable CDN base URL interpolated into `public_url` responses — never an in-cluster-only address. Local: an `IngressRoute` address on `k8s.orb.local` for the nginx-s3-gateway. Empty: omit `public_url`. |

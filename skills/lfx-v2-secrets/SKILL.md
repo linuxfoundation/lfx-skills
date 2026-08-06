@@ -48,6 +48,7 @@ These values are fixed and apply across all V2 services:
 | IAM account — prod | `372256339901` |
 | IRSA role ARN pattern | `arn:aws:iam::<account-id>:role/<service>` |
 | AWS Secrets Manager path pattern | `<3rd-party-service>/<lfx-v2-service-name>/[<secret_type>]` |
+| AWS Secrets Manager path prefix | `/cloudops/managed-secrets` — applied automatically to every `path:` in `lfx-secrets-management`; see `secrets/lfx/.config.yml` |
 | ServiceAccount annotation key | `eks.amazonaws.com/role-arn` |
 | ESO JWT auth field | `spec.provider.aws.auth.jwt.serviceAccountRef` |
 
@@ -254,11 +255,45 @@ ESO is already configured for this service.
 `serviceaccount.yaml`, `SecretStore.yaml`, and `ExternalSecret.yaml`:
 
 - **Present** → leave it alone; do not re-run that item's Step 3 sub-step.
-- **Missing** → run only that item's Step 3 sub-step (3a for the IAM entry, 3b for the
-  ServiceAccount, 3c for SecretStore/ExternalSecret).
+- **Missing** → run 2c *before* concluding this means "run Step 3c" — an absent
+  `SecretStore.yaml`/`ExternalSecret.yaml` in `custom-resources/` can mean either "not set up
+  yet" or "this service uses a different, chart-owned pattern." Only the former runs 3c.
 
 **If all four are present** → skip Step 3 entirely and go to
 [Step 4](#step-4-add-entry-to-lfx-secrets-management).
+
+### 2c. Confirm the service follows the standard pattern
+
+Run this whenever 2b found `SecretStore.yaml` and/or `ExternalSecret.yaml` missing, before
+concluding they need to be created. Some services own ESO from inside their Helm chart instead
+of via static CRs in `lfx-v2-argocd/custom-resources/<service>/` — for those, "missing" is
+expected and Step 3c must **not** run.
+
+Check both signals:
+
+1. **Chart-owned templates** — does the service chart have
+   `charts/<service>/templates/secretstore.yaml` or `externalsecret.yaml`?
+   ```bash
+   gh api repos/linuxfoundation/<service>/contents/charts/<service>/templates/secretstore.yaml
+   gh api repos/linuxfoundation/<service>/contents/charts/<service>/templates/externalsecret.yaml
+   ```
+   Presence of either means the chart owns ESO — driven by an
+   `externalSecretsOperator.*` block in `values.yaml`, typically with an explicit `data:` list
+   rather than tag-based discovery.
+2. **`customResources` flag** — does this service's entry in
+   `apps/<env>/lfx-v2-applications.yaml` set `customResources: true`? This flag is what actually
+   gates whether `custom-resources/<service>/` is applied at all
+   (`apps/dev/lfx-v2-applications.yaml` wraps that source in `{{- if .customResources }}`).
+   Without it, anything in `custom-resources/<service>/` is inert regardless of what's in the
+   directory — the inverse of the chart-owned case, and worth flagging if you find it.
+
+**If either signal indicates chart-owned ESO**: stop. Do not run Step 3c. Report the deviation
+to the user plainly — this service diverges from the standard tag-based `custom-resources/`
+pattern the rest of this skill assumes — and ask how they want to proceed before touching
+`ExternalSecret.yaml`, Step 5's wiring, or anything else downstream that assumes the standard
+shape. Creating the standard CRs here would produce a second, competing ESO setup.
+
+**If neither signal fires** → the absence is real; proceed to Step 3c as normal.
 
 ---
 
@@ -497,6 +532,12 @@ Supabase API Key:
 > - Use the `envs` list to sync to all three environments in parallel
 > - The `source.onepassword.item` should match exactly the name in 1Password vaults
 > - Field names should be descriptive enough to avoid duplicates (`litellm_api_key`, not just `api_key`)
+> - The `path:` value here is relative — `lfx-secrets-management` applies the
+>   `path_prefix` from `secrets/lfx/.config.yml` (currently `/cloudops/managed-secrets`)
+>   automatically. `path: <3rd-party>/<service>` therefore lands in AWS at
+>   `/cloudops/managed-secrets/<3rd-party>/<service>`. Use the **full prefixed path** when
+>   writing `remoteRef.key` in Step 5, running `aws secretsmanager describe-secret`, or
+>   debugging a failed ExternalSecret sync — the relative `path:` will not resolve there.
 
 **Auth0 template** (`auth0` — client_secret):
 
@@ -593,6 +634,17 @@ environment variable. Reference the Kubernetes Secret created by the ExternalSec
 - If the secret is deployed to **specific environments only**, add it to each relevant
   per-environment file (`values/dev/<service>.yaml`, `values/staging/<service>.yaml`,
   `values/prod/<service>.yaml`) instead
+
+> **Warning — Helm replaces lists, it does not merge them.** ArgoCD loads
+> `values/global/<service>.yaml` then `values/<env>/<service>.yaml`. Helm's `-f` layering
+> merges *maps* across those files but **replaces list values wholesale** — a per-env file
+> that redeclares a list-valued key (e.g. an `externalSecret.data:` list on a chart-owned
+> service) silently drops every entry global contributed, it does not append to them. Prefer
+> putting list-valued secret config in `values/global/` for anything needed everywhere; if a
+> per-env override is unavoidable, restate the **full** list, not just the new entries. This
+> failure is silent and can be delayed — losing an RDS credential entry this way doesn't show
+> up until the next rotation (often weeks later) because `deletionPolicy: Retain` keeps the
+> stale Secret serving in the meantime.
 
 > Before writing `secretKeyRef.name`, verify the K8s Secret name from `ExternalSecret.yaml`
 > in `lfx-v2-argocd/custom-resources/<service>/` — check `spec.target.name`. It is typically

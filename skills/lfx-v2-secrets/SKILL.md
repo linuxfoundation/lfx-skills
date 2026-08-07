@@ -52,6 +52,10 @@ These values are fixed and apply across all V2 services:
 | ServiceAccount annotation key | `eks.amazonaws.com/role-arn` |
 | ESO JWT auth field | `spec.provider.aws.auth.jwt.serviceAccountRef` |
 
+> **Exception**: `lfx-self-serve` uses `pcc-secrets` (not `lfx-self-serve-secrets`) and tag
+> `service-pcc: enabled` (not `service-lfx-self-serve: enabled`) — see the
+> [lfx-self-serve note](#step-5-wire-secrets-into-service-environment-in-lfx-v2-argocd) in Step 5.
+
 ---
 
 ## Local Testing Before Committing
@@ -527,7 +531,9 @@ Supabase API Key:
 >
 > - Each secret becomes a separate AWS Secrets Manager path entry
 > - The `path` must include the service name: `<3rd-party-service>/<service>`
->   (e.g., `atlassian/lfx-v2-committee-service`)
+>   (e.g., `atlassian/lfx-v2-committee-service`). If a service has more than one secret from
+>   the same 3rd-party service, append `/<secret_type>` to keep paths unique (e.g.,
+>   `supabase/lfx-v2-example-service/api_key` and `supabase/lfx-v2-example-service/db_password`)
 > - The `tags` list must include the fully qualified service name (`<service>`) so the secret is identifiable
 > - Use the `envs` list to sync to all three environments in parallel
 > - The `source.onepassword.item` should match exactly the name in 1Password vaults

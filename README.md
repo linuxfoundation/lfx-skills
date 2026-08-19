@@ -77,7 +77,7 @@ review, check, status, label or approval, and no gate or merge.
 | Skill                               | Purpose                                                                                                                                                                                     |
 |-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `/lfx-skills:lfx-local-review`      | Run the review trio on the current repo — the general reviewer plus the repo's own code and learnings reviewers — on headless Pi when available, Claude subagents otherwise. Reviews the newest commit and runs in the background. |
-| `lfx-general-code-review`           | The general review method itself: correctness, security, error handling, simplicity, naming, DRY, testing, performance, style. Loaded by the review trio in either harness. Not invoked by hand. |
+| `lfx-general-code-review`           | The general review method itself: correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance, style. Loaded by the review trio in either harness. Not invoked by hand. |
 
 Pi is what makes this **cross-model** — the same skills, judged by a different
 model. Without it the trio still runs, on three Claude Opus subagents, and the
@@ -106,7 +106,7 @@ Post-commit code reviewers that LFX repos invoke after every pre-PR commit. Laun
 
 | Agent                                                  | Purpose                                                                                                                                                    |
 |--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `lfx-skills:lfx-general-code-reviewer`                 | Generic senior-reviewer pass: correctness, security, performance, maintainability, tests, code truthfulness. No repo-specific rulebook.                    |
+| `lfx-skills:lfx-general-code-reviewer`                 | Generic senior-reviewer pass: correctness, security, data privacy, performance, maintainability, tests, code truthfulness. No repo-specific rulebook.                    |
 | `lfx-skills:lfx-committee-service-code-reviewer`       | Committee Service convention and contract audit against repo-owned guidance, Goa/NATS/FGA/indexer contracts, chart wiring, and code layout.                |
 | `lfx-skills:lfx-committee-service-learnings-reviewer`  | Empirical pattern matcher against `lfx-v2-committee-service/docs/reviews/knowledge-base/` (patterns sampled from past PR review comments).                 |
 | `lfx-skills:lfx-email-service-code-reviewer`           | Email Service convention and contract audit against repo-owned guidance, public NATS payloads, SES/SQS/KV tracking, and chart wiring.                      |

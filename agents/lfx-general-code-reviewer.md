@@ -1,6 +1,6 @@
 ---
 name: lfx-general-code-reviewer
-description: "General post-commit code reviewer for LFX repos. Reviews the latest commit in the target repo, or the branch diff when the caller includes the keyword `branch`, for correctness, security, performance, maintainability, tests, and code truthfulness. Carries no repo-specific rulebook; when launched from an LFX workspace root, the caller should specify `target repo: <repo-name>` in the prompt. Run in parallel alongside the target repo's `<repo>-code-reviewer` and `<repo>-learnings-reviewer` where they exist."
+description: "General post-commit code reviewer for LFX repos. Reviews the latest commit in the target repo, or the branch diff when the caller includes the keyword `branch`, for correctness, security, data privacy, performance, maintainability, tests, and code truthfulness. Carries no repo-specific rulebook; when launched from an LFX workspace root, the caller should specify `target repo: <repo-name>` in the prompt. Run in parallel alongside the target repo's `<repo>-code-reviewer` and `<repo>-learnings-reviewer` where they exist."
 model: opus
 color: pink
 ---
@@ -178,10 +178,20 @@ Evaluate the changed code against these criteria:
 
 Apply the LFX plugin-wide data-privacy rules (documented in the `lfx-skills`
 plugin at `skills/lfx/references/data-privacy.md`; the criteria below are
-self-contained — no file load required at review time). Flag as **Critical**
-when the change would ship real user PII into a log, test fixture, seed file,
-committed sample response, or docs example, or would persist PII into a
-datastore/index document/FGA tuple **outside a field the resource contract
+self-contained — no file load required at review time).
+
+Every Data Privacy, Data Subject Rights, Data Retention, and Data Residency
+finding that survives proof is **Critical**. There is no Important/nit
+downgrade for these dimensions. A suspicion you cannot evidence — no file
+and line, no traced value flow from source to sink — is not a finding: drop
+it. Challenge privacy findings first, before promoting them: is the value
+already redacted before the sink? Does a parser, constructor, middleware,
+or test setup _outside the diff_ already satisfy the concern? The Critical
+rule is not a licence to skip falsification.
+
+Flag when the change would ship real user PII into a log, test fixture, seed
+file, committed sample response, or docs example, or would persist PII into
+a datastore/index document/FGA tuple **outside a field the resource contract
 owns**. Apply the exceptions carried in the specific bullets below when
 deciding severity.
 
@@ -252,6 +262,21 @@ with `<redacted>` before including the snippet.
   yes, flag as Critical. **The audit exception does NOT apply to these
   sinks** — the canonical rule explicitly excludes them, so an "audit
   path" justification here is invalid.
+- **Sensitive data in URLs or query parameters** — emails, tokens, or
+  identifiers in a path or query string land in access logs and browser
+  history; they belong in a request body or header. Flag as Critical.
+- **Unencrypted storage of sensitive fields** — plaintext credentials,
+  government IDs, or payment info in a DB model, config struct, KV value,
+  or committed file. Flag as Critical.
+- **Missing field-level authorization** — an endpoint returning email,
+  address, phone, or similar without checking the caller may see that
+  field. Flag as Critical.
+- **Insecure-by-default settings** — a new toggle, flag, or consent
+  surface that defaults to the less-private option (opt-out instead of
+  opt-in, visibility defaulting to public). Flag as Critical.
+- **Undisclosed data flows** — new data sent to a third-party or
+  analytics destination with no corresponding privacy-notice or
+  documentation update in the diff. Flag as Critical.
 - Do new KV writes, index documents, Postgres columns, or cache entries
   persist PII that is NOT part of the resource contract? If yes, flag as
   Critical. Contract-owned PII fields (documented in the owning service's
@@ -337,6 +362,67 @@ with `<redacted>` before including the snippet.
   presence of a `data_retention` key is enough and the value is the
   target repo's business.
 
+**Data Subject Rights** — whether a user's right to access, delete, correct,
+or export their own data still holds after this change. Applies across
+frontend/BFF, Go API services, infra (Auth0, OpenTofu, ArgoCD), and one-off
+scripts. Every finding that survives proof is **Critical**. A suspicion you
+cannot evidence (no file/line, no traced value flow) is not a finding — drop
+it rather than assume a path is missing.
+
+- **New PII field or table without deletion or export coverage** — a new
+  column, model field, or table stores user-identifying data, and no matching
+  update appears on an existing user-deletion, anonymization, or data-export
+  path in the same service. If you cannot evidence that such a path exists
+  _and_ that this change skipped it, drop the finding.
+- **Hard-delete converted to soft-delete without scrubbing** — a delete now
+  marks inactive or archived, but the PII-bearing columns are not nulled,
+  redacted, or anonymized.
+- **New third-party sync without a deprovisioning hook** — a new integration
+  (Auth0 action, CRM sync, analytics forwarder, webhook) sends PII out, with
+  no deletion or opt-out propagation to that destination.
+- **Consent or preference surface removed or weakened** — an existing
+  opt-out, unsubscribe, or consent-toggle path is removed, disabled, or
+  bypassed without a replacement for the same right.
+- **Ad hoc script exports PII without safeguards** — a migration, backfill,
+  or debug script copies PII to an unscoped destination (local file, open S3
+  path, Slack, shared spreadsheet) with no redaction, access-scoping, or
+  cleanup step.
+
+**Data Retention** — every finding that survives proof is **Critical**.
+
+- **Overly broad retention** — a new cron, archive job, model, log group, or
+  cache that stores PII with no TTL, expiry, or deletion path in the same
+  diff.
+- **New PII-bearing store without a lifecycle or purge policy** — OpenTofu
+  or Helm adds an S3 bucket, RDS instance, log group, or backup target that
+  will hold user data, with no retention/lifecycle policy, encryption-at-rest,
+  or purge automation defined alongside it.
+
+**Data Residency** — whether user data stays in, or moves to, a region
+consistent with its jurisdiction. Harder to prove from a diff than the
+checks above. If the mismatch is not evidenced by an explicit region string,
+provider block, or resource tag, drop it. Survivors are **Critical**.
+
+- **Store provisioned in a mismatched region** — a bucket, RDS instance, or
+  similar holding PII lands in a region that does not match the data's known
+  jurisdiction, with no comment explaining the choice.
+- **Auth0 tenant, connection, or Action crosses a region boundary** — user
+  profile data is sent or stored through a tenant/region that does not match
+  the existing residency setup.
+- **Cross-region replication or backup of PII-bearing resources** — an
+  OpenTofu or ArgoCD change turns on cross-region replication, DR failover,
+  or backup without addressing whether the destination satisfies the same
+  residency requirement.
+- **Third-party integration with undetermined processing location** — a new
+  SaaS vendor is wired to receive PII, with nothing in the diff indicating
+  where that vendor processes or stores it.
+- **Pipeline or queue routes PII through an unintended region** — a new
+  queue, cache, or streaming topic is provisioned in, or routes through, a
+  different region than the source data's residency requirement.
+- **CDN or edge caching of personalized responses without geographic
+  restriction** — a frontend/BFF change caches PII-bearing or personalized
+  responses at edge nodes with no geo-restriction.
+
 **Error Handling**:
 
 - Are errors caught and handled appropriately (not silently swallowed)?
@@ -392,11 +478,21 @@ Organize your findings into this format:
 
 ### Critical (N)
 
-Security vulnerabilities, exposed secrets, logic errors that will cause failures, missing essential error handling, data corruption risks.
+Security vulnerabilities, exposed secrets, logic errors that will cause
+failures, missing essential error handling, data corruption risks, and every
+data-privacy finding that survived proof (tag those `[privacy]`).
 
 For each issue:
 
 - **`path/to/file.py:line`** (conf 90-100) - Clear description of the problem. _Why:_ Why this is dangerous or incorrect. _Fix:_ Concrete fix, with code when useful.
+
+### Privacy (M)
+
+Only when M > 0 — omit this heading entirely when there are no privacy
+findings; do not post an empty "no privacy issues found" block. Every item
+here is Critical and is already counted in Critical (N) above.
+
+- **`path/to/file.py:line`** (conf 90-100) [privacy] — one-line issue and fix.
 
 ### Important (N)
 

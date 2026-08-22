@@ -76,6 +76,7 @@ Read the change with the command the prompt names:
 ```bash
 git diff --stat <base_sha> <target_sha>
 git diff <base_sha> <target_sha>
+git log --format=fuller -p <base_sha>..<target_sha>
 ```
 
 **Use `git diff` with both revisions named — not `git show`.** On a merge commit
@@ -83,6 +84,17 @@ git diff <base_sha> <target_sha>
 list of filenames, no code, and could report "no findings" on a merge that
 carried real changes. `git diff <base_sha> <target_sha>` shows the content in
 every case.
+
+Also walk the commits in the pinned range. A two-revision diff cannot see
+PII that was added and later removed, or PII that lives only in an
+intermediate commit message. `git log --format=fuller -p` closes both
+gaps. Skip it when `base_sha` is `none` — a root commit has no parent
+range. For the privacy pass, an emission is a finding when it appears on
+an added line in the two-revision diff **or** in any per-commit patch, or
+in a commit message other than the DCO / attribution trailers permitted
+below. A deletion (`-` line) is not a finding. Other dimensions still
+review the two-revision diff only. Never fetch or re-derive the range to
+do this.
 
 For a root commit, review the tree the commit introduced.
 
@@ -159,14 +171,16 @@ documented conventions?
 The LFX plugin-wide data-privacy rules apply to every reviewer. The criteria
 here are self-contained: do not load a reference file at review time.
 
-Every privacy finding that survives proof is **critical**. There is no
-important or nit downgrade for this dimension — including test fixtures,
-missing privacy-notice updates, data-subject-rights gaps, retention without a
-deletion path, and residency mismatches you can evidence. A suspicion you
-cannot evidence is not a finding: name a file and line, or a traced value flow
-from source to sink, or drop it. Residency is the easiest to invent; if the
-region mismatch is not an explicit region string, provider block or resource
-tag in the range, drop it.
+Every shipped-leak, data-subject-rights, retention, and residency finding
+that survives proof is **critical**. There is no important or nit
+downgrade for those findings — including test fixtures, missing
+privacy-notice updates, data-subject-rights gaps, retention without a
+deletion path, and residency mismatches you can evidence. The one
+carve-out is dbt column-tag hygiene, which is **Important** (see below).
+A suspicion you cannot evidence is not a finding: name a file and line,
+or a traced value flow from source to sink, or drop it. Residency is the
+easiest to invent; if the region mismatch is not an explicit region
+string, provider block or resource tag in the range, drop it.
 
 **Never reproduce the PII you are flagging.** Describe it by category and
 location — "corporate email address in the test fixture at
@@ -241,10 +255,11 @@ Flag when the range would ship real user PII into any of these sinks:
 - **URLs and query parameters** — emails, tokens or identifiers in a path or
   query string land in access logs and browser history; they belong in a body
   or header.
-- **Fixtures, seeds, samples, docs examples** — replace real-looking emails,
+- **Test files, fixtures, seeds, samples, docs examples** — including e2e
+  and integration specs and mocked responses. Replace real-looking emails,
   names or phones with synthetic values (`user-1@example.com`, `Test User 1`,
-  `+12025550100`). Unconfigured faker defaults that emit real mail domains are
-  the same defect.
+  `+12025550100`, `E2E_TEST_EMAIL`). Unconfigured faker defaults that emit
+  real mail domains are the same defect.
 - **Unencrypted storage** — plaintext credentials, government IDs, payment
   info or similar in a DB model, config struct, KV value or committed file.
 - **Persistence outside a contract-owned field** — KV, index document,
@@ -308,8 +323,13 @@ infra (Auth0, OpenTofu, ArgoCD) and one-off scripts:
   range.
 - **New PII-bearing store without a lifecycle or purge policy** — OpenTofu
   or Helm adds an S3 bucket, RDS instance, log group or backup target that
-  will hold user data, with no retention / lifecycle policy, encryption-at-rest
-  or purge automation defined alongside it.
+  will hold user data, with no retention / lifecycle policy or purge
+  automation in the same range. Encryption-at-rest is a separate
+  storage-security control and does not satisfy this check. Lifecycle for
+  some stores lives in another repo (for example OpenTofu, not the service
+  chart); if you cannot evidence that this change skipped a path that
+  exists in *this* service, drop the finding rather than assume it is
+  missing.
 
 ### Data residency
 
@@ -328,15 +348,19 @@ resource tag, drop it.
   OpenTofu or ArgoCD change turns on cross-region replication, DR failover
   or backup without addressing whether the destination satisfies the same
   residency requirement.
-- **Third-party integration with undetermined processing location** — a new
-  SaaS vendor is wired to receive PII, with nothing in the range indicating
-  where that vendor processes or stores it.
+- **Third-party integration that sends PII to a mismatched region** — a new
+  SaaS vendor is wired to receive PII, and the range itself names a
+  processing or storage region that does not match the data's known
+  jurisdiction. If the range does not evidence a region, drop it.
 - **Pipeline or queue routes PII through an unintended region** — a new
   queue, cache or streaming topic is provisioned in, or routes through, a
-  different region than the source data's residency requirement.
-- **CDN or edge caching of personalized responses without geographic
-  restriction** — a frontend / BFF change caches PII-bearing or personalized
-  responses at edge nodes with no geo-restriction.
+  different region than the source data's residency requirement. The
+  region must be explicit in the range; otherwise drop it.
+- **CDN or edge caching of personalized responses in a mismatched
+  region** — a frontend / BFF change caches PII-bearing or personalized
+  responses at edge nodes, and the range itself names a geo or region
+  setting that does not match the data's residency requirement. Absence
+  of a geo-restriction is not itself a finding.
 
 ## How to report
 

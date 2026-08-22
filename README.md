@@ -106,7 +106,7 @@ Post-commit code reviewers that LFX repos invoke after every pre-PR commit. Laun
 
 | Agent                                                  | Purpose                                                                                                                                                    |
 |--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `lfx-skills:lfx-general-code-reviewer`                 | Generic senior-reviewer pass: correctness, security, data privacy, performance, maintainability, tests, code truthfulness. No repo-specific rulebook.                    |
+| `lfx-skills:lfx-general-code-reviewer`                 | Generic senior-reviewer pass: correctness, security, data privacy, performance, maintainability, tests, code truthfulness. No repo-specific rulebook.      |
 | `lfx-skills:lfx-committee-service-code-reviewer`       | Committee Service convention and contract audit against repo-owned guidance, Goa/NATS/FGA/indexer contracts, chart wiring, and code layout.                |
 | `lfx-skills:lfx-committee-service-learnings-reviewer`  | Empirical pattern matcher against `lfx-v2-committee-service/docs/reviews/knowledge-base/` (patterns sampled from past PR review comments).                 |
 | `lfx-skills:lfx-email-service-code-reviewer`           | Email Service convention and contract audit against repo-owned guidance, public NATS payloads, SES/SQS/KV tracking, and chart wiring.                      |

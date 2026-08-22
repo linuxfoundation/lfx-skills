@@ -180,14 +180,15 @@ Apply the LFX plugin-wide data-privacy rules (documented in the `lfx-skills`
 plugin at `skills/lfx/references/data-privacy.md`; the criteria below are
 self-contained — no file load required at review time).
 
-Every Data Privacy, Data Subject Rights, Data Retention, and Data Residency
+Every shipped-leak, Data Subject Rights, Data Retention, and Data Residency
 finding that survives proof is **Critical**. There is no Important/nit
-downgrade for these dimensions. A suspicion you cannot evidence — no file
-and line, no traced value flow from source to sink — is not a finding: drop
-it. Challenge privacy findings first, before promoting them: is the value
-already redacted before the sink? Does a parser, constructor, middleware,
-or test setup _outside the diff_ already satisfy the concern? The Critical
-rule is not a licence to skip falsification.
+downgrade for those findings. The one carve-out is dbt column-tag hygiene,
+which is **Important** (see below). A suspicion you cannot evidence — no
+file and line, no traced value flow from source to sink — is not a
+finding: drop it. Challenge privacy findings first, before promoting
+them: is the value already redacted before the sink? Does a parser,
+constructor, middleware, or test setup _outside the diff_ already satisfy
+the concern? The Critical rule is not a licence to skip falsification.
 
 Flag when the change would ship real user PII into a log, test fixture, seed
 file, committed sample response, or docs example, or would persist PII into
@@ -205,10 +206,10 @@ offending value as `<redacted>` in any inline quote or code excerpt. The
 same rule applies to git-diff snippets in findings: elide the actual value
 with `<redacted>` before including the snippet.
 
-- Do new test files, fixtures, seed data, or mocked responses use fabricated
-  values (`user-*@example.com`, `Test User`, reserved phone blocks, fixed
-  UUIDs) rather than values copied from a real user, ticket, or Snowflake
-  query?
+- Do new test files (including e2e and integration specs), fixtures, seed
+  data, or mocked responses use fabricated values (`user-*@example.com`,
+  `Test User`, reserved phone blocks, fixed UUIDs, `E2E_TEST_EMAIL`) rather
+  than values copied from a real user, ticket, or Snowflake query?
 - Do new **log lines on the general application logger** include raw
   emails, names, phone numbers, LFIDs, GitHub/Discord handles, or other
   PII (including user-linked UIDs such as user UID, member UID, persona
@@ -395,8 +396,13 @@ it rather than assume a path is missing.
   diff.
 - **New PII-bearing store without a lifecycle or purge policy** — OpenTofu
   or Helm adds an S3 bucket, RDS instance, log group, or backup target that
-  will hold user data, with no retention/lifecycle policy, encryption-at-rest,
-  or purge automation defined alongside it.
+  will hold user data, with no retention/lifecycle policy or purge
+  automation in the same diff. Encryption-at-rest is a separate
+  storage-security control and does not satisfy this check. Lifecycle for
+  some stores lives in another repo (for example OpenTofu, not the service
+  chart); if you cannot evidence that this change skipped a path that
+  exists in _this_ service, drop the finding rather than assume it is
+  missing.
 
 **Data Residency** — whether user data stays in, or moves to, a region
 consistent with its jurisdiction. Harder to prove from a diff than the
@@ -413,15 +419,19 @@ provider block, or resource tag, drop it. Survivors are **Critical**.
   OpenTofu or ArgoCD change turns on cross-region replication, DR failover,
   or backup without addressing whether the destination satisfies the same
   residency requirement.
-- **Third-party integration with undetermined processing location** — a new
-  SaaS vendor is wired to receive PII, with nothing in the diff indicating
-  where that vendor processes or stores it.
+- **Third-party integration that sends PII to a mismatched region** — a new
+  SaaS vendor is wired to receive PII, and the diff itself names a
+  processing or storage region that does not match the data's known
+  jurisdiction. If the diff does not evidence a region, drop it.
 - **Pipeline or queue routes PII through an unintended region** — a new
   queue, cache, or streaming topic is provisioned in, or routes through, a
-  different region than the source data's residency requirement.
-- **CDN or edge caching of personalized responses without geographic
-  restriction** — a frontend/BFF change caches PII-bearing or personalized
-  responses at edge nodes with no geo-restriction.
+  different region than the source data's residency requirement. The
+  region must be explicit in the diff; otherwise drop it.
+- **CDN or edge caching of personalized responses in a mismatched
+  region** — a frontend/BFF change caches PII-bearing or personalized
+  responses at edge nodes, and the diff itself names a geo or region
+  setting that does not match the data's residency requirement. Absence
+  of a geo-restriction is not itself a finding.
 
 **Error Handling**:
 

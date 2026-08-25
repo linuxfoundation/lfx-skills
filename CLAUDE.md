@@ -12,7 +12,7 @@ Two sources of truth sit behind this file; this file summarizes them and they wi
 - **The review bar**: [`.github/skills/lfx-skills-code-review/SKILL.md`](.github/skills/lfx-skills-code-review/SKILL.md)
   is the exact lens every PR here is reviewed against — what makes a skill sound, and which side of the
   central-vs-repo boundary content belongs on. Read it *before* authoring, not after the review comes back.
-- **Distribution and versioning**: the README's *Project Structure* and *Plugin versioning* sections.
+- **Distribution**: the README's *Project Structure* section.
 
 ## What this repo is
 
@@ -106,22 +106,29 @@ in the description; buried in the body it cannot influence triggering.
 
 ### Test before you PR
 
-Even without the full skill-creator eval loop, run 2–3 realistic prompts — the kind a real user would
-actually say — against a session with the skill available, and check it triggers and that following it
-produces the expected result. Simple one-step prompts are poor tests: agents skip skills for tasks they
-can handle directly, so test with the substantive multi-step requests the skill exists for.
+You can load your local checkout as the plugin without installing anything: from the repo root, run
 
-## Plugin versioning — do not add a `version` field
+```bash
+claude --plugin-dir .
+```
 
-`.claude-plugin/plugin.json` deliberately declares **no `version`**, so installs resolve to the git commit
-SHA and every merge to `main` reaches users automatically. Adding a version back pins the plugin: users
-stop receiving updates until someone remembers to bump the string. `claude plugin validate .` warns about
-the missing version — that warning is expected; do not "fix" it. Full rationale in the README's *Plugin
-versioning* section.
+This loads the working tree — uncommitted edits included — as the `lfx-skills` plugin for that session
+only, taking the place of any installed copy, so skills resolve under their real `/lfx-skills:<name>`
+namespaces exactly as users will see them. For quick non-interactive checks, combine it with headless
+mode:
+
+```bash
+claude --plugin-dir . -p "Is lfx-my-new-skill available? Give its namespaced name."
+```
+
+Then, even without the full skill-creator eval loop, run 2–3 realistic prompts — the kind a real user
+would actually say — in such a session, and check the skill triggers and that following it produces the
+expected result. Simple one-step prompts are poor tests: agents skip skills for tasks they can handle
+directly, so test with the substantive multi-step requests the skill exists for.
 
 ## Before you push
 
-- `claude plugin validate .` — must pass (the no-version warning is the only expected output).
+- `claude plugin validate .` — must pass.
 - `npx markdownlint-cli2 "**/*.md" "#node_modules" "#local-agents"` — the baseline is not fully clean, so
   the bar is: introduce no *new* errors relative to `main`.
 - License headers on new files (CI blocks the PR otherwise).

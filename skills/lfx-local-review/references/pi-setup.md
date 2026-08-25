@@ -38,7 +38,7 @@ are normally standing in a service repo where it does not exist.
 It prints one of:
 
 | Result | Meaning |
-|---|---|
+| --- | --- |
 | `PI_READY` | the trio will run on Pi |
 | `PI_NOT_INSTALLED` | `pi` is not on `PATH` |
 | `PI_UNAUTHENTICATED` | `pi` lists **no** models for the provider — normally not logged in, since a signed-out `pi` exits 0 and prints `No models matching "<provider>"` rather than failing |
@@ -83,6 +83,12 @@ the Copilot-enabled GitHub account/seat. Then rerun local review.
 Name it explicitly when you relay this. "Authenticate your provider" leaves a
 developer guessing which of several to pick, and picking a different one
 produces a working Pi that this launcher will still reject for the wrong model.
+
+If readiness reports `PI_MODEL_UNAVAILABLE` after a successful login, the
+provider lists models but not the configured one. Open Pi's model selector
+(`/model`) and enable **GPT-5.6 Sol** — it then also appears in
+`/scoped-models` — and confirm with `pi --list-models github-copilot` that
+the seat now serves it before rerunning readiness.
 
 ## Thinking level
 

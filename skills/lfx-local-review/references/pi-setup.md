@@ -84,9 +84,11 @@ Name it explicitly when you relay this. "Authenticate your provider" leaves a
 developer guessing which of several to pick, and picking a different one
 produces a working Pi that this launcher will still reject for the wrong model.
 
-If readiness reports `PI_MODEL_UNAVAILABLE` after a successful login, the seat
-serves models but not the configured one: inside Pi, run `/models` and enable
-**GPT-5.6 Sol** so it appears in `/scoped-models`, then rerun readiness.
+If readiness reports `PI_MODEL_UNAVAILABLE` after a successful login, the
+provider lists models but not the configured one. Open Pi's model selector
+(`/model`) and enable **GPT-5.6 Sol** — it then also appears in
+`/scoped-models` — and confirm with `pi --list-models github-copilot` that
+the seat now serves it before rerunning readiness.
 
 ## Thinking level
 

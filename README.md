@@ -110,9 +110,10 @@ the seat's allowance, so review runs draw on it like any other Copilot use.
    Copilot-enabled GitHub account. (Pick Copilot specifically — a different
    provider produces a working Pi that the launcher still rejects for the
    wrong model.)
-3. **Enable the model**: inside Pi, run `/models` and enable **GPT-5.6 Sol**
-   so it shows up in `/scoped-models`. The launcher pins
-   `github-copilot/gpt-5.6-sol`; a seat that doesn't serve it reports
+3. **Enable the model**: inside Pi, open the model selector with `/model` and
+   enable **GPT-5.6 Sol** so it shows up in `/scoped-models`. The launcher
+   pins `github-copilot/gpt-5.6-sol`; `pi --list-models github-copilot`
+   confirms your seat serves it, and a seat that doesn't reports
    `PI_MODEL_UNAVAILABLE` and the trio falls back to Claude.
 
 Local review is currently enabled in **`lfx-v2-newsletter-service`,

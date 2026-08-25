@@ -38,7 +38,7 @@ are normally standing in a service repo where it does not exist.
 It prints one of:
 
 | Result | Meaning |
-|---|---|
+| --- | --- |
 | `PI_READY` | the trio will run on Pi |
 | `PI_NOT_INSTALLED` | `pi` is not on `PATH` |
 | `PI_UNAUTHENTICATED` | `pi` lists **no** models for the provider — normally not logged in, since a signed-out `pi` exits 0 and prints `No models matching "<provider>"` rather than failing |

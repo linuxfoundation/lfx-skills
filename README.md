@@ -127,7 +127,7 @@ Each agent locates its owning repo at runtime and uses repo-qualified paths for 
 ```text
 .
 ├── .claude-plugin/
-│   ├── plugin.json              # Claude plugin manifest (name: lfx-skills)
+│   ├── plugin.json              # Claude plugin manifest (name: lfx-skills; no `version` — see below)
 │   └── marketplace.json         # Marketplace manifest (name: lfx-skills)
 ├── skills/
 │   ├── lfx/                     # central topology router
@@ -169,6 +169,23 @@ Each agent locates its owning repo at runtime and uses repo-qualified paths for 
 ├── README.md
 └── SECURITY.md
 ```
+
+## Plugin versioning
+
+`.claude-plugin/plugin.json` deliberately declares **no `version` field**.
+
+Claude Code resolves a plugin's version from `plugin.json`, then the
+marketplace entry, then the git commit SHA of the plugin's source. Declaring a
+`version` *pins* the plugin: users keep their cached copy until the string
+changes, so every unbumped commit is invisible to them. Leaving it out puts
+this plugin on commit-SHA resolution, so a merge to `main` reaches installed
+users on its own — which is what the Claude Code docs recommend for an
+actively developed internal plugin.
+
+Do not add a `version` field back unless you also intend to bump it on every
+release. The `./` plugin source in `marketplace.json` is required for this:
+relative-path sources resolve against the marketplace clone and are part of
+the commit-SHA group.
 
 Skill bodies live under `skills/<name>/SKILL.md`; supporting files live under `skills/<name>/references/` and are loaded on demand.
 

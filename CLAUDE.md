@@ -128,7 +128,8 @@ directly, so test with the substantive multi-step requests the skill exists for.
 
 ## Before you push
 
-- `claude plugin validate .` — must pass.
+- `claude plugin validate .` — must pass. Its missing-`version` warning is expected: this plugin
+  deliberately doesn't use versioning (see the README's *Plugin versioning* section) — don't "fix" it.
 - `npx markdownlint-cli2 "**/*.md" "#node_modules" "#local-agents"` — the baseline is not fully clean, so
   the bar is: introduce no *new* errors relative to `main`.
 - License headers on new files (CI blocks the PR otherwise).

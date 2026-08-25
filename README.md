@@ -3,7 +3,10 @@
 
 # LFX Skills
 
-Central Claude Code plugin for LFX development. Bundles the canonical LFX architecture knowledge, cross-repo workflow skills, and post-commit reviewer agents that every LFX contributor needs. Each LFX repo's local setup (`CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, and repo-owned `docs/`) calls out to this plugin for cross-repo topology, platform conventions, and review automation.
+Central Claude Code plugin for LFX development. Bundles the canonical LFX architecture knowledge, cross-repo workflow
+skills, and post-commit reviewer agents that every LFX contributor needs. Each LFX repo's local setup (`CLAUDE.md`,
+`.claude/rules/`, `.claude/skills/`, and repo-owned `docs/`) calls out to this plugin for cross-repo topology, platform
+conventions, and review automation.
 
 ## Install
 
@@ -14,7 +17,8 @@ In Claude Code:
 /plugin install lfx-skills@lfx-skills
 ```
 
-Restart Claude Code, then open any LFX repo and invoke `/lfx-skills:lfx` (or `/lfx` if your environment has no naming collision). The router auto-detects your context and points you at the right skill, repo, or reference.
+Restart Claude Code, then open any LFX repo and invoke `/lfx-skills:lfx` (or `/lfx` if your environment has no naming
+collision). The router auto-detects your context and points you at the right skill, repo, or reference.
 
 ### Codex and other Agent Skills tools
 
@@ -28,21 +32,28 @@ the skills into your user-global Agent Skills directory (`~/.agents/skills/`);
 
 Type `/lfx-skills:lfx` and describe what you want in plain language:
 
-- **"Where does the meeting data flow live?"** — the router classifies the task and points at the owning repos plus the relevant central skill.
-- **"I'm adding a new V2 resource service"** — routes you to `/lfx-skills:lfx-platform-architecture` for platform flow, service class, and cross-service handoff points; the owning repo's path-scoped guidance handles Go conventions.
-- **"Does this API already exist?"** — `/lfx-skills:lfx` runs a read-only research pass to verify owning repos, contracts, examples, and blockers before implementation.
-- **"Generate a new silver dbt model"** — routes to `/lfx-skills:lfx-data-engineer` for medallion-layer conventions, sqlfluff formatting, tests, and dbt validation guidance.
+- **"Where does the meeting data flow live?"** — the router classifies the task and points at the owning repos plus the
+  relevant central skill.
+- **"I'm adding a new V2 resource service"** — routes you to `/lfx-skills:lfx-platform-architecture` for platform flow,
+  service class, and cross-service handoff points; the owning repo's path-scoped guidance handles Go conventions.
+- **"Does this API already exist?"** — `/lfx-skills:lfx` runs a read-only research pass to verify owning repos,
+  contracts, examples, and blockers before implementation.
+- **"Generate a new silver dbt model"** — routes to `/lfx-skills:lfx-data-engineer` for medallion-layer conventions,
+  sqlfluff formatting, tests, and dbt validation guidance.
 - **"Add or fix Intercom in this app"** — routes to `/lfx-skills:lfx-intercom`.
 - **"Add a CDP Snowflake connector"** — routes to `/lfx-skills:lfx-cdp-snowflake-connectors`.
 - **"Catch me up on my open PRs"** — routes to `/lfx-skills:lfx-pr-catchup`.
 
-The plugin assumes you have a workspace with LFX repos checked out (typically `~/lfx/`, `~/lf/`, or similar). The `/lfx` router will ask once if it cannot find a workspace root. If a required repo is missing from that root, `/lfx` uses the GitHub URL in its repo map to clone it before reading repo-local setup.
+The plugin assumes you have a workspace with LFX repos checked out (typically `~/lfx/`, `~/lf/`, or similar). The `/lfx`
+router will ask once if it cannot find a workspace root. If a required repo is missing from that root, `/lfx` uses the
+GitHub URL in its repo map to clone it before reading repo-local setup.
 
 ## What's Inside
 
 ### Central architecture and integration skills (6)
 
-Canonical LFX knowledge that lives in this plugin and is referenced by every LFX repo's local setup. These are *not* implementation recipes; they hand off to the owning repo for detail.
+Canonical LFX knowledge that lives in this plugin and is referenced by every LFX repo's local setup. These are *not*
+implementation recipes; they hand off to the owning repo for detail.
 
 | Skill                                   | Purpose                                                                                                                                                                                        |
 |-----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -74,10 +85,10 @@ Author-side, pre-PR review that runs on your machine and stops at PR-open.
 Reviewers may read GitHub and fetch, but never write GitHub state: no comment,
 review, check, status, label or approval, and no gate or merge.
 
-| Skill                               | Purpose                                                                                                                                                                                     |
-|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `/lfx-skills:lfx-local-review`      | Run the review trio on the current repo — the general reviewer plus the repo's own code and learnings reviewers — on headless Pi when available, Claude subagents otherwise. Reviews the newest commit and runs in the background. |
-| `lfx-general-code-review`           | The general review method itself: correctness, security, error handling, simplicity, naming, DRY, testing, performance, style. Loaded by the review trio in either harness. Not invoked by hand. |
+| Skill                          | Purpose                                                                                                                                                                                                                            |
+|--------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/lfx-skills:lfx-local-review` | Run the review trio on the current repo — the general reviewer plus the repo's own code and learnings reviewers — on headless Pi when available, Claude subagents otherwise. Reviews the newest commit and runs in the background. |
+| `lfx-general-code-review`      | The general review method itself: correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance, style. Loaded by the review trio in either harness. Not invoked by hand.                     |
 
 Pi is what makes this **cross-model** — the same skills, judged by a different
 model. Without it the trio still runs, on three Claude Opus subagents, and the
@@ -85,14 +96,40 @@ host says plainly that this is not the cross-model check. It is not called a
 *same-model* review either: the subagents are explicitly Opus while the session
 hosting them may be a different model.
 
+#### Setting up the Pi reviewers
+
+We added Pi to get **model diversity from the Copilot seat you already have**:
+the reviewers run on GPT-5.6 Sol through that seat — no new subscription or
+API key — so a second model family checks the work; a model reviewing its own
+output shares its own blind spots. Copilot meters premium-model usage against
+the seat's allowance, so review runs draw on it like any other Copilot use.
+
+1. **Install Pi**: `npm install -g @earendil-works/pi-coding-agent`
+2. **Authenticate with GitHub Copilot**: run `pi`, then `/login` and choose
+   **GitHub Copilot** in the provider picker, completing login with your
+   Copilot-enabled GitHub account. (Pick Copilot specifically — a different
+   provider produces a working Pi that the launcher still rejects for the
+   wrong model.)
+3. **Enable the model**: inside Pi, open the model selector with `/model` and
+   enable **GPT-5.6 Sol** so it shows up in `/scoped-models`. The launcher
+   pins `github-copilot/gpt-5.6-sol`; `pi --list-models github-copilot`
+   confirms your seat serves it, and a seat that doesn't reports
+   `PI_MODEL_UNAVAILABLE` and the trio falls back to Claude.
+
+Local review is currently enabled in **`lfx-v2-newsletter-service`,
+`lfx-v2-meeting-service`, `lfx-v2-campaign-service`, and
+`lfx-v2-committee-service`** — the repos whose `main` carries the two repo
+reviewer skills below.
+
 The repo under review owns its own two reviewer skills at
 `.claude/skills/local-code-review/SKILL.md` and
 `.claude/skills/local-learnings-review/SKILL.md`; a repo without them is not set
 up for local review. See
 [`references/repo-brains.md`](skills/lfx-local-review/references/repo-brains.md)
 to author them, and
-[`references/pi-setup.md`](skills/lfx-local-review/references/pi-setup.md) to
-install Pi.
+[`references/pi-setup.md`](skills/lfx-local-review/references/pi-setup.md) for
+the full Pi setup detail (readiness checks, model/provider overrides, thinking
+levels).
 
 ### Platform skill (1)
 
@@ -102,11 +139,13 @@ install Pi.
 
 ### Reviewer agents (13)
 
-Post-commit code reviewers that LFX repos invoke after every pre-PR commit. Launched in parallel as subagents via the `Agent` tool. The general reviewer is repo-agnostic; repo-specific reviewers are packaged centrally for runtime availability but read their owning repo's `CLAUDE.md`, local skills, docs, contracts, and code.
+Post-commit code reviewers that LFX repos invoke after every pre-PR commit. Launched in parallel as subagents via the
+`Agent` tool. The general reviewer is repo-agnostic; repo-specific reviewers are packaged centrally for runtime
+availability but read their owning repo's `CLAUDE.md`, local skills, docs, contracts, and code.
 
 | Agent                                                  | Purpose                                                                                                                                                    |
 |--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `lfx-skills:lfx-general-code-reviewer`                 | Generic senior-reviewer pass: correctness, security, performance, maintainability, tests, code truthfulness. No repo-specific rulebook.                    |
+| `lfx-skills:lfx-general-code-reviewer`                 | Generic senior-reviewer pass: correctness, security, data privacy, performance, maintainability, tests, code truthfulness. No repo-specific rulebook.      |
 | `lfx-skills:lfx-committee-service-code-reviewer`       | Committee Service convention and contract audit against repo-owned guidance, Goa/NATS/FGA/indexer contracts, chart wiring, and code layout.                |
 | `lfx-skills:lfx-committee-service-learnings-reviewer`  | Empirical pattern matcher against `lfx-v2-committee-service/docs/reviews/knowledge-base/` (patterns sampled from past PR review comments).                 |
 | `lfx-skills:lfx-email-service-code-reviewer`           | Email Service convention and contract audit against repo-owned guidance, public NATS payloads, SES/SQS/KV tracking, and chart wiring.                      |
@@ -120,14 +159,15 @@ Post-commit code reviewers that LFX repos invoke after every pre-PR commit. Laun
 | `lfx-skills:lfx-self-serve-code-reviewer`              | Convention audit against `lfx-self-serve`'s `.claude/rules/`, `docs/reviews/` checklists, architecture docs, and upstream API contracts.                   |
 | `lfx-skills:lfx-self-serve-learnings-reviewer`         | Empirical pattern matcher against `lfx-self-serve/docs/reviews/knowledge-base/` (patterns sampled from past PR review comments).                           |
 
-Each agent locates its owning repo at runtime and uses repo-qualified paths for multi-repo sessions. See each agent's prompt under `agents/` for the exact invocation contract.
+Each agent locates its owning repo at runtime and uses repo-qualified paths for multi-repo sessions. See each agent's
+prompt under `agents/` for the exact invocation contract.
 
 ## Project Structure
 
 ```text
 .
 ├── .claude-plugin/
-│   ├── plugin.json              # Claude plugin manifest (name: lfx-skills)
+│   ├── plugin.json              # Claude plugin manifest (name: lfx-skills; no `version` — see below)
 │   └── marketplace.json         # Marketplace manifest (name: lfx-skills)
 ├── skills/
 │   ├── lfx/                     # central topology router
@@ -164,13 +204,33 @@ Each agent locates its owning repo at runtime and uses repo-qualified paths for 
 ├── install.sh                   # Agent Skills installer (Codex etc. → ~/.agents/skills)
 ├── update.sh                    # re-sync Agent Skills symlinks after a pull
 ├── uninstall.sh                 # remove LFX Agent Skills symlinks
+├── AGENTS.md -> CLAUDE.md       # same guide, for Codex and other Agent Skills tools
+├── CLAUDE.md                    # contributor guide: skill authoring, boundaries, testing
 ├── LICENSE
 ├── LICENSE-docs
 ├── README.md
 └── SECURITY.md
 ```
 
-Skill bodies live under `skills/<name>/SKILL.md`; supporting files live under `skills/<name>/references/` and are loaded on demand.
+## Plugin versioning
+
+`.claude-plugin/plugin.json` deliberately declares **no `version` field**.
+
+Claude Code resolves a plugin's version from `plugin.json`, then the
+marketplace entry, then the git commit SHA of the plugin's source. Declaring a
+`version` *pins* the plugin: users keep their cached copy until the string
+changes, so every unbumped commit is invisible to them. Leaving it out puts
+this plugin on commit-SHA resolution, so a merge to `main` reaches installed
+users on its own — which is what the Claude Code docs recommend for an
+actively developed internal plugin.
+
+Do not add a `version` field back unless you also intend to bump it on every
+release. The `./` plugin source in `marketplace.json` is required for this:
+relative-path sources resolve against the marketplace clone and are part of
+the commit-SHA group.
+
+Skill bodies live under `skills/<name>/SKILL.md`; supporting files live under `skills/<name>/references/` and are loaded
+on demand.
 
 ## Prerequisites
 

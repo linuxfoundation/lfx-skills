@@ -241,6 +241,26 @@ ticket, a Slack thread, a screenshot transcript):
 - Do not echo the raw values back in a summary any more than needed to
   answer the immediate question.
 
+## Review-time checks
+
+The hard rules above govern generation. Reviewers apply the same taxonomy
+and the logging exception, plus three further dimensions that can only be
+judged against a diff:
+
+- **Data subject rights** — a user's right to access, delete, correct or
+  export their own data still holds (new PII field without a deletion or
+  export path; soft-delete without scrubbing; third-party sync without
+  deprovisioning; consent surface removed; ad-hoc PII export).
+- **Data retention** — new PII stores, crons, archives or log groups ship
+  with a TTL, expiry, lifecycle or purge path.
+- **Data residency** — user data stays in, or moves to, a region consistent
+  with its jurisdiction (only when the mismatch is evidenced in the diff).
+
+Those checklists, the proof-before-critical rule, and the do-not-reproduce
+rule live in `skills/lfx-general-code-review/SKILL.md` (local review) and
+`agents/lfx-general-code-reviewer.md` (named post-commit reviewer). Reviewers
+stay self-contained and do not load this file at review time.
+
 ## Related repo-level rules
 
 Per-repo guidance may add stricter rules (for example, a service that owns

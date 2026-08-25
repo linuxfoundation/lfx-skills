@@ -8,7 +8,7 @@ the other two**, because they encode things only that repo knows.
 
 | Role | Owner | What it knows |
 |---|---|---|
-| `general` | central | language-agnostic correctness, security, testing, performance |
+| `general` | central | language-agnostic correctness, security, data privacy, testing, performance |
 | `repo_code` | the repo | its own written conventions, contracts and architecture |
 | `repo_learnings` | the repo | patterns extracted from its own past PR review comments |
 

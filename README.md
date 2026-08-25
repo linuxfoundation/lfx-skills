@@ -164,6 +164,8 @@ Each agent locates its owning repo at runtime and uses repo-qualified paths for 
 ├── install.sh                   # Agent Skills installer (Codex etc. → ~/.agents/skills)
 ├── update.sh                    # re-sync Agent Skills symlinks after a pull
 ├── uninstall.sh                 # remove LFX Agent Skills symlinks
+├── AGENTS.md -> CLAUDE.md       # same guide, for Codex and other Agent Skills tools
+├── CLAUDE.md                    # contributor guide: skill authoring, boundaries, testing
 ├── LICENSE
 ├── LICENSE-docs
 ├── README.md

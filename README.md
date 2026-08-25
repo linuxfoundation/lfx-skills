@@ -85,14 +85,38 @@ host says plainly that this is not the cross-model check. It is not called a
 *same-model* review either: the subagents are explicitly Opus while the session
 hosting them may be a different model.
 
+#### Setting up the Pi reviewers
+
+We added Pi to get **model diversity for free**: the reviewers run on GPT-5.6
+Sol through the GitHub Copilot seat you already have, so a second model family
+checks the work at no extra cost — a model reviewing its own output shares its
+own blind spots.
+
+1. **Install Pi**: `npm install -g @earendil-works/pi-coding-agent`
+2. **Authenticate with GitHub Copilot**: run `pi`, then `/login` and choose
+   **GitHub Copilot** in the provider picker, completing login with your
+   Copilot-enabled GitHub account. (Pick Copilot specifically — a different
+   provider produces a working Pi that the launcher still rejects for the
+   wrong model.)
+3. **Enable the model**: inside Pi, run `/models` and enable **GPT-5.6 Sol**
+   so it shows up in `/scoped-models`. The launcher pins
+   `github-copilot/gpt-5.6-sol`; a seat that doesn't serve it reports
+   `PI_MODEL_UNAVAILABLE` and the trio falls back to Claude.
+
+Local review is currently enabled in **`lfx-v2-newsletter-service`,
+`lfx-v2-meeting-service`, `lfx-v2-campaign-service`, and
+`lfx-v2-committee-service`** — the repos whose `main` carries the two repo
+reviewer skills below.
+
 The repo under review owns its own two reviewer skills at
 `.claude/skills/local-code-review/SKILL.md` and
 `.claude/skills/local-learnings-review/SKILL.md`; a repo without them is not set
 up for local review. See
 [`references/repo-brains.md`](skills/lfx-local-review/references/repo-brains.md)
 to author them, and
-[`references/pi-setup.md`](skills/lfx-local-review/references/pi-setup.md) to
-install Pi.
+[`references/pi-setup.md`](skills/lfx-local-review/references/pi-setup.md) for
+the full Pi setup detail (readiness checks, model/provider overrides, thinking
+levels).
 
 ### Platform skill (1)
 

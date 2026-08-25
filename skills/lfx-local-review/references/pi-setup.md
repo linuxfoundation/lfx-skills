@@ -84,6 +84,10 @@ Name it explicitly when you relay this. "Authenticate your provider" leaves a
 developer guessing which of several to pick, and picking a different one
 produces a working Pi that this launcher will still reject for the wrong model.
 
+If readiness reports `PI_MODEL_UNAVAILABLE` after a successful login, the seat
+serves models but not the configured one: inside Pi, run `/models` and enable
+**GPT-5.6 Sol** so it appears in `/scoped-models`, then rerun readiness.
+
 ## Thinking level
 
 Reviewers run at **`high`** by default, because reviewing rewards deliberation

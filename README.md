@@ -98,10 +98,11 @@ hosting them may be a different model.
 
 #### Setting up the Pi reviewers
 
-We added Pi to get **model diversity for free**: the reviewers run on GPT-5.6
-Sol through the GitHub Copilot seat you already have, so a second model family
-checks the work at no extra cost — a model reviewing its own output shares its
-own blind spots.
+We added Pi to get **model diversity from the Copilot seat you already have**:
+the reviewers run on GPT-5.6 Sol through that seat — no new subscription or
+API key — so a second model family checks the work; a model reviewing its own
+output shares its own blind spots. Copilot meters premium-model usage against
+the seat's allowance, so review runs draw on it like any other Copilot use.
 
 1. **Install Pi**: `npm install -g @earendil-works/pi-coding-agent`
 2. **Authenticate with GitHub Copilot**: run `pi`, then `/login` and choose

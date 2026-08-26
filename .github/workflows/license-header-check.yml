@@ -7,9 +7,28 @@ name: License Header Check
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
+  # Every non-markdown file. Markdown is left to markdown-header-check, which
+  # can reach past frontmatter and also enforces the SPDX line.
   license-header-check:
     name: License Header Check
-    uses: linuxfoundation/lfx-public-workflows/.github/workflows/license-header-check.yml@874b1c3f4e5d6789abcdeffedcba1234567890ab
+    uses: linuxfoundation/lfx-public-workflows/.github/workflows/license-header-check.yml@8313b4b18b95d750f99a78d5ea160d851afbc40b
+    with:
+      copyright_line: "Copyright The Linux Foundation and each contributor to LFX."
+
+  # Every markdown file, frontmatter or not.
+  markdown-header-check:
+    name: License Header Check (markdown)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Test the checker
+        run: ./.github/scripts/test-check-markdown-headers.sh
+      - name: Check License Headers
+        run: ./.github/scripts/check-markdown-headers.sh

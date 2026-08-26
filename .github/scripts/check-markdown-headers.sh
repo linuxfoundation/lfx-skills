@@ -38,6 +38,24 @@ YAML_KEY='^[A-Za-z_][A-Za-z0-9_.-]*:'
 # Deciding on content rather than on a line budget matters too: the deepest
 # closing `---` in the repo today is already at line 20, so any fixed window
 # would sit right on top of files that exist.
+#
+# The scan is bounded at the first blank line rather than running through the
+# whole candidate block. Real frontmatter puts its keys before any blank
+# line, while the prose that follows a horizontal rule sits below one — so a
+# colon-led body line like `Note: ...` or `Handoff: ...` beyond the first
+# blank is prose, not a key. Without the bound, such a line makes a
+# rule-opening file read as frontmatter (a later rule becomes the "close") or,
+# with no later rule at all, as unterminated frontmatter — failing a file
+# whose header is present and correctly placed.
+
+# Lines that may decide the classification: from the line below the opening
+# delimiter to the first blank line, never past `end` when a closing
+# delimiter exists.
+block_head() {
+  local file="$1" end="${2:-\$}"
+  sed -n "2,${end}p" "$file" | awk '/^[[:space:]]*$/ { exit } { print }'
+}
+
 # Prints "fm <close-line>", "plain", or "unterminated".
 classify() {
   local file="$1" close
@@ -45,13 +63,13 @@ classify() {
 
   close=$(awk 'NR>1 && /^---$/{print NR; exit}' "$file")
   if [ -n "$close" ]; then
-    if sed -n "2,$((close - 1))p" "$file" | grep -qE "$YAML_KEY"; then
+    if block_head "$file" "$((close - 1))" | grep -qE "$YAML_KEY"; then
       echo "fm $close"
     else
       # A rule, and the `---` found above is a later rule.
       echo plain
     fi
-  elif sed -n '2,$p' "$file" | grep -qE "$YAML_KEY"; then
+  elif block_head "$file" | grep -qE "$YAML_KEY"; then
     # Opens like frontmatter but never closes. Scanned the same way as the
     # branch above rather than on the single line below the delimiter, for
     # the same reason: frontmatter may open with YAML comments, and judging

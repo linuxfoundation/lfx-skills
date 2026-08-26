@@ -166,6 +166,30 @@ run_case "leading horizontal rule, no header" bad "within 4 lines of line 1" \
 
 Body."
 
+# Colon-led prose below the first blank line is not a YAML key: without the
+# blank-line bound this file read as unterminated frontmatter despite its
+# valid header, because the 'Note:' line matched the key pattern.
+run_case "leading rule, header, colon-led prose, no later rule" ok "" \
+"---
+$HEADER
+
+# Heading
+
+Note: this repo uses X."
+
+# Same shape with a later rule: without the bound the block between the two
+# rules read as frontmatter, moving the expected header position below the
+# later rule and failing the correctly placed header.
+run_case "leading rule, header, colon-led prose, later rule" ok "" \
+"---
+$HEADER
+
+Handoff: the owning repo takes over here.
+
+---
+
+Body."
+
 # --- report ---------------------------------------------------------------
 echo
 echo "$pass passed, $fail failed"

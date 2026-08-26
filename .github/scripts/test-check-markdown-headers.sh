@@ -190,6 +190,26 @@ Handoff: the owning repo takes over here.
 
 Body."
 
+# --- accepted boundary cases of the blank-line bound ----------------------
+# These pin the trade-off documented in the checker: a line-1 --- is
+# inherently ambiguous, and these two shapes sit on the wrong side of the
+# blank-line rule. Both fail loudly; neither exists in the repo. If one ever
+# appears legitimately, the failing file needs a blank line after the header
+# (first case) or its frontmatter keys moved above the blank (second case).
+run_case "colon-led prose jammed against the header reads as a key" bad "unterminated YAML frontmatter" \
+"---
+$HEADER
+Note: no blank line separates this from the header."
+
+run_case "frontmatter with a blank line before its first key reads as plain" bad "within 4 lines of line 1" \
+"---
+
+name: thing
+---
+$HEADER
+
+# Title"
+
 # --- report ---------------------------------------------------------------
 echo
 echo "$pass passed, $fail failed"

@@ -47,6 +47,14 @@ YAML_KEY='^[A-Za-z_][A-Za-z0-9_.-]*:'
 # rule-opening file read as frontmatter (a later rule becomes the "close") or,
 # with no later rule at all, as unterminated frontmatter — failing a file
 # whose header is present and correctly placed.
+#
+# The ambiguity of a line-1 `---` is inherent, so boundary cases remain and
+# are accepted: colon-led prose jammed directly against the header with no
+# blank line still reads as a key, and frontmatter opening with a blank line
+# before its first key reads as plain. Neither shape exists in this repo,
+# both fail loudly rather than pass silently, and the fixture file pins them.
+# The deterministic alternative — declaring every line-1 `---` frontmatter —
+# would instead fail every rule-opening file this repo deliberately supports.
 
 # Lines that may decide the classification: from the line below the opening
 # delimiter to the first blank line, never past `end` when a closing

@@ -5,14 +5,14 @@ description: >
   environments (prod, staging, shared dev): per-service databases and roles
   on the shared RDS instance via `postgres-database-definitions.yaml` +
   `postgres.tf` in `lfx-v2-opentofu`, Secrets Manager credential rotation,
-  the pgvector flag, Datadog database monitoring, and CloudNativePG
-  operator provisioning where in-cluster modes apply. Written for the
-  linuxfoundation GitHub org's ops audience — see the `-ops` skill
-  convention in `/lfx-skills:lfx`. Fires on prompts like "provision a
-  postgres database", "add a database to RDS", "postgres opentofu",
-  "database credentials rotation", "pgvector", "postgres secret ARN",
-  "CloudNativePG operator", "RDS role for a service". Requirements only;
-  the implementing agent owns the HCL.
+  the pgvector flag, and Datadog database monitoring. Deployed environments
+  never run the CloudNativePG operator — that only exists for local
+  development, owned by `lfx-v2-helm`. Written for the linuxfoundation
+  GitHub org's ops audience — see the `-ops` skill convention in
+  `/lfx-skills:lfx`. Fires on prompts like "provision a postgres database",
+  "add a database to RDS", "postgres opentofu", "database credentials
+  rotation", "pgvector", "postgres secret ARN", "RDS role for a service".
+  Requirements only; the implementing agent owns the HCL.
 allowed-tools: Read, Glob, Grep
 ---
 

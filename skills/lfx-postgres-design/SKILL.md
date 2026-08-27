@@ -13,8 +13,9 @@ description: >
   "database.mode", "CloudNativePG", "Database CR", "DATABASE_URL",
   "PGHOST", "sqlc", "golang-migrate", "postgres Helm values", "connect to
   RDS", "postgres secret", "local postgres". Read-only; routes
-  implementation work to the owning service repo and provisioning
-  (RDS databases, credentials, operators) to `/lfx-skills:lfx-postgres-ops`.
+  implementation work to the owning service repo, RDS provisioning
+  (databases, credentials) to `/lfx-skills:lfx-postgres-ops`, and the local
+  CloudNativePG operator/cluster to `lfx-v2-helm`.
 allowed-tools: Read, Glob, Grep
 ---
 
@@ -44,8 +45,10 @@ CloudNativePG-managed cluster provisioned by the platform umbrella chart.
 
 Do **not** invoke for:
 
-- Provisioning RDS databases, credentials, rotation, or the CloudNativePG
-  operator (`/lfx-skills:lfx-postgres-ops`).
+- Provisioning RDS databases, credentials, or rotation
+  (`/lfx-skills:lfx-postgres-ops`). The local CloudNativePG operator and
+  shared `Cluster` are provisioned by the umbrella chart itself (see
+  "Local development" below) — nothing to hand off there.
 - Schema modeling or table design detail (owning service's docs).
 
 ## The `database.mode` contract
@@ -147,18 +150,22 @@ Two equivalent shapes; the chart maps either onto the container:
   `PGDATABASE` set as a plain value from `databaseName`); in `external`
   mode with `shape: fields` they come from the supplied Secret via the
   `keys` mapping. The app composes its own connection string in-process —
-  do **not** assemble it with `$(PGPASSWORD)`-style env interpolation in
-  the pod spec, which leaks the password into the rendered manifest.
+  do **not** assemble it via `$(PGPASSWORD)`-style env interpolation
+  elsewhere in the pod spec; the split fields already cover every mode
+  uniformly, and in-process assembly is simpler and more portable than
+  wiring interpolation through the manifest.
 - **Single URL** (`DATABASE_URL`): `external` mode with `shape: url`, one
   `secretKeyRef` to `secretKey`.
 
 Deployed environments use `external` + `shape: fields`, with the referenced
 Secret supplied by deployment values (how it is provisioned and kept in
 sync is `/lfx-skills:lfx-postgres-ops`). The credential rotates, so
-services must tolerate password changes — reconnect on auth failure rather
-than caching credentials for the process lifetime, and read the Secret via
-env at pod start (rotation plus a rolling restart is the baseline;
-long-lived pools should expect eventual auth errors and re-resolve).
+services must tolerate password changes. `secretKeyRef` env vars are fixed
+for a Pod's lifetime — they do **not** pick up a rotated value without a
+restart — so a rolling restart on rotation is the required recovery
+mechanism, not an optional baseline. Long-lived connection pools should
+still expect an auth error at the moment of rotation (before the restart
+completes) and reconnect rather than caching a failed connection.
 
 This is a **contract**, not an implementation recipe: how the service reads
 the env vars (plain `os.Getenv`, koanf, viper, etc.) follows the owning
@@ -200,8 +207,10 @@ The platform-local shape:
 - **Two-step install caveat**: CloudNativePG's CRDs are chart-templated, so
   a one-shot install that renders both the operator and `Database`/`Cluster`
   CRs fails CRD validation. Locally: install with the operator subcharts
-  enabled first, then upgrade with everything else. (Deployed environments
-  solve the same ordering with an ArgoCD pre-sync CRD step.)
+  enabled first, then upgrade with everything else. Deployed environments
+  don't hit this: they never install the CloudNativePG operator or its
+  CRDs at all (see the ops skill's CloudNativePG operator section), so
+  there is no ordering step to solve there.
 - Third-party charts that carry their own Postgres wiring (for example
   OpenFGA) integrate with the shared cluster by rendering a CloudNativePG
   `Database` CR through the chart's `extraObjects`-style escape hatch, not
@@ -215,9 +224,10 @@ exercises the real chart contract end to end.
 
 ## What this skill is not
 
-- Not a provisioning guide. RDS databases, credentials/rotation, pgvector
-  enablement, and CloudNativePG operator provisioning are
-  `/lfx-skills:lfx-postgres-ops`.
+- Not a provisioning guide. RDS databases, credentials/rotation, and
+  pgvector enablement are `/lfx-skills:lfx-postgres-ops`. The local
+  CloudNativePG operator/cluster is provisioned by `lfx-v2-helm` (see
+  "Local development" above), not a handoff from this skill.
 - Not a schema-design or SQL style guide. Table design, indexes, and query
   conventions live in the owning service's docs.
 - Not a Goa or Go conventions guide. The owning repo's path-scoped dev
@@ -228,9 +238,9 @@ exercises the real chart contract end to end.
 ## Handoff boundary
 
 Once routed to the owning service repo, its local `AGENTS.md`/`CLAUDE.md`,
-`docs/`, and repo-local skills control implementation detail. For backend
-provisioning (the RDS database entry, credentials, pgvector, the
-CloudNativePG operator/cluster), hand off to
-`/lfx-skills:lfx-postgres-ops`. Deployed connection values (the External
-Secrets wiring and `database.mode: external` overrides) land in
-`lfx-v2-argocd`.
+`docs/`, and repo-local skills control implementation detail. For RDS
+provisioning (the database entry, credentials, pgvector), hand off to
+`/lfx-skills:lfx-postgres-ops`. The local CloudNativePG operator/cluster is
+owned by `lfx-v2-helm` directly — no separate ops handoff. Deployed
+connection values (the External Secrets wiring and `database.mode: external`
+overrides) land in `lfx-v2-argocd`.

@@ -43,8 +43,7 @@ All resources live in
 
 ## Pattern
 
-Data-driven flat `for_each`, matching the postgres convention
-(`postgres-database-definitions.yaml` + `postgres.tf`). **No new module** —
+Data-driven flat `for_each`. **No new module** —
 the Ops team prefers flat loops over YAML definitions; modules are reserved
 for cases that would otherwise require nested loops (see
 `modules/eks-service-account-role/`).

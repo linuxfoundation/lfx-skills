@@ -225,6 +225,8 @@ ship in this same `lfx-skills` plugin.
 | Intercom app workflow and Fin AI optimization                                              | `/lfx-skills:lfx-intercom`                            |
 | Object storage capability in a service (uploads, S3, CDN, local dev)                       | `/lfx-skills:lfx-object-store-design`                 |
 | Object storage backend provisioning (buckets, CloudFront, IRSA)                            | `/lfx-skills:lfx-object-store-ops`                    |
+| Postgres capability in a service (`database.mode`, chart contract, tooling, local dev)     | `/lfx-skills:lfx-postgres-design`                     |
+| Postgres backend provisioning (RDS databases, credentials, rotation, pgvector)             | `/lfx-skills:lfx-postgres-ops`                        |
 
 ### `-ops` skill convention
 

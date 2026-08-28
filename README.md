@@ -50,7 +50,7 @@ GitHub URL in its repo map to clone it before reading repo-local setup.
 
 ## What's Inside
 
-### Central architecture and integration skills (6)
+### Central architecture and integration skills (8)
 
 Canonical LFX knowledge that lives in this plugin and is referenced by every LFX repo's local setup. These are *not*
 implementation recipes; they hand off to the owning repo for detail.
@@ -63,6 +63,8 @@ implementation recipes; they hand off to the owning repo for detail.
 | `/lfx-skills:lfx-intercom`              | Retained central Intercom workflow from `main`, plus Fin AI optimization: Fin Guidance, Help Center content quality, and resolution rate.                                                      |
 | `/lfx-skills:lfx-object-store-design`   | Add object storage capability to a service: S3-compatible code patterns, upload/download API shapes, Helm credential modes, nats-s3 + nginx-s3-gateway local stack, `CDN_URL_PREFIX` contract. |
 | `/lfx-skills:lfx-object-store-ops`      | Provision object storage backends (private S3 + CloudFront OAC + IRSA) in `lfx-v2-opentofu`. For linuxfoundation org members.                                                                  |
+| `/lfx-skills:lfx-postgres-design`       | Add a PostgreSQL database to a service: the `database.mode` chart contract, env var / Secret contract, golang-migrate + sqlc tooling guidance, CloudNativePG local dev story.                  |
+| `/lfx-skills:lfx-postgres-ops`          | Provision PostgreSQL backends (RDS databases, Secrets Manager rotation, pgvector) in `lfx-v2-opentofu`. For linuxfoundation org members.                                                       |
 
 ### Workflow skills (8)
 
@@ -185,6 +187,8 @@ prompt under `agents/` for the exact invocation contract.
 │   │   └── references/          # dbt setup, style, macros, testing, debugging
 │   ├── lfx-object-store-design/
 │   ├── lfx-object-store-ops/
+│   ├── lfx-postgres-design/
+│   ├── lfx-postgres-ops/
 │   └── lfx-v2-ticket-writer/
 ├── agents/
 │   ├── lfx-committee-service-code-reviewer.md

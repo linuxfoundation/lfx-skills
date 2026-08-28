@@ -91,7 +91,7 @@ database:
   cloudNativePG:
     # Name of the existing CloudNativePG Cluster ("database" mode) or the
     # Cluster this chart renders ("cluster+database" mode).
-    clusterName: ""
+    clusterName: lfx-postgres
     databaseName: my-service
     # Used only in "cluster+database" mode.
     cluster:
@@ -128,12 +128,14 @@ Rendering requirements per mode:
   `database.external.secretName`, per `shape`. The Secret itself is created
   outside the chart (in deployed environments, by `lfx-v2-argocd`
   deployment values).
-- **CloudNativePG chart dependency**: a chart that can render CloudNativePG
-  CRs (`database` / `cluster+database` modes) must declare the upstream
-  `cloudnative-pg` Helm chart as a conditional `dependencies:` entry in
-  `Chart.yaml` (or document the operator as an explicit install-first
-  prerequisite) — the CRs are useless without the operator and its CRDs
-  present. See "Local development" below for the CRD ordering caveat.
+- **CloudNativePG operator is never a per-service chart dependency**: the
+  operator and its CRDs are installed once, locally, by the separate
+  `charts/lfx-crds` chart in `lfx-v2-helm` (see "Local development" below).
+  A service chart that renders CloudNativePG CRs (`database` /
+  `cluster+database` modes) must not declare the upstream `cloudnative-pg`
+  chart as its own `dependencies:` entry — that would create a second,
+  duplicate operator installation. Document the CR as depending on the
+  operator already being present instead.
 
 Spell out `cloudNativePG` in value names, comments, and identifiers being
 newly chosen; never abbreviate to a four-letter acronym. Externally fixed
@@ -204,13 +206,16 @@ The platform-local shape:
   resources — that every service's `database`-mode `Database` CR targets.
 - Service charts default to `database` mode (see the default rules
   above), whether installed via the umbrella or standalone.
-- **Two-step install caveat**: CloudNativePG's CRDs are chart-templated, so
-  a one-shot install that renders both the operator and `Database`/`Cluster`
-  CRs fails CRD validation. Locally: install with the operator subcharts
-  enabled first, then upgrade with everything else. Deployed environments
-  don't hit this: they never install the CloudNativePG operator or its
-  CRDs at all (see the ops skill's CloudNativePG operator section), so
-  there is no ordering step to solve there.
+- **Dual-chart install caveat**: CloudNativePG's CRDs are chart-templated
+  (not in a Helm `crds/` directory), so a chart dependency can't install
+  them and have Helm wait for them to be established before rendering CRs
+  that need them. The operator therefore lives in its own standalone
+  chart, `charts/lfx-crds` in `lfx-v2-helm`, installed once ahead of the
+  umbrella/service charts — not a subchart toggled on and off within the
+  same chart across an install-then-upgrade sequence. Deployed
+  environments don't hit this: they never install the CloudNativePG
+  operator or its CRDs at all, so there is no ordering step to solve
+  there.
 - Third-party charts that carry their own Postgres wiring (for example
   OpenFGA) integrate with the shared cluster by rendering a CloudNativePG
   `Database` CR through the chart's `extraObjects`-style escape hatch, not

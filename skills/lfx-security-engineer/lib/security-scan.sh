@@ -36,7 +36,10 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       SCAN_MODE="file"; TARGET_PATH="$2"; shift 2 ;;
-    *) shift ;;
+    *)
+      echo "ERROR: unrecognized flag: $1" >&2
+      exit 1
+      ;;
   esac
 done
 
@@ -63,7 +66,13 @@ get_changed_files() {
   else
     local base_ref
     base_ref=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/||' || echo "origin/main")
-    { git diff -z --name-only "${base_ref}...HEAD" 2>/dev/null || git diff -z --name-only HEAD~1 2>/dev/null || true; } | tr '\0' '\n'
+    {
+      git diff -z --name-only "${base_ref}...HEAD" 2>/dev/null || git diff -z --name-only HEAD~1 2>/dev/null || true
+      # Include staged + unstaged changes and untracked (non-ignored) files,
+      # not just what's already committed on this branch.
+      git diff -z --name-only HEAD 2>/dev/null || true
+      git ls-files -z --others --exclude-standard 2>/dev/null || true
+    } | tr '\0' '\n' | sort -u
   fi
 }
 
@@ -433,7 +442,7 @@ check_terraform() {
   if [ -n "$tfvars" ]; then
     while IFS= read -r f; do
       [ -z "$f" ] && continue
-      emit_finding CRITICAL terraform "$f" ".tfvars file in source control — may contain secrets"
+      emit_finding CRITICAL terraform "$f:1:$f" ".tfvars file in source control — may contain secrets"
       has_findings=true
     done <<< "$tfvars"
   fi

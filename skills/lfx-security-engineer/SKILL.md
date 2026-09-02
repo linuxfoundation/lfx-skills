@@ -39,19 +39,21 @@ For usage examples, see `references/usage-examples.md`.
 
 ### Step 1: Run Phase 1 Automated Scan
 
-Resolve the skill directory first (the script must run from the target repo root,
-not from the skill directory):
+You already know this skill's own directory — it's the folder containing the
+`SKILL.md` you just loaded. Substitute that literal path for `<skill dir>`
+below; do not try to derive it with `BASH_SOURCE`/`$0` — those resolve to the
+inline shell invocation, not this file, and would point at the target repo
+instead of the skill. The script itself must still run with the target repo
+as its working directory (it must run from the target repo root, not the
+skill directory):
 
 ```bash
-# $SKILL_DIR is the directory containing this SKILL.md
-SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-
 # Default: scan changed files
-bash "$SKILL_DIR/lib/security-scan.sh"
+bash <skill dir>/lib/security-scan.sh
 
 # Or with flags:
-bash "$SKILL_DIR/lib/security-scan.sh" --full-scan
-bash "$SKILL_DIR/lib/security-scan.sh" --file src/auth/
+bash <skill dir>/lib/security-scan.sh --full-scan
+bash <skill dir>/lib/security-scan.sh --file src/auth/
 ```
 
 The script outputs structured findings:
@@ -133,7 +135,8 @@ for security-specific exclusions (same glob syntax as `.gitignore`).
 
 ### Progressive Disclosure
 
-Default shows CRITICAL only. Use `--all` for all severity levels.
+Default shows CRITICAL and HIGH severity. Use `--all` to also include MEDIUM
+(test-file-downgraded, low-confidence) findings.
 
 ## Scope Boundaries
 

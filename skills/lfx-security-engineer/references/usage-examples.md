@@ -70,4 +70,4 @@ Full scan scoped to auth directory.
 - Start with default mode (`/lfx-security-engineer`) before every PR
 - Use `--scan-only` for rapid iteration during development
 - Use `--full-scan` only when onboarding a new repo or after major refactors
-- Use `--all` to see all severity levels (default shows CRITICAL only)
+- Use `--all` to also see MEDIUM-severity findings (default shows CRITICAL and HIGH)

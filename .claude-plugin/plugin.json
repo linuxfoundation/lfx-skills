@@ -1,7 +1,6 @@
 {
   "name": "lfx-skills",
   "description": "LFX developer-AI plugin: workflow skills, central LFX architecture skills, and reviewer agents. Repo-specific implementation truth stays in the owning repo.",
-  "version": "0.1.0",
   "author": {
     "name": "The Linux Foundation"
   },

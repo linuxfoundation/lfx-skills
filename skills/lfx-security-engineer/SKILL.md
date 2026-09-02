@@ -68,7 +68,7 @@ For false positive evaluation, consult `references/false-positive-patterns.md`.
 
 **Skip if `--scan-only` was passed.**
 
-Phase 2 requires reading code and making judgment calls. Scope to changed files only.
+Phase 2 requires reading code and making judgment calls. Scope to changed files only, unless `--full-scan` was passed — then review all files, matching Phase 1's scope.
 
 #### Review 1: Authentication Flow
 

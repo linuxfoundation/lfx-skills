@@ -27,9 +27,11 @@ Scan duration: [X.X]s
 
 🟡 WARNINGS ([count])
 
-[For each warning, use a compact format:]
-⚠️  [Brief description] at [file:line]
-    [One-line explanation and recommendation]
+[For each warning, use this compact format — it still carries every field
+required of a finding (what, risk, fix), just condensed to fewer lines:]
+⚠️  [Brief description — the "what"] at [file:line]
+    Risk: [What could go wrong if left unaddressed]
+    Fix: [Concrete remediation]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

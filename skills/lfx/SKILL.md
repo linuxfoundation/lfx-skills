@@ -240,7 +240,7 @@ stand-in, since design skills explicitly exclude provisioning work.
 
 ## Workflow skills (this plugin)
 
-Seven workflow skills ship alongside the architecture skills in this same
+Eight workflow skills ship alongside the architecture skills in this same
 `lfx-skills` plugin. Forward to them by name when relevant.
 
 | Topic                                | Skill                                      |
@@ -252,6 +252,7 @@ Seven workflow skills ship alongside the architecture skills in this same
 | Local multi-branch journey worktrees | `/lfx-skills:lfx-test-journey`             |
 | Snowflake access requests            | `/lfx-skills:lfx-snowflake-access`         |
 | CDP Snowflake connector scaffolding  | `/lfx-skills:lfx-cdp-snowflake-connectors` |
+| Security review before merging       | `/lfx-skills:lfx-security-engineer`        |
 
 ## Cross-repo path convention
 

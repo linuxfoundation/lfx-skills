@@ -38,6 +38,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ "$SCAN_MODE" == "file" && ! -e "$TARGET_PATH" ]]; then
+  echo "ERROR: --file target does not exist: $TARGET_PATH" >&2
+  exit 1
+fi
+
 # --- Detect repo type ---
 eval "$("$SCRIPT_DIR/detect-repo-type.sh")"
 
@@ -135,7 +140,7 @@ emit_finding() {
 check_secrets() {
   local findings
   findings=$(scan_files '\.(ts|js|go|rs|py|json|yaml|yml|env|tf|tfvars)$' \
-    '(api[_-]?key|secret[_-]?key|access[_-]?token|private[_-]?key|password|passwd|bearer)\s*[:=]\s*["'"'"'][A-Za-z0-9+/=_\-]{8,}')
+    '(api[_-]?key|secret[_-]?key|access[_-]?token|private[_-]?key|password|passwd|bearer)[[:space:]]*[:=][[:space:]]*["'"'"'][A-Za-z0-9+/=_\-]{8,}')
 
   if [ -z "$findings" ]; then
     echo "PASSED|secrets|No hardcoded secrets or credentials detected"
@@ -257,7 +262,7 @@ check_injection() {
 
     # Unsafe blocks
     local rust_unsafe
-    rust_unsafe=$(scan_files '\.rs$' 'unsafe\s*\{')
+    rust_unsafe=$(scan_files '\.rs$' 'unsafe[[:space:]]*\{')
     findings="$findings"$'\n'"$rust_unsafe"
   fi
 
@@ -269,7 +274,7 @@ check_injection() {
 
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    if echo "$line" | grep -qE 'unsafe\s*\{'; then
+    if echo "$line" | grep -qE 'unsafe[[:space:]]*\{'; then
       emit_finding HIGH injection "$line" "Unsafe block — verify SAFETY comment and no attacker-controlled data"
     else
       emit_finding CRITICAL injection "$line" "Potential injection vulnerability"
@@ -318,7 +323,7 @@ check_logging() {
 
   # Silent catch blocks in auth code
   local silent_catch
-  silent_catch=$(scan_files '\.(ts|js)$' 'catch\s*(\(.*\))?\s*\{[^}]*return\s*(null|undefined|false)')
+  silent_catch=$(scan_files '\.(ts|js)$' 'catch[[:space:]]*(\(.*\))?[[:space:]]*\{[^}]*return[[:space:]]*(null|undefined|false)')
   findings="$findings"$'\n'"$silent_catch"
 
   findings=$(echo "$findings" | sed '/^$/d')
@@ -388,7 +393,7 @@ check_terraform() {
 
   # Wildcard IAM
   local wildcard_iam
-  wildcard_iam=$(scan_files '\.tf$' 'actions\s*=\s*\["\*"\]|resources\s*=\s*\["\*"\]')
+  wildcard_iam=$(scan_files '\.tf$' 'actions[[:space:]]*=[[:space:]]*\["\*"\]|resources[[:space:]]*=[[:space:]]*\["\*"\]')
   while IFS= read -r line; do
     [ -z "$line" ] && continue
     emit_finding HIGH terraform "$line" "Overly permissive IAM — scope actions and resources"
@@ -406,7 +411,7 @@ check_terraform() {
 
   # Unencrypted storage
   local unencrypted
-  unencrypted=$(scan_files '\.tf$' 'storage_encrypted\s*=\s*false|acl\s*=\s*"public-read"')
+  unencrypted=$(scan_files '\.tf$' 'storage_encrypted[[:space:]]*=[[:space:]]*false|acl[[:space:]]*=[[:space:]]*"public-read"')
   while IFS= read -r line; do
     [ -z "$line" ] && continue
     emit_finding HIGH terraform "$line" "Unencrypted or public storage"
@@ -454,7 +459,7 @@ check_migrations() {
 
   # Sensitive columns as plain text
   local sensitive_cols
-  sensitive_cols=$(scan_files '\.(sql|up\.sql)$' '(password|passwd|ssn|tax_id|national_id|credit_card|card_number|cvv)\s+(VARCHAR|TEXT|CHAR)')
+  sensitive_cols=$(scan_files '\.(sql|up\.sql)$' '(password|passwd|ssn|tax_id|national_id|credit_card|card_number|cvv)[[:space:]]+(VARCHAR|TEXT|CHAR)')
   while IFS= read -r line; do
     [ -z "$line" ] && continue
     emit_finding CRITICAL migrations "$line" "Sensitive column stored as plain text"

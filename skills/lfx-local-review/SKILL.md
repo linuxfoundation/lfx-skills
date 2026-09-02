@@ -1,275 +1,333 @@
 ---
 name: lfx-local-review
-description: Run the local pre-PR review trio on the current repo — the general reviewer plus the repo's own code and learnings reviewers — on headless Pi when it is available, or Claude subagents otherwise, and return their ordinary Markdown reports. Use after a commit, in a repo that owns local review skills. Author-side only; reviewers may read GitHub but never write PR, gate or merge state.
+description: The canonical LFX review lifecycle and the single source of truth for it — Pre-PR local review on three background Claude Opus 5 reviewers in two modes (post-commit while work continues, then one full-branch review before the PR), and Post-PR iteration on the configured GitHub review bots. Load and follow this skill in an adopting LFX repo after every pre-PR commit, when preparing to open a PR, and when working PR review threads. Pre-PR local review produces local author-side evidence and writes no GitHub state; Post-PR follows the configured GitHub review/thread workflow; neither phase merges.
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
 
-# Local pre-PR review
+# LFX review lifecycle
 
-You are the **host**. You pick the harness, run three reviewers, and show the
-developer what they wrote. You do not judge, summarise away, or rewrite a
-review.
+This skill is the **single source of truth** for how an adopting LFX repo
+reviews its own work, from the first pre-PR commit to the last PR review
+thread. The two sections below are the whole lifecycle, and they are frozen:
+they are reproduced byte for byte from the approved text, and changing them is
+an architecture change that is human-gated.
 
-## The wall
+No repo adopting this central lifecycle may hold a second lifecycle copy. An
+adopting repo carries, in its `CLAUDE.md`, **one sentence that loads this skill
+and five configuration values** — the identities of its own two reviewers, its
+two checks, and its Post-PR extension or `none` — and nothing else about how
+review works. Repositories that have not adopted this skill are outside that rule and
+are not governed by it; adoption is what brings a repo under it.
 
-This is a local author workflow, run from a working copy after a commit and
-before a PR exists.
+The split is deliberate. **The repo owns the identities**, because they are
+repo facts that change with the repo. **This skill owns every rule**, because a
+rule copied into a repo is a rule that drifts. Adoption therefore changes only
+the adopting repo: nothing needs adding here.
 
-- Never create or update a GitHub label, status, check, review, approval or
-  comment. Never feed a conductor, gate or escalation. Never merge.
-- Never touch `.github/**`, Copilot instructions, PR skills or workflows.
-- Reviewer children never edit tracked source or config, commit or push.
-  **You** — the main session — fix what they find.
-- No report file, no background supervisor, no retained results. The run lives
-  and dies with this session.
+**Resolving the seven values.** The lifecycle below is written against seven repository-specific values —
+`{{REPO}}`, `{{CODE_SKILL}}`, `{{LEARNINGS_SKILL}}`, `{{CODE_PATH}}`,
+`{{LEARNINGS_PATH}}`, `{{READINESS}}` and `{{PREFLIGHT}}`. One comes from the
+checkout's identity, four are declared, and two are derived. Resolve them in
+that order, and only like this.
 
-## Running it
+**Step 1 — identify the repo from its `origin` URLs.**
 
-**Probe, announce, then launch in the background.** Three steps, in this order.
-Never launch a review in the foreground: it blocks this session for minutes,
-and the developer sees nothing while it happens.
+1. `git rev-parse --show-toplevel` — the checkout you were invoked in. If this
+   fails, you are not in a git checkout: stop.
+2. `git remote get-url --all origin` — **every** fetch URL configured for
+   `origin`, not just the first. Plain `git remote get-url origin` returns only
+   the default one, so a checkout with a second, contradicting URL would be
+   read as unambiguous. If the command fails, or returns no URL at all, stop.
+3. Take the **last path segment** of each returned URL and strip a trailing
+   `.git`. This is the repository name, and it is the same for
+   `https://host/<owner>/<repo>` and `git@host:<owner>/<repo>.git`. The owner
+   may be anything — a fork is still that repository. When `origin` has more
+   than one URL, every derived name must be identical; if any two differ, stop.
 
-The launcher lives beside this file. Resolve it from **this skill's own
-directory**, not from the repo you are standing in — you are normally invoked
-from a service repo, and the developer may have no `lfx-skills` checkout at
-all. Every path you print must be one the installed plugin actually has.
+That name is `{{REPO}}`.
 
-### 1. Probe
+**Never identify the repo any other way.** Not from the checkout's directory
+name — under a worktree or an agent workspace the repository root is routinely
+a directory literally called `work`, so the basename says nothing about which
+repository it holds. Not from a repository name asserted in a prompt without
+evidence. Not from a close or fuzzy match against anything.
 
-```bash
-<skill dir>/scripts/run-pi.sh --readiness --repo <repo>
+**Step 2 — read the repo's declaration.** In `<repo-root>/CLAUDE.md`, **from
+that verified checkout**, find the single section whose heading is exactly
+`## Review lifecycle configuration`. That block is the declaration. It is one
+trigger sentence followed by five keys, each exactly once, each value in a code
+span:
+
+```markdown
+## Review lifecycle configuration
+
+Load and follow `/lfx-skills:lfx-local-review` as the sole owner of the review
+lifecycle. The values below configure that skill and do not replace or override
+its instructions.
+
+- repo code reviewer: `/<repo-code-skill-name>`
+- repo learnings reviewer: `/<repo-learnings-skill-name>`
+- readiness action: `<exact skill invocation or non-fixing command>`
+- preflight action: `<exact skill invocation or non-fixing command>`
+- post-PR extension: `none` or `/<exact-skill-name>`
 ```
 
-This launches no reviewers. It answers one question — which harness is going to
-run — and prints the pins with it: `repo=`, `target_sha=`, `base_sha=`, plus
-`provider=`, `model=` and `thinking=` so you can tell the developer what is
-about to review their code.
+`{{CODE_SKILL}}` and `{{LEARNINGS_SKILL}}` are the two reviewer values.
+`{{READINESS}}` and `{{PREFLIGHT}}` are the two action values.
 
-Pass `--repo` when you are not standing in the repo under review. The launcher
-resolves a repo from a path only — it never searches by name, because guessing
-wrong means reviewing the wrong repository.
+**The first line is the bootstrap, not a sixth value.** A fresh session reading
+that `CLAUDE.md` has to be *told* to load this skill; a passive
+`lifecycle: /lfx-skills:lfx-local-review` key would validate and never launch
+anything. `/lfx-skills:lfx-local-review` is a central constant, so it is not
+configuration a repo supplies — it belongs in the imperative sentence that
+invokes it, and nowhere else in the block.
 
-### 2a. If it prints `PI_READY` — announce, then launch Pi in the background
+**Resolve every value from inside that block, and only from there.** A
+`CLAUDE.md` is a long document that may discuss review, name skills, or quote
+this schema in passing; a key matched anywhere in the file could pick up a
+sentence that was never meant as configuration. Read the block, then read the
+keys within it. The block holds the trigger sentence and the five values and
+nothing more — if it contains prose about how review works, that is a fork of
+the lifecycle and the repo must remove it.
 
-Run:
+**The declaration comes from the checkout and nowhere else.** Not from a
+prompt, which cannot supply or override it; not from another repo; not from a
+central table — this skill deliberately holds no per-repo mapping, so that
+adopting a repo never means editing this plugin.
 
-```bash
-<skill dir>/scripts/run-pi.sh --repo <repo> --commit <target_sha from the probe>
+**Validate before using it.** Reject, and stop, when:
+
+- there is no `## Review lifecycle configuration` section, or more than one
+- the block does not open with the exact trigger sentence, naming exactly
+  `/lfx-skills:lfx-local-review` as the sole owner of the review lifecycle and
+  stating that the values below configure it rather than override it. This
+  skill is the sole owner; a block that points somewhere else, or that only
+  lists values without invoking anything, is not an adoption of it
+- any of the five keys is missing from that block, or appears more than once
+- either reviewer value fails `^/[A-Za-z0-9][A-Za-z0-9._-]*$` — one leading
+  slash, then letters, digits, dot, underscore or hyphen only. That excludes a
+  second `/`, a `:` (which would be a plugin-namespaced skill, and the repo's
+  own reviewers are repo skills), whitespace, and every shell or path
+  metacharacter. It also makes a `..` path component unreachable: the value
+  cannot contain `/`, and cannot begin with `.`, so no component of it can be
+  `..`. This matters because these values are about to become a filesystem path
+- the two reviewer values are identical, so one reviewer would run twice
+- `post-PR extension` is neither exactly `none` nor a value passing that same
+  syntax — it is loaded and it derives no path, but it is a skill name and gets
+  the same scrutiny
+- a non-`none` `post-PR extension` equals either reviewer value. A declaration
+  naming its own local code reviewer as the Post-PR extension would run a local
+  reviewer after the PR opens, breaking the no-local-review boundary before any
+  prose constraint could catch it
+- a readiness or preflight value is empty, spans more than one line, or is not
+  a single terminated code span. These are commands: an unterminated span or a
+  second value on the field makes what actually runs ambiguous
+
+The two action values are not otherwise constrained here — there is no central
+allowlist of commands, because the repo owns what its checks are. What the
+adoption review must confirm is that each one is an **exact, documented,
+non-fixing** action for that repo.
+
+**Step 3 — derive the two fallback paths.** A reviewer loads its skill by name. `{{CODE_PATH}}` and `{{LEARNINGS_PATH}}`
+are the one file each may read **instead**, and they are derived mechanically
+from the declared names — never declared, never searched for:
+
+```text
+/foo  ->  <repo-root>/.claude/skills/foo/SKILL.md
 ```
 
-**as a background task**, and tell the developer it is running. Background is
-for keeping this session responsive while a review takes minutes. Pi does not
-save a session, and the run keeps nothing beyond the reports it prints.
+Strip the leading `/`, and that is the skill directory. Nothing else is a
+permitted read: not an alias directory, a sibling or similarly named skill, a
+cached or vendored copy, another checkout, or a legacy `lfx-*-code-reviewer` /
+`lfx-*-learnings-reviewer` agent. If the derived file is absent, that reviewer
+returns INCOMPLETE. The central general reviewer has no file fallback at all.
 
-Pass `--commit` with the `target_sha` the probe printed. `HEAD` can move between
-the probe and the launch — the developer commits again in another terminal — and
-`--commit` turns that into a loud failure instead of a review of something other
-than what you announced.
+**Fail closed.** Not a git checkout, no `origin`, no URL returned, a URL you cannot parse,
+`origin` URLs whose derived names disagree, no `CLAUDE.md`, no declaration in
+it, or a declaration failing any check above: stop, say exactly what was
+missing, and review nothing. Running two reviewers out of three, promoting the
+general reviewer into a repo reviewer's slot, or guessing a value produces a
+weaker review that looks like a complete one.
 
-**If the launch prints a harness decision instead of reports.** The launcher
-checks readiness again before it starts any child, because a launch can also be
-run with no probe before it and starting three children blind is worse. So the
-harness can lapse in the gap — a token expires, someone runs `pi logout` in
-another terminal — and then this second call prints `PI_NOT_INSTALLED`,
-`PI_UNAUTHENTICATED` or `PI_MODEL_UNAVAILABLE` with the pins and the onboarding
-message, exits 0, and starts nothing.
+**Ask every child for a verification envelope.** The frozen text has each
+reviewer prepend two verification lines. In the prompt you construct, ask for
+them as **raw text first**, ahead of any report heading or template the skill
+it loads asks for. This is the preferred, stable shape:
 
-That is the harness decision being remade, not a failed review. **No Pi child
-ran**, so nothing is mixed and nothing needs rerunning. Tell the developer Pi
-went away between the probe and the launch, then follow **2b** using the pins
-*this* call printed — they are the current ones, and you do not probe a third
-time. Never report the Pi run as finished, and never read a decision block as a
-review that found nothing.
+```text
+Reviewed range: <full base SHA>..<full target SHA>
+Skill: /exact-skill-name
+```
 
-### 2b. Otherwise — say Pi would be better, then launch the fallback in the background
+An incomplete child leads with `INCOMPLETE — <reason>` and then the same two
+lines. A repo reviewer that used its allowed file fallback appends
+`; read from: <exact derived path>` to its `Skill:` line. The central general
+reviewer has no file fallback, so its `Skill:` line never carries that suffix.
 
-`PI_NOT_INSTALLED`, `PI_UNAUTHENTICATED` and `PI_MODEL_UNAVAILABLE` are not
-failures. They are the other harness being chosen.
+**Accept on the evidence, not the formatting.** A child is not invalid for
+adding a heading or preamble, putting the values in a list or table, or
+wrapping them in backticks or bold. Reviewers load skills with report templates
+of their own, and rejecting a review whose attestations are exact would cost a
+whole trio for a cosmetic difference. Read the child's raw final text and
+require:
 
-Relay the launcher's onboarding message, which tells the developer how to
-install Pi and log in with GitHub Copilot for the cross-model review. Then
-launch the three Opus subagents **in the background** as described in **When Pi
-is not available**, using the pins the probe already printed. Do not re-run the
-probe to get them.
+1. At least one explicit **`Reviewed range` attestation** carrying the exact
+   expected full 40-character base SHA, a literal `..`, and the exact expected
+   full 40-character target SHA, in that order.
+2. At least one explicit **`Skill` attestation** carrying the exact assigned
+   `/skill-name`.
+3. Repeating the **same** attestation is harmless. Any explicit **conflicting**
+   range or skill attestation invalidates that child.
+4. Decoration around the values is cosmetic and accepted, as is text or a
+   heading before them — but decoration must not change the parsed values.
+5. Validate the **raw child report**. Your own summary or rewrite of a child is
+   never that child's evidence.
+6. A failed or empty child, or one whose status is `INCOMPLETE — <reason>`,
+   stays incomplete wherever the formatting puts it. Never normalize
+   incompleteness into a completed review.
+7. Fallback stays strict, and this is a claim about the **fallback**, not about
+   paths in general: for a direct Skill-tool load the `Skill` attestation
+   carries no `read from` suffix and the report makes no fallback-path claim,
+   while ordinary source and evidence paths elsewhere in the review are
+   unaffected. A repo reviewer that fell back must attest the one exact
+   mechanically derived path, and any different or additional fallback path is
+   invalid. The central general reviewer has no file fallback under any
+   formatting.
 
-### Getting the review back
+A short SHA, a wrong or reversed endpoint, a wrong or missing skill, a missing
+attestation, an unauthorized fallback path, or a value you could only infer
+from prose is invalid — tolerance is about decoration, never about supplying,
+guessing or repairing a value. Any invalid child invalidates the **entire
+trio** under the all-or-none rule above; never accept or rerun one child alone.
 
-Running in the background must never mean the review is lost.
+Accepted, because the attestations are exact:
 
-- **Keep the background task handle.** Return control to the developer after
-  starting it; do not poll, and do not build a supervisor or a report store.
-- **When the harness notifies you the task finished**, retrieve its output and
-  relay the three reports in the fixed order — or the host failure, exactly as
-  **Reading what comes back** describes.
-- **For the Opus fallback**, the same rule for all three subagents: collect
-  every one of the three results, then relay or fail as already defined. Two
-  results out of three is an incomplete cycle, not a review with a gap.
+```text
+## Review
+Reviewed range: `<full base>..<full target>`
+Skill: `/repo-skill`
+```
 
-### Optional arguments
+Rejected: a missing, shortened, wrong-endpoint or conflicting range; a missing,
+wrong or conflicting skill; a fallback path that is not the derived one, or any
+fallback claim from the general reviewer; and a failed, empty or `INCOMPLETE`
+child.
 
-`--base <sha>` widens the range past the first parent; the host never derives a
-base itself. `--extra "<hint>"` passes a caller hint through to every reviewer.
+This shape is written down because coordinated smokes found children decorating
+the values with backticks, repo skill templates emitting their own headings
+first, and other children opening with a preamble. Every one of those carried
+exact full attestations, so the evidence was there and only the rendering
+varied.
 
-A base that would not give a real forward range is refused before anything
-starts: one that resolves to the target itself (an empty range), and one that
-already contains the target (the range runs backwards and the change reads
-inverted). A base that has simply diverged from the target is fine and is
-exactly what this parameter is for — `--base main` after `main` moved on is a
-normal call, not an error.
+**On entry to Post-PR review, load the declared extension.** Read the declaration's `post-PR extension` value:
 
-**`--base` goes to the probe as well as the launch.** The probe is where the
-pins you announce come from, and where the Claude fallback gets its pins — so a
-`--base` given only at launch makes you announce the first-parent range while
-Pi reviews a wider one, and hands the fallback trio a base the caller never
-asked for. Both calls or neither.
+- **A skill name** — load exactly that skill with the Skill tool, and use it
+  only to refine and carry out canonical steps 1 through 6 for this repo's PR
+  surface: which bots review there, how its threads, labels and gate behave.
+  It never replaces or restates the lifecycle, never relaxes step 7, never runs
+  a local reviewer, and never merges. Where it and this skill disagree, this
+  skill wins.
+- **`none`** — run steps 1 through 7 as written, and load nothing extra.
+- **A named skill that will not load** — stop and tell the developer the
+  extension is unavailable. Do not improvise a replacement, search for a
+  similarly named skill, or silently continue without it.
 
-**Pass the caller's value to the probe, and the probe's `base_sha` to the
-launch.** Not the same token twice: `--base` may be a movable ref, and
-`--base main` resolves at each call, so the probe can print one commit and the
-launch resolve a different one after a fetch in another terminal. `--commit`
-guards only the target. Forwarding the resolved `base_sha` pins both ends of
-the range to what you announced, exactly as `--commit` does for the target.
+**The wall around Pre-PR review.** Everything in **Pre-PR review** is author-side work on a local checkout, and
+what it produces is local author-side evidence — a report to the developer, and
+nothing else.
 
-**`--extra` is yours to carry in the fallback arm.** Passing it to the launcher
-reaches the Pi children; if the harness decision is Claude, put the same hint in
-each subagent's prompt yourself, because no launcher runs to do it for you.
+Its **code and change evidence is pinned**: the `git diff` range the parent
+resolved, and the repository's own files read at those two revisions. A moving
+working tree is not evidence about a commit. Reviewers may inspect GitHub
+**read-only** where the skill they loaded calls for that context — a linked
+issue, an upstream API, a referenced PR — and ordinary fetches are fine. What
+Pre-PR review never does is **write** GitHub state: no comment, review, check,
+status, label or approval, and no input to a gate, conductor or escalation.
+Reviewers report; the parent session makes every edit and every commit.
 
-Reviews are pinned to one commit: `target_sha` is `HEAD`, `base_sha` its first
-parent, and every reviewer gets the same values and the same explicit
-`git diff base target` range. **Resolving that range never fetches and never
-consults a remote**, so the pinning works offline. That is a claim about the
-range, not about the whole review: reviewers may read GitHub and fetch for
-context where it genuinely helps, so do not tell a developer the review itself
-runs offline.
+**Post-PR review is different, and deliberately so**: it works the PR's review
+threads, so it does post comments and resolve threads through the configured
+GitHub workflow. That is the one phase permitted to write there, and it starts
+only once the PR exists. The lifecycle moves to it and does not come back.
 
-## Reading what comes back
+**Neither phase merges.** A merge happens only after a separate, explicit human
+instruction.
 
-The launcher prints three reports under `===== <role> =====` headings in a
-fixed order: `general`, `repo_code`, `repo_learnings`. Relay them to the
-developer as they are.
+For the declaration schema in full, how a repo adopts this lifecycle, and how
+the two repo-owned reviewer skills are written, see
+[`references/ownership-and-adoption.md`](references/ownership-and-adoption.md).
 
-Two different things can go wrong, and they must not be blurred:
+<!-- The two sections below are reproduced byte for byte from the approved
+     lifecycle text and must not be re-wrapped, so their long lines cannot be
+     brought under the line-length limit. This directive sits above the frozen
+     region and is not part of it. -->
+<!-- markdownlint-disable MD013 -->
 
-- **A reviewer says its own review is incomplete.** Its Markdown begins
-  `INCOMPLETE — <reason>`. That is the reviewer's own statement about its own
-  work. Pass it through untouched; never rewrite or summarise it away.
-- **A reviewer process failed.** Nonzero exit, a signal, or exit 0 with no
-  output. The launcher exits nonzero and reports the failure in **both**
-  streams: under that role's heading on stdout, so a redirected report is never
-  silently missing a reviewer, and on stderr with the child's captured stderr.
-  A failed child's own partial output is discarded rather than shown.
-  **Never render that as "no findings"** — a reviewer that produced nothing has
-  reviewed nothing. Never invent an `INCOMPLETE` line on a reviewer's behalf;
-  only a reviewer that actually produced output may say that.
+## Pre-PR review
 
-Either way the cycle is incomplete: fix nothing on that basis, and rerun the
-whole trio on the same harness.
+Before a PR exists, local review uses the same three reviewers in two modes: **post-commit review** while development continues, and one **full-branch review** immediately before opening the PR.
 
-A launch that prints a harness **decision** instead of reports is neither of
-these, and is not a reason to rerun anything — see **2a**: no reviewer started,
-so the decision simply stands and the fallback runs.
+Every review batch launches exactly THREE generic background subagents together, all with `subagent_type: general-purpose`, `model: opus` (Opus 5), and `run_in_background: true`. At most one batch may be active. The reviewers load exactly one skill each:
 
-## When Pi is not available
+1. `/lfx-skills:lfx-general-code-review`
+2. `{{CODE_SKILL}}`
+3. `{{LEARNINGS_SKILL}}`
 
-If the launcher prints `PI_NOT_INSTALLED`, `PI_UNAUTHENTICATED` or
-`PI_MODEL_UNAVAILABLE` instead of reviews, **it has not failed** — it has
-chosen the other harness. Launch the **Claude Opus fallback** yourself: three
-generic subagents in one parallel batch, all three using model `opus`.
+The reviewers only report findings. They never edit tracked files, stage, commit, push, or write GitHub state; the parent performs all changes.
 
-Show the developer the onboarding message the launcher printed, and say plainly
-that this is not the intended review. Pi with GitHub Copilot GPT-5.6 Sol at
-thinking high is the cross-model check; a Claude trio is not, and must never be
-presented as one. Do not call it a *same-model* review either — the subagents
-are explicitly Opus and the session hosting them may be a different model, so
-that claim is not yours to make.
+### Shared reviewer prompt
 
-Launch all three with `run_in_background: true`, model `opus` for every one:
+Give each reviewer one complete prompt. Start with its loading policy, then append the common instructions.
 
-| Role | Subagent | Model | Skill to load |
-|---|---|---|---|
-| `general` | generic | `opus` | the central general reviewer, declared `lfx-general-code-review` |
-| `repo_code` | generic | `opus` | the repo's declared code-review skill name |
-| `repo_learnings` | generic | `opus` | the repo's declared learnings-review skill name |
+- General: `Load /lfx-skills:lfx-general-code-review with the Skill tool. If that skill is unavailable, do not review unguided and do not read a replacement SKILL.md from any checkout or cache; return INCOMPLETE.`
+- Repo code: `Load {{CODE_SKILL}} with the Skill tool. If and only if that skill is unavailable in this child's current session, locate the {{REPO}} repo root and read <repo-root>/{{CODE_PATH}}. Follow that file as the sole review guidance. Do not search another path or use another skill or agent. If the file is missing, return INCOMPLETE.`
+- Repo learnings: `Load {{LEARNINGS_SKILL}} with the Skill tool. If and only if that skill is unavailable in this child's current session, locate the {{REPO}} repo root and read <repo-root>/{{LEARNINGS_PATH}}. Follow that file as the sole review guidance. Do not search another path or use another skill or agent. If the file is missing, return INCOMPLETE.`
 
-One model for the whole batch. A trio split across models is not a trio.
+```text
+target repo: {{REPO}}
+repo root: <absolute repo root>
+target_sha: <full target SHA>
+base_sha: <full base SHA>
+review exactly: git diff <full base SHA> <full target SHA>
+range label: <mode-specific range label>
 
-**Name each skill the way this session lists it.** The two repo brains are
-project skills and are registered under exactly their declared names. The
-general reviewer arrives through a **plugin**, and a session surfaces plugin
-skills namespaced — `lfx-skills:lfx-general-code-review` rather than the bare
-`lfx-general-code-review`. Read the name off your own skill list instead of
-assuming a form; an unregistered name fails that role loudly, which is the
-right outcome but a wasted cycle.
+The repo root and SHA range above are authoritative. Do not re-derive the range from HEAD or origin/main. If the assigned skill tells you to derive the review range or changed-file list from HEAD, git show, or origin/main, replace that instruction with the exact pinned git diff above. Read added or modified code from <target_sha>:<path>, deleted code from <base_sha>:<path>, and both revisions for a rename. Never use a moving working-tree copy as code evidence. Load current rule, contract, checklist, architecture, and knowledge-base policy as the assigned skill directs.
 
-Nothing in the Pi arm tells you whether you got this right. Pi is handed the
-general skill by absolute path and never uses a name at all, so a Pi run that
-worked perfectly is no evidence at all about the fallback's naming. The two
-arms have to be judged separately.
+Report findings only. Follow the assigned skill's report conventions and return its complete findings. Prepend `Reviewed range: <full base SHA>..<full target SHA>`, then `Skill: /lfx-skills:lfx-general-code-review`, `Skill: {{CODE_SKILL}}`, or `Skill: {{LEARNINGS_SKILL}}`, matching that reviewer. If a repo reviewer used its allowed file fallback, append `; read from: <exact path>` to its Skill line. If incomplete, put `INCOMPLETE — <reason>` first, then the same two verification lines.
+```
 
-**Prefer the repo's own fallback orchestrator when it has one.** If
-`<repo>/.claude/skills/local-review-fallback/SKILL.md` exists, load and follow
-it: it names the three skills for its own repo. Fall back to the table above
-only when the repo has no such skill.
+Accept a batch only when all three reviewers return non-empty, complete reports for the pinned full-SHA range, name their exact assigned `/...` skill, and report no unauthorized fallback path. If any reviewer fails these checks, reject the entire batch; never accept or rerun only one reviewer.
 
-**Use the pinned values the launcher already printed.** That same non-ready
-response carries `repo=`, `target_sha=` and `base_sha=`. Do **not** run the
-launcher again to get them: `HEAD` can move between two calls, and the Claude
-trio would then review something other than what the harness decision was made
-about. One decision, one set of pins, three subagents.
+### Mode 1 — Post-commit review
 
-Give every subagent those exact values, as the Pi children receive them,
-including the explicit `git diff <base> <target>` range. The launcher writes
-pins as `key=value` and prompts carry `key: value`, so `base_sha=none` becomes
-`base_sha: none` in the prompt — it stays the word `none`, never an empty
-field. A root commit has no base, and its range is the tree the root
-introduced.
+Use this mode after normal development commits while work continues.
 
-Tell each subagent: load the named skill and follow it exactly; review only the
-supplied range; return an ordinary Markdown review.
+1. Commit with `git commit -s -S`.
+2. Maintain `reviewed_through_sha`: the latest commit fully covered by an accepted post-commit batch. Before the first batch, initialize it to the parent of the first pending commit. Never advance it for a failed or incomplete batch.
+3. When no batch is active, set `base_sha=$reviewed_through_sha` and `target_sha=$(git rev-parse HEAD)`. Label a one-commit range `the latest commit`; if commits accumulated, label it `the commits since the last review`.
+4. Launch the three reviewers together with that exact range. If another batch is already active, let it finish; the next batch will cover everything from the unchanged `reviewed_through_sha` through the then-current `HEAD`.
+5. While remaining in Mode 1, if the batch is invalid and `HEAD` is unchanged, rerun all three with the same pins. If `HEAD` changed, rerun all three over the coalesced range from the unchanged `reviewed_through_sha` through current `HEAD`. Once work moves to Mode 2, do not rerun an invalid post-commit batch; Mode 2's whole-branch review replaces its coverage.
+6. After a valid batch, advance `reviewed_through_sha` to its `target_sha`. Verify its findings against current code and address every Critical and reasonable Important finding in a later commit; that commit is reviewed by the next post-commit batch.
+7. The final planned commit skips post-commit review and moves directly to Mode 2. Leave `reviewed_through_sha` unchanged. If development resumes before Mode 2 starts, the next post-commit batch covers the entire pending range from that unchanged SHA.
 
-This works because the developer runs Claude from the service repo with the
-central plugin loaded, so all three skills are registered in that session. If a
-named skill is unavailable, that role fails loudly and the whole Claude cycle is
-invalid — the remedy is to start Claude from the repo with the right plugin and
-project skills registered.
+### Mode 2 — Full-branch review before opening the PR
 
-**Never mix harnesses.** The choice is made once, before any reviewer starts.
-If a Pi child fails mid-run, do not relaunch that role on Claude — a trio split
-across two models is not a review of anything. Rerun the whole trio.
+Entering this mode ends post-commit review for this PR attempt. Finish any active post-commit batch and retain every finding that Mode 1 requires the parent to address. Do not retry an invalid post-commit batch; the whole-branch review below replaces its coverage. Do not return to Mode 1.
 
-Claude subagents fail the same way Pi children do, and are reported the same
-way. If a subagent errors, returns nothing, or returns Markdown that is not a
-review, that is a **role-labelled host failure of the all-Claude cycle** — say
-`GENERAL REVIEW FAILED — <what happened>` and which harness it was. Never
-render it as "no findings", and never write an `INCOMPLETE` line on the
-subagent's behalf. A subagent that *does* return `INCOMPLETE — <reason>` as its
-first line has spoken for itself: pass it through untouched. Either way the
-cycle is incomplete — rerun all three on Claude, not the failed one alone.
+1. Run `git fetch origin`, set `target_sha=$(git rev-parse HEAD)` and `base_sha=$(git merge-base origin/main HEAD)`, and launch the three reviewers together once against the whole branch range. Use the shared prompt with the range label `the branch's diff against origin/main` and review `git diff <full base SHA> <full target SHA>`. Never use `reviewed_through_sha` for this review.
+2. If the batch is operationally incomplete, it does not count as the review. Without editing files or creating commits, repeat step 1 so the unchanged branch is fetched, re-pinned, and reviewed by a complete three-reviewer batch until one valid result returns.
+3. Fix the retained post-commit findings and the issues raised by the whole-branch review, then complete the repository's documentation-currency updates. Commit all resulting changes with `git commit -s -S`, then run `{{READINESS}}` and `{{PREFLIGHT}}` against the clean, committed `HEAD`. If either check requires fixes, apply the remedy appropriate to the finding—rewrite local commits for existing-history defects or create a new signed/DCO commit for file changes—then rerun the affected deterministic checks. Ensure every resulting commit is signed and carries DCO sign-off. Do not run the local reviewers again.
+4. Push and open the PR. From that point onward, use Post-PR review only.
 
-## After the review
+## Post-PR review
 
-Fix findings in this session, then commit the fixes as their own conventional
-commits — `fix(<scope>): ...` — rather than amending.
+Once the PR exists, never run the local post-commit reviewers or another local full-branch review. PR iteration uses Copilot and every other configured GitHub code-review agent/bot.
 
-**Rerun with the original base, not the default one.** A plain rerun pins
-`base_sha` to the new `HEAD`'s first parent — which is the commit you just
-reviewed — so it reviews the fix by itself. It can then come back with nothing
-to say while every finding from the first review is still sitting untouched in
-the original commit, and "no findings" on a fix is easily misread as "the
-findings are fixed". Pass `--base <the base_sha the first probe printed>` so
-the range stays the original change *plus* its fixes, and keep passing that
-same value for every later fix cycle.
-
-Then run the repo's own readiness and preflight checks before opening a PR.
-
-The existing `lfx-skills:lfx-*-code-reviewer` and `lfx-*-learnings-reviewer`
-named agents are unchanged and remain the right tool for repos that do not own
-local review skills.
-
-## Reference
-
-- [`references/pi-setup.md`](references/pi-setup.md) — installing and
-  authenticating Pi, and choosing the model.
-- [`references/repo-brains.md`](references/repo-brains.md) — how a repo authors
-  its two reviewer skills and where they live.
+1. After every push, wait for the configured GitHub reviewers to finish reviewing the current head, then enumerate every unresolved review thread. Collect compatible feedback into a batch rather than making one-comment-at-a-time commits.
+2. Work in an isolated background task when safe so the developer can continue. Never allow two writers to edit the same worktree or race commits or pushes; otherwise handle the feedback synchronously.
+3. Verify every finding against the current head, actual runtime/API contracts, repository guidance, and approved PR scope. Never assume a bot is correct and never silently ignore a finding.
+4. For a genuine in-scope issue, make the smallest focused fix and validate it. Otherwise, tell the developer why and post an evidence-backed rebuttal. Escalate architecture, security, ownership, and excluded-surface questions instead of guessing.
+5. Comment before resolving every thread. For a fix, cite the fix commit and validation evidence; for a rebuttal, give the reason and evidence. Every thread must end fixed-and-explained or rebutted-and-explained.
+6. Group compatible fixes into one signed/DCO commit, push, wait for reviews on the new head, and repeat until no unresolved actionable threads remain and required checks are green.
+7. Do not merge as part of this automated iteration. Merge only after a separate explicit human instruction.

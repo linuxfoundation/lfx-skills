@@ -79,57 +79,32 @@ Cross-repo developer workflows that apply across every LFX repo.
 | `/lfx-skills:lfx-cdp-snowflake-connectors` | Scaffold a CDP snowflake-connector data source in `crowd.dev`; retained centrally from `main`.                                                                               |
 | `/lfx-skills:lfx-data-engineer`            | Generate PR-ready dbt models, SQL transformations, and tests for `lf-dbt`, including medallion architecture, sqlfluff conventions, macros, and validation workflow guidance. |
 
-### Local review skills (2)
+### Review lifecycle skills (2)
 
-Author-side, pre-PR review that runs on your machine and stops at PR-open.
-Reviewers may read GitHub and fetch, but never write GitHub state: no comment,
-review, check, status, label or approval, and no gate or merge.
+The canonical LFX review lifecycle and the general review method it loads.
 
-| Skill                          | Purpose                                                                                                                                                                                                                            |
-|--------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `/lfx-skills:lfx-local-review` | Run the review trio on the current repo — the general reviewer plus the repo's own code and learnings reviewers — on headless Pi when available, Claude subagents otherwise. Reviews the newest commit and runs in the background. |
-| `lfx-general-code-review`      | The general review method itself: correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance, style. Loaded by the review trio in either harness. Not invoked by hand.                     |
+| Skill                                 | Purpose                                                                                                                                                                                             |
+|---------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/lfx-skills:lfx-local-review`        | The canonical LFX review lifecycle, and the single source of truth for it: local pre-PR review and Post-PR iteration, end to end. Adopting repos point at it rather than describing it.             |
+| `/lfx-skills:lfx-general-code-review` | The general review method itself: correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance, style. Loaded by the `general` reviewer. Not invoked by hand. |
 
-Pi is what makes this **cross-model** — the same skills, judged by a different
-model. Without it the trio still runs, on three Claude Opus subagents, and the
-host says plainly that this is not the cross-model check. It is not called a
-*same-model* review either: the subagents are explicitly Opus while the session
-hosting them may be a different model.
+The lifecycle itself is deliberately **not** described here — it lives in one
+place, and a second account of it in this README would be a copy to drift from.
+Read [`skills/lfx-local-review/SKILL.md`](skills/lfx-local-review/SKILL.md) for
+the lifecycle, and
+[`references/ownership-and-adoption.md`](skills/lfx-local-review/references/ownership-and-adoption.md)
+for who owns what, the declaration a repo adds to adopt it, and how the two
+repo-owned reviewer skills are written.
 
-#### Setting up the Pi reviewers
-
-We added Pi to get **model diversity from the Copilot seat you already have**:
-the reviewers run on GPT-5.6 Sol through that seat — no new subscription or
-API key — so a second model family checks the work; a model reviewing its own
-output shares its own blind spots. Copilot meters premium-model usage against
-the seat's allowance, so review runs draw on it like any other Copilot use.
-
-1. **Install Pi**: `npm install -g @earendil-works/pi-coding-agent`
-2. **Authenticate with GitHub Copilot**: run `pi`, then `/login` and choose
-   **GitHub Copilot** in the provider picker, completing login with your
-   Copilot-enabled GitHub account. (Pick Copilot specifically — a different
-   provider produces a working Pi that the launcher still rejects for the
-   wrong model.)
-3. **Enable the model**: inside Pi, open the model selector with `/model` and
-   enable **GPT-5.6 Sol** so it shows up in `/scoped-models`. The launcher
-   pins `github-copilot/gpt-5.6-sol`; `pi --list-models github-copilot`
-   confirms your seat serves it, and a seat that doesn't reports
-   `PI_MODEL_UNAVAILABLE` and the trio falls back to Claude.
-
-Local review is currently enabled in **`lfx-v2-newsletter-service`,
-`lfx-v2-meeting-service`, `lfx-v2-campaign-service`, and
-`lfx-v2-committee-service`** — the repos whose `main` carries the two repo
-reviewer skills below.
-
-The repo under review owns its own two reviewer skills at
-`.claude/skills/local-code-review/SKILL.md` and
-`.claude/skills/local-learnings-review/SKILL.md`; a repo without them is not set
-up for local review. See
-[`references/repo-brains.md`](skills/lfx-local-review/references/repo-brains.md)
-to author them, and
-[`references/pi-setup.md`](skills/lfx-local-review/references/pi-setup.md) for
-the full Pi setup detail (readiness checks, model/provider overrides, thinking
-levels).
+A repo adopts by adding one `## Review lifecycle configuration` section to its
+own `CLAUDE.md`: a sentence loading `/lfx-skills:lfx-local-review`, then five
+values — its two reviewer skills, its two non-fixing checks, and its Post-PR
+extension or `none`.
+This plugin holds no per-repo mapping, so adoption changes only the adopting
+repo; a repo without a valid declaration is not adopted, and the lifecycle
+fails closed rather than reviewing it. The coordinated initial adoption set is
+`lfx-v2-campaign-service`, `lfx-v2-committee-service`, `lfx-v2-meeting-service`
+and `lfx-v2-newsletter-service`, each landing separately.
 
 ### Platform skill (1)
 
@@ -139,9 +114,14 @@ levels).
 
 ### Reviewer agents (13)
 
-Post-commit code reviewers that LFX repos invoke after every pre-PR commit. Launched in parallel as subagents via the
-`Agent` tool. The general reviewer is repo-agnostic; repo-specific reviewers are packaged centrally for runtime
-availability but read their owning repo's `CLAUDE.md`, local skills, docs, contracts, and code.
+Post-commit code reviewers launched in parallel as subagents via the `Agent` tool. The general reviewer is
+repo-agnostic; repo-specific reviewers are packaged centrally for runtime availability but read their owning repo's
+`CLAUDE.md`, local skills, docs, contracts, and code.
+
+These named agents are **compatibility tooling for repos that have not adopted the central review lifecycle**, and for
+callers that still invoke them directly. `/lfx-skills:lfx-local-review` does not use them for a repo with a
+valid declaration: there, the only reviewer that comes from this plugin is the central general review skill, and the two
+repo-specific reviewers are repo-owned and loaded by name from the repo itself. They are kept, not deprecated.
 
 | Agent                                                  | Purpose                                                                                                                                                    |
 |--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -185,7 +165,10 @@ prompt under `agents/` for the exact invocation contract.
 │   │   └── references/          # dbt setup, style, macros, testing, debugging
 │   ├── lfx-object-store-design/
 │   ├── lfx-object-store-ops/
-│   └── lfx-v2-ticket-writer/
+│   ├── lfx-v2-ticket-writer/
+│   ├── lfx-local-review/        # the canonical review lifecycle
+│   │   └── references/          # the ownership and adoption contract
+│   └── lfx-general-code-review/ # the general review method the trio loads
 ├── agents/
 │   ├── lfx-committee-service-code-reviewer.md
 │   ├── lfx-committee-service-learnings-reviewer.md

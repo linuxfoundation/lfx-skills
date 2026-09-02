@@ -1,0 +1,31 @@
+---
+# Copyright The Linux Foundation and each contributor to LFX.
+# SPDX-License-Identifier: MIT
+name: Review Lifecycle Check
+
+"on":
+  pull_request:
+    paths:
+      - 'skills/lfx-local-review/**'
+      - 'skills/lfx-general-code-review/**'
+      # the catalog entry must keep cataloging, not grow a second lifecycle
+      - 'README.md'
+      - '.github/scripts/check-review-lifecycle.sh'
+      - '.github/workflows/review-lifecycle-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  review-lifecycle-check:
+    name: Review Lifecycle Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Check the review-lifecycle contract
+        run: ./.github/scripts/check-review-lifecycle.sh

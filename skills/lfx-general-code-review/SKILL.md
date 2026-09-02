@@ -1,6 +1,6 @@
 ---
 name: lfx-general-code-review
-description: The general code-review method for LFX local reviews — correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance and style, over one explicit pinned range, normally the single commit at the branch's tip. Carries no repo-specific rulebook. Loaded by the lfx-local-review host in either harness, headless Pi or a generic Claude subagent. Returns an ordinary Markdown review.
+description: The general code-review method for LFX local reviews — correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance and style, over the one explicit pinned range the caller supplies. Carries no repo-specific rulebook. Loaded by a background Claude Opus 5 reviewer that the `/lfx-skills:lfx-local-review` lifecycle launches. Returns an ordinary Markdown review.
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
@@ -20,10 +20,10 @@ written conventions and its empirical review knowledge base. Never import
 conventions from another repo.
 
 This file is the single source of the general review method **for local
-review**. The `lfx-local-review` host loads this same text whether it is running
-a headless Pi process or a generic Claude subagent, so the two harnesses cannot
-drift apart. The separately named `lfx-general-code-reviewer` agent is not in
-that set: it still carries its own body, and will only load this file once
+review**. Every reviewer the `/lfx-skills:lfx-local-review` lifecycle launches in the
+`general` role loads this same text, so no two runs of that role can drift
+apart. The separately named `lfx-general-code-reviewer` agent is not in that
+set: it still carries its own body, and will only load this file once
 deterministic central-skill loading by a subagent has been demonstrated.
 
 ## The wall

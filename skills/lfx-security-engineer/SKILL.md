@@ -31,7 +31,7 @@ concrete fix.
 - **`--scan-only`:** Run Phase 1 only. Useful for quick pre-commit checks.
 - **`--file <path>`:** Scope the review to a specific file or directory.
 - **`--full-scan`:** Run both phases on all files (not just changed files). Use for new repos or major refactors.
-- **`--all`:** Show all severity levels (CRITICAL, HIGH, MEDIUM, INFO). Default shows CRITICAL only.
+- **`--all`:** Also show MEDIUM-severity findings (test-file-downgraded, low-confidence matches). Default suppresses them as noise.
 
 For usage examples, see `references/usage-examples.md`.
 
@@ -61,7 +61,9 @@ FINDING|SEVERITY|CHECK|FILE:LINE|DESCRIPTION
 PASSED|CHECK|DESCRIPTION
 ```
 
-Parse the output. For each `FINDING` line, prepare a detailed report entry.
+Parse the output. Severity maps to the report's two buckets (see
+`references/report-template.md`): CRITICAL findings get the detailed 🔴
+format; HIGH and MEDIUM findings both go in the compact 🟡 WARNINGS bucket.
 For false positive evaluation, consult `references/false-positive-patterns.md`.
 
 ### Step 2: Run Phase 2 Security Review

@@ -24,10 +24,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # --- Parse arguments ---
 SCAN_MODE="changed"  # changed | full | file
 TARGET_PATH=""
+SHOW_ALL="false"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --full-scan) SCAN_MODE="full"; shift ;;
+    --all) SHOW_ALL="true"; shift ;;
     --file)
       if [[ -z "${2:-}" ]]; then
         echo "ERROR: --file requires a path argument" >&2
@@ -114,16 +116,21 @@ apply_secignore() {
   done
 }
 
+# Highest severity seen across the whole scan, for the final exit code
+MAX_SEVERITY="NONE"
+
 # Emit a finding, downgrading severity for test files
 # location is the full grep -Hn output: file:line:matched_source
 # We split into file:line for field 4 and fold matched source into description
+# Pass "no-downgrade" as $5 to keep high-confidence findings (e.g. live
+# credentials) at full severity even when they appear in a test file.
 emit_finding() {
-  local severity="$1" check="$2" location="$3" description="$4"
+  local severity="$1" check="$2" location="$3" description="$4" downgrade="${5:-downgrade}"
   local file line_num file_line
   file=$(echo "$location" | cut -d: -f1)
   line_num=$(echo "$location" | cut -d: -f2)
   file_line="$file:$line_num"
-  if is_test_file "$file"; then
+  if [[ "$downgrade" == "downgrade" ]] && is_test_file "$file"; then
     # Downgrade: CRITICAL→HIGH, HIGH→MEDIUM in test files
     case "$severity" in
       CRITICAL) severity="HIGH" ;;
@@ -131,6 +138,15 @@ emit_finding() {
     esac
     description="$description [test file]"
   fi
+  # MEDIUM is exclusively a test-file downgrade (see above) — a low-confidence
+  # signal that's noise by default. Only surface it when --all was passed.
+  if [[ "$severity" == "MEDIUM" && "$SHOW_ALL" != "true" ]]; then
+    return
+  fi
+  case "$severity" in
+    CRITICAL) MAX_SEVERITY="CRITICAL" ;;
+    HIGH|MEDIUM) [[ "$MAX_SEVERITY" != "CRITICAL" ]] && MAX_SEVERITY="WARNING" ;;
+  esac
   echo "FINDING|$severity|$check|$file_line|$description"
 }
 
@@ -155,7 +171,7 @@ check_secrets() {
     fi
     # Check for live key patterns (high confidence)
     if echo "$line" | grep -qE 'AKIA[0-9A-Z]{16}|sk_live_|ghp_[0-9a-zA-Z]{36}|AIza[0-9A-Za-z_-]{35}'; then
-      emit_finding CRITICAL secrets "$line" "Live service credential detected"
+      emit_finding CRITICAL secrets "$line" "Live service credential detected" no-downgrade
     else
       emit_finding CRITICAL secrets "$line" "Potential hardcoded secret"
     fi
@@ -321,10 +337,41 @@ check_auth() {
 check_logging() {
   local findings=""
 
-  # Silent catch blocks in auth code
-  local silent_catch
-  silent_catch=$(scan_files '\.(ts|js)$' 'catch[[:space:]]*(\(.*\))?[[:space:]]*\{[^}]*return[[:space:]]*(null|undefined|false)')
-  findings="$findings"$'\n'"$silent_catch"
+  # Silent catch blocks: grep matches one line at a time, so a plain grep
+  # pattern only catches `catch { ... return null }` written on a single
+  # line. Use awk to track brace depth so normally-formatted multiline
+  # catch blocks are caught too.
+  local ts_js_files
+  ts_js_files=$(filter_files '\.(ts|js)$')
+  if [ -n "$ts_js_files" ]; then
+    while IFS= read -r f; do
+      [ -z "$f" ] && continue
+      [ -f "$f" ] || continue
+      local silent_catch
+      silent_catch=$(awk '
+        /catch[[:space:]]*\(/ && !in_catch {
+          in_catch=1; start_line=NR
+          idx = index($0, "catch")
+          sub_line = substr($0, idx)
+          block = sub_line "\n"
+          depth = gsub(/\{/, "{", sub_line) - gsub(/\}/, "}", sub_line)
+          next
+        }
+        in_catch {
+          block = block $0 "\n"
+          depth += gsub(/\{/, "{") - gsub(/\}/, "}")
+          if (depth <= 0) {
+            if (block ~ /return[[:space:]]*\(?(null|undefined|false)\)?/ \
+                && block !~ /log|Logger|console\.(error|warn)|Sentry|captureException/) {
+              print FILENAME ":" start_line ":silent-catch"
+            }
+            in_catch=0
+          }
+        }
+      ' "$f" 2>/dev/null)
+      findings="$findings"$'\n'"$silent_catch"
+    done <<< "$ts_js_files"
+  fi
 
   findings=$(echo "$findings" | sed '/^$/d')
   if [ -z "$findings" ]; then
@@ -515,3 +562,9 @@ check_migrations
 
 # --- Summary ---
 echo "# --- END ---"
+
+case "$MAX_SEVERITY" in
+  CRITICAL) exit 2 ;;
+  WARNING) exit 1 ;;
+  *) exit 0 ;;
+esac

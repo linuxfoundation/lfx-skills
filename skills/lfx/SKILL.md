@@ -253,6 +253,15 @@ Seven workflow skills ship alongside the architecture skills in this same
 | Snowflake access requests            | `/lfx-skills:lfx-snowflake-access`         |
 | CDP Snowflake connector scaffolding  | `/lfx-skills:lfx-cdp-snowflake-connectors` |
 
+**PR review threads have two routes, decided by the repo, not by this table.**
+A repo whose `CLAUDE.md` carries exactly one valid
+`## Review lifecycle configuration` section has adopted
+`/lfx-skills:lfx-local-review` as the sole owner of its review lifecycle;
+forward its PR-thread work there, not to `lfx-pr-resolve`. A repo with no such
+section is not an adopter, and `/lfx-skills:lfx-pr-resolve` above is correct
+for it. A section that is malformed, duplicated or ambiguous fails closed —
+report the problem rather than routing to either skill.
+
 ## Cross-repo path convention
 
 Cross-repo references use **repo-qualified paths**, not relative filesystem

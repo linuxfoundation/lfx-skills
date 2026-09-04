@@ -5,7 +5,10 @@ description: >
   commits with a summary, responds to each comment, resolves threads, posts
   a follow-up summary, dismisses stale "changes requested" reviews, and
   re-requests review. Use whenever someone wants to address PR feedback, fix
-  review comments, resolve PR threads, or iterate on a pull request after review.
+  review comments, resolve PR threads, or iterate on a pull request after review
+  — unless the repo's CLAUDE.md carries a valid `## Review lifecycle
+  configuration` section, in which case `/lfx-skills:lfx-local-review` owns its
+  PR iteration instead.
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Skill
 ---
 
@@ -14,6 +17,15 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Skill
 <!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
 
 # PR Review Comment Resolver
+
+**Check first whether this repo owns its PR iteration elsewhere.** If its
+`CLAUDE.md` carries exactly one valid `## Review lifecycle configuration`
+section, the repo has adopted `/lfx-skills:lfx-local-review` as the sole owner
+of its review lifecycle: hand the work to that skill and stop. If there is no
+such section, the repo is not an adopter and this skill is the right one. If a
+section exists but is malformed, duplicated or ambiguous, say so and stop —
+that is a broken adoption, not an absent one, and running this skill instead
+would answer a configuration error with a different workflow.
 
 You address PR review feedback end-to-end: read the comments, make the code changes, commit, respond to each reviewer, resolve the threads, and post a summary. The goal is to close the feedback loop completely, reviewers should see exactly what was done and why.
 

@@ -1,6 +1,6 @@
 ---
 name: lfx-general-code-review
-description: The general code-review method for LFX local reviews — correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance and style, over one explicit pinned range, normally the single commit at the branch's tip. Carries no repo-specific rulebook. Loaded by the lfx-local-review host in either harness, headless Pi or a generic Claude subagent. Returns an ordinary Markdown review.
+description: The general code-review method for LFX local reviews — correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance and style, over the one explicit pinned range the caller supplies. Carries no repo-specific rulebook. Loaded by a background Claude Opus 5 reviewer that the `/lfx-skills:lfx-local-review` lifecycle launches. Returns an ordinary Markdown review.
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
@@ -20,10 +20,10 @@ written conventions and its empirical review knowledge base. Never import
 conventions from another repo.
 
 This file is the single source of the general review method **for local
-review**. The `lfx-local-review` host loads this same text whether it is running
-a headless Pi process or a generic Claude subagent, so the two harnesses cannot
-drift apart. The separately named `lfx-general-code-reviewer` agent is not in
-that set: it still carries its own body, and will only load this file once
+review**. Every reviewer the `/lfx-skills:lfx-local-review` lifecycle launches in the
+`general` role loads this same text, so no two runs of that role can drift
+apart. The separately named `lfx-general-code-reviewer` agent is not in that
+set: it still carries its own body, and will only load this file once
 deterministic central-skill loading by a subagent has been demonstrated.
 
 ## The wall
@@ -102,9 +102,14 @@ Confirm `git rev-parse HEAD` equals `target_sha` before you rely on the working
 tree for anything. If it does not, the branch moved under you: say so and treat
 the working tree as unusable evidence.
 
-**The range never comes from a remote.** `base_sha` is whatever the caller
-supplied, and its first parent when the caller supplied nothing — no fetch, no
-`origin/main`, no comparison against a mainline.
+**Never derive or replace the range yourself.** `base_sha` is whatever the
+caller supplied, and its first parent when the caller supplied nothing. Do not
+fetch to establish it, do not recompute it against `origin/main` or any other
+mainline, and do not substitute a range you would have preferred. The caller
+may well have derived those pins from a freshly fetched remote mainline — a
+full-branch review is pinned that way — and that is the caller's business; once
+the pins reach you they are fixed, and reviewing anything else means reviewing
+a range nobody asked about.
 (Reading GitHub or fetching for *context*, as the wall above allows, is
 unaffected; it just cannot change what you are reviewing.)
 

@@ -136,7 +136,23 @@ cases, wrong control flow, misuse of an API's contract.
 
 **Security** — secrets, API keys, passwords or credentials in the diff;
 unvalidated or unsanitized input; injection (SQL, command, XSS); broken
-authentication or authorization; unguarded sensitive operations.
+authentication or authorization; unguarded sensitive operations. In a
+`.github/workflows/*.yml` or `*.yaml` file, a `uses:` reference added or
+changed in the diff — a step-level action or a job-level call to a reusable
+workflow (`jobs.<job_id>.uses:`) — that points to an external repo pinned to a
+mutable tag (`@v4`) or branch (`@main`) instead of a full commit SHA is a
+finding — a tag can be repointed to different code by a compromised or
+malicious maintainer without notice, while a SHA is immutable; pin with a
+trailing version comment for readability, e.g.
+`uses: actions/checkout@<sha> # v4.1.1`. A local reference (`uses: ./...`)
+resolves to a commit already in the repo under review, so it's exempt. Also
+flag, when introduced or changed in the diff: a missing least-privilege
+`permissions:` block, `pull_request_target` combined with checkout of an
+untrusted PR head, and `${{ github.event.* }}` interpolated directly into a
+`run:` step's script body — GitHub expands the expression before the shell
+sees it, so quoting the interpolated text does not stop injection; the value
+must instead be passed through an `env:` variable and read with quoted,
+shell-appropriate syntax (`"$VAR"` in bash, `$env:VAR` in PowerShell).
 
 **Data privacy and PII** — real user data in a log, fixture, sample or docs
 example; persisted outside a contract-owned field; or a change that weakens

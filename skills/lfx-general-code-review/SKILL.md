@@ -102,9 +102,14 @@ Confirm `git rev-parse HEAD` equals `target_sha` before you rely on the working
 tree for anything. If it does not, the branch moved under you: say so and treat
 the working tree as unusable evidence.
 
-**The range never comes from a remote.** `base_sha` is whatever the caller
-supplied, and its first parent when the caller supplied nothing — no fetch, no
-`origin/main`, no comparison against a mainline.
+**Never derive or replace the range yourself.** `base_sha` is whatever the
+caller supplied, and its first parent when the caller supplied nothing. Do not
+fetch to establish it, do not recompute it against `origin/main` or any other
+mainline, and do not substitute a range you would have preferred. The caller
+may well have derived those pins from a freshly fetched remote mainline — a
+full-branch review is pinned that way — and that is the caller's business; once
+the pins reach you they are fixed, and reviewing anything else means reviewing
+a range nobody asked about.
 (Reading GitHub or fetching for *context*, as the wall above allows, is
 unaffected; it just cannot change what you are reviewing.)
 

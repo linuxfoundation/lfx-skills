@@ -4,6 +4,7 @@ description: The canonical LFX review lifecycle and the single source of truth f
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
+<!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
 
 # LFX review lifecycle
 
@@ -134,14 +135,33 @@ are the one file each may read **instead**, and they are derived mechanically
 from the declared names — never declared, never searched for:
 
 ```text
-/foo  ->  <repo-root>/.claude/skills/foo/SKILL.md
+/foo  ->  .claude/skills/foo/SKILL.md
 ```
 
-Strip the leading `/`, and that is the skill directory. Nothing else is a
-permitted read: not an alias directory, a sibling or similarly named skill, a
-cached or vendored copy, another checkout, or a legacy `lfx-*-code-reviewer` /
-`lfx-*-learnings-reviewer` agent. If the derived file is absent, that reviewer
-returns INCOMPLETE. The central general reviewer has no file fallback at all.
+Strip the leading `/`, and that is the skill directory. **These two values are
+repo-root-relative and carry no root of their own.** The frozen prompt below
+hands the child `<repo-root>/{{CODE_PATH}}`, joining the root exactly once; a
+value that already began with `<repo-root>/` would substitute into a doubled
+path that no file answers to. The full path the child actually reads — root
+joined to the derived value, once — is what its fallback attestation must name.
+
+Nothing else is a permitted read: not an alias directory, a sibling or similarly
+named skill, a cached or vendored copy, another checkout, or a legacy
+`lfx-*-code-reviewer` / `lfx-*-learnings-reviewer` agent. If the derived file is
+absent, that reviewer returns INCOMPLETE. The central general reviewer has no
+file fallback at all.
+
+**A fallback file must prove it is the declared skill.** Reaching the derived
+path is not the same as reaching the declared reviewer: whatever occupies
+`.claude/skills/foo/SKILL.md` could declare `name: bar`, and a child that
+followed it would review under `bar`'s guidance while attesting `Skill: /foo`.
+So before following the file, read its YAML frontmatter and require `name` to
+equal the declared name with the leading `/` removed. Missing frontmatter,
+frontmatter you cannot parse, or a `name` that differs by any character means
+that reviewer returns INCOMPLETE — never look for the declared name elsewhere,
+never accept a near match, and never substitute another file. This applies to
+both repo reviewers; the central general reviewer has no file fallback to
+validate.
 
 **Fail closed.** Not a git checkout, no `origin`, no URL returned, a URL you cannot parse,
 `origin` URLs whose derived names disagree, no `CLAUDE.md`, no declaration in
@@ -254,6 +274,24 @@ only once the PR exists. The lifecycle moves to it and does not come back.
 **Neither phase merges.** A merge happens only after a separate, explicit human
 instruction.
 
+**Which skill owns a repo's PR iteration.** `/lfx-skills:lfx-pr-resolve` is the
+general-purpose PR-thread resolver, and it stays that for every repo that has
+not adopted this lifecycle. The boundary is the declaration, and it is decided
+per checkout, with no central list:
+
+- **Exactly one valid declaration** — this skill is the sole owner of the
+  lifecycle. PR iteration runs **Post-PR review** below, together with the
+  declared extension if the repo names one, and not `lfx-pr-resolve`.
+- **No `## Review lifecycle configuration` section at all** — the repo is not an
+  adopter. Nothing here governs it, and `/lfx-skills:lfx-pr-resolve` is the
+  right skill for its PR threads.
+- **A declaration that is malformed, duplicated or otherwise ambiguous** — fail
+  closed, as everywhere else. Say what was wrong and stop. A broken adoption is
+  not an absent one, so it must never fall through to `lfx-pr-resolve`: that
+  would answer a configuration error by silently running a different workflow.
+
+**Neither phase merges** applies to both routes.
+
 For the declaration schema in full, how a repo adopts this lifecycle, and how
 the two repo-owned reviewer skills are written, see
 [`references/ownership-and-adoption.md`](references/ownership-and-adoption.md).
@@ -316,7 +354,7 @@ Use this mode after normal development commits while work continues.
 Entering this mode ends post-commit review for this PR attempt. Finish any active post-commit batch and retain every finding that Mode 1 requires the parent to address. Do not retry an invalid post-commit batch; the whole-branch review below replaces its coverage. Do not return to Mode 1.
 
 1. Run `git fetch origin`, set `target_sha=$(git rev-parse HEAD)` and `base_sha=$(git merge-base origin/main HEAD)`, and launch the three reviewers together once against the whole branch range. Use the shared prompt with the range label `the branch's diff against origin/main` and review `git diff <full base SHA> <full target SHA>`. Never use `reviewed_through_sha` for this review.
-2. If the batch is operationally incomplete, it does not count as the review. Without editing files or creating commits, repeat step 1 so the unchanged branch is fetched, re-pinned, and reviewed by a complete three-reviewer batch until one valid result returns.
+2. If the batch is operationally incomplete, or invalid under the shared acceptance checks, it does not count as the review. Without editing files or creating commits, repeat step 1 so the unchanged branch is fetched, re-pinned, and reviewed again, until one valid and complete three-reviewer batch returns. Rerun the whole batch, never one reviewer alone, and never rerun a valid batch merely because it reported findings.
 3. Fix the retained post-commit findings and the issues raised by the whole-branch review, then complete the repository's documentation-currency updates. Commit all resulting changes with `git commit -s -S`, then run `{{READINESS}}` and `{{PREFLIGHT}}` against the clean, committed `HEAD`. If either check requires fixes, apply the remedy appropriate to the finding—rewrite local commits for existing-history defects or create a new signed/DCO commit for file changes—then rerun the affected deterministic checks. Ensure every resulting commit is signed and carries DCO sign-off. Do not run the local reviewers again.
 4. Push and open the PR. From that point onward, use Post-PR review only.
 

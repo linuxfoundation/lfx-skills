@@ -102,9 +102,8 @@ values — its two reviewer skills, its two non-fixing checks, and its Post-PR
 extension or `none`.
 This plugin holds no per-repo mapping, so adoption changes only the adopting
 repo; a repo without a valid declaration is not adopted, and the lifecycle
-fails closed rather than reviewing it. The coordinated initial adoption set is
-`lfx-v2-campaign-service`, `lfx-v2-committee-service`, `lfx-v2-meeting-service`
-and `lfx-v2-newsletter-service`, each landing separately.
+fails closed rather than reviewing it. Which repos have adopted is therefore not
+recorded here — ask the repo, not this README.
 
 ### Platform skill (1)
 

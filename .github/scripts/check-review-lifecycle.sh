@@ -37,8 +37,9 @@ WORKFLOW=.github/workflows/review-lifecycle-check.yml
 # structure, and a whitespace-normalized hash accepts all three.
 #
 # Re-pinning this constant is the human gate. Whoever changes it is asserting
-# the new text was approved, not that the check was noisy.
-CANONICAL_SHA256=4674b2881d11294f36e7d9046d570a9d62be1a9b1a115bd524896b207afe30f9
+# the new text was approved, not that the check was noisy. The current value
+# covers FINAL v10.3 plus the approved Mode 2 invalid-batch retry clarification.
+CANONICAL_SHA256=987fbe5304c1b308fcd248c9b010abf783789bbff06db640abebd8f9431ea5e9
 
 fails=0
 bad=()
@@ -101,15 +102,20 @@ if [ -s "$SKILL" ]; then
 else
   note "missing or empty: $SKILL"
 fi
-group "frozen FINAL v10.3 lifecycle"
+group "frozen canonical lifecycle"
 
-# --- 2. Files that must exist, and Pi/profile files that must not -----------
+# --- 2. Files that must exist, and retired files that must not -------------
+before=$fails
 kept "$SKILL"; kept "$OWNERSHIP"; kept "$GENERAL"; kept "$WORKFLOW"
 gone skills/lfx-local-review/scripts
 gone skills/lfx-local-review/references/pi-setup.md
+gone skills/lfx-local-review/references/repo-brains.md
 gone skills/lfx-local-review/references/repo-profiles.md
 group "required files present, retired files absent"
-[ $fails -eq 0 ] || { echo; echo "corpus unusable — later checks would be vacuous"; exit 1; }
+# Abort only on THIS group's failures. A group-1 hash mismatch — which happens
+# on every approved re-pin — must not skip groups 3-5, where the contract that
+# surrounds the frozen text is checked.
+[ $fails -eq $before ] || { echo; echo "corpus unusable — later checks would be vacuous"; exit 1; }
 
 # --- 3. The authored contract around the frozen text ------------------------
 # One assertion per RULE. The rationale sentences that explain each rule are
@@ -122,7 +128,9 @@ its instructions.'
 need "$SKILL"     'No repo adopting this central lifecycle may hold a second lifecycle copy'
 need "$SKILL"     'Repositories that have not adopted this skill are outside that rule'
 need "$OWNERSHIP" '**Central holds no per-repo mapping.**'
-grep -rqF 'repo-profiles' skills/ README.md && note "a central profile table is still referenced"
+for retired in repo-profiles repo-brains; do
+  grep -rqF "$retired" skills/ README.md && note "retired reference still present: $retired"
+done
 
 # identity comes from origin, never the directory or a prompt
 need "$SKILL" 'git remote get-url --all origin'
@@ -165,12 +173,40 @@ need "$SKILL"     'a readiness or preflight value is empty, spans more than one 
   a single terminated code span'
 
 # the one permitted fallback is derived from the declared name, and general has none
-need "$SKILL"     '/foo -> <repo-root>/.claude/skills/foo/SKILL.md'
-need "$OWNERSHIP" '/foo -> <repo-root>/.claude/skills/foo/SKILL.md'
+need "$SKILL"     '/foo -> .claude/skills/foo/SKILL.md'
+need "$OWNERSHIP" '/foo -> .claude/skills/foo/SKILL.md'
+# The derived value carries no root: the frozen prompt joins <repo-root>/ once.
+reject "$SKILL"     '/foo -> <repo-root>/.claude/skills/foo/SKILL.md'
+reject "$OWNERSHIP" '/foo -> <repo-root>/.claude/skills/foo/SKILL.md'
+need "$SKILL"     '**These two values are
+repo-root-relative and carry no root of their own.**'
+need "$SKILL"     'joining the root exactly once'
+need "$OWNERSHIP" '**repo-root-relative and carries no root
+of its own**'
+# A fallback file must prove it is the declared skill, not merely occupy its path.
+need "$SKILL"     '**A fallback file must prove it is the declared skill.**'
+need "$SKILL"     'read its YAML frontmatter and require `name` to
+equal the declared name with the leading `/` removed'
+need "$SKILL"     'a `name` that differs by any character means
+that reviewer returns INCOMPLETE'
+need "$SKILL"     'This applies to
+both repo reviewers; the central general reviewer has no file fallback to
+validate.'
+need "$OWNERSHIP" 'its YAML frontmatter
+`name` has to equal the declared name with the leading `/` removed'
 need "$SKILL"     'not an alias directory, a sibling or similarly named skill, a
 cached or vendored copy, another checkout, or a legacy'
 need "$SKILL"     'The central general reviewer has no file fallback at all'
 need "$SKILL"     '**Fail closed.**'
+
+# PR-iteration routing: adopter -> this lifecycle, non-adopter -> lfx-pr-resolve,
+# broken declaration -> fail closed, never a fall-through
+need "$SKILL" '**Which skill owns a repo'"'"'s PR iteration.**'
+need "$SKILL" 'A broken adoption is
+  not an absent one, so it must never fall through to `lfx-pr-resolve`'
+need skills/lfx/SKILL.md '**PR review threads have two routes, decided by the repo, not by this table.**'
+need skills/lfx-pr-resolve/SKILL.md '**Check first whether this repo owns its PR iteration elsewhere.**'
+kept skills/lfx-pr-resolve/SKILL.md
 
 # the declared extension is executed, and bounded
 need "$SKILL" '**On entry to Post-PR review, load the declared extension.**'
@@ -215,7 +251,7 @@ for term in run-pi pi-setup PI_READY PI_NOT_INSTALLED PI_UNAUTHENTICATED \
             PI_MODEL_UNAVAILABLE LFX_LOCAL_REVIEW_ local-review-fallback \
             local-code-review local-learnings-review earendil gpt-5 \
             cross-model same-model headless harness pi-coding-agent \
-            'adoption profile' 'repo profile'; do
+            'adoption profile' 'repo profile' 'reviewer brain'; do
   grep -rniqF -- "$term" "${OWNED[@]}" && note "retired term present: $term"
 done
 grep -rnqE -- '(^|[^A-Za-z])Pi([^A-Za-z]|$)' "${OWNED[@]}" && note "retired term present: standalone 'Pi'"
@@ -240,7 +276,10 @@ if [ -z "$readme" ]; then note "README has no review-lifecycle section"; else
 fi
 has README.md 'compatibility tooling for repos that have not adopted the central review lifecycle' ||
   note "README does not frame the named agents as compatibility tooling"
-grep -qF 'check-review-lifecycle.sh' "$WORKFLOW" || note "$WORKFLOW does not run this checker"
+# The `paths:` filter also names this script, so match the executing step: a
+# workflow whose run step was deleted would otherwise still satisfy a plain grep.
+grep -qE '^[[:space:]]*run:[[:space:]]*\./\.github/scripts/check-review-lifecycle\.sh[[:space:]]*$' "$WORKFLOW" ||
+  note "$WORKFLOW has no run step invoking this checker"
 group "README catalog-only, and CI runs this checker"
 
 echo

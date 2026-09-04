@@ -3,6 +3,15 @@
 
 # Ownership and adoption
 
+- [The sole-owner invariant](#the-sole-owner-invariant)
+- [The declaration](#the-declaration)
+- [The one permitted fallback path, derived not declared](#the-one-permitted-fallback-path-derived-not-declared)
+- [Where the two reviewer skills live](#where-the-two-reviewer-skills-live)
+- [What a reviewer receives](#what-a-reviewer-receives)
+- [The false-positive floor must suppress at BOTH revisions](#the-false-positive-floor-must-suppress-at-both-revisions)
+- [Writing the two skills](#writing-the-two-skills)
+- [Checklist for a repo adopting this lifecycle](#checklist-for-a-repo-adopting-this-lifecycle)
+
 Every Pre-PR batch runs three reviewers. Central owns one of them and the
 lifecycle they run inside; **the repo owns the other two**, because they encode
 things only that repo knows.
@@ -134,13 +143,25 @@ skill is unavailable in the child's session may it read one file instead, and
 that path is **derived mechanically from the declared name**:
 
 ```text
-/foo  ->  <repo-root>/.claude/skills/foo/SKILL.md
+/foo  ->  .claude/skills/foo/SKILL.md
 ```
 
 Strip the leading `/`; the remainder is the skill directory under
-`.claude/skills/`. This is why the fallback is not a declared value: a declared
-path could disagree with the declared name, and then two reviewers of the same
-role could read different files. Deriving it makes that impossible.
+`.claude/skills/`. The derived value is **repo-root-relative and carries no root
+of its own** — the lifecycle's child prompt hands over
+`<repo-root>/{{CODE_PATH}}`, joining the root exactly once, and the full path
+that join produces is what a fallback attestation must name. This is why the
+fallback is not a declared value: a declared path could disagree with the
+declared name, and then two reviewers of the same role could read different
+files. Deriving it makes that impossible.
+
+Reaching that path is still not the same as reaching the declared skill.
+Whatever file occupies the directory could declare a different `name`, and a
+reviewer that followed it would work from the wrong guidance while attesting the
+declared one. So a fallback file must prove its identity: its YAML frontmatter
+`name` has to equal the declared name with the leading `/` removed. Absent,
+unparseable or differing frontmatter means that reviewer returns INCOMPLETE —
+no alias, no near match, no other file.
 
 Nothing else may be read: not an alias directory, a sibling or similarly named
 skill, a cached or vendored copy, another checkout, or a legacy

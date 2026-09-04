@@ -347,6 +347,13 @@ you.
       non-fixing actions, quoting the repo's own documentation for each
 - [ ] Each reviewer skill reachable at the path its declared name derives to,
       `.claude/skills/<declared-name>/SKILL.md`
+- [ ] `origin/main` resolves to a commit in a fresh clone
+      (`git rev-parse --verify origin/main`). Mode 2 pins its base at
+      `git merge-base origin/main HEAD` and the declaration carries no
+      base-branch value, so this is a prerequisite of adoption, not something a
+      repo configures. A repo whose mainline is named anything else is
+      incompletely adopted and the lifecycle fails closed rather than inferring
+      one
 - [ ] Any smoke or test clone keeps a fetch `origin` pointing at the real
       repository, with only its **push** URL removed or disabled
       (`git remote set-url --push origin no-push`). The lifecycle identifies a

@@ -274,6 +274,21 @@ only once the PR exists. The lifecycle moves to it and does not come back.
 **Neither phase merges.** A merge happens only after a separate, explicit human
 instruction.
 
+**`origin/main` is an adoption prerequisite.** Mode 2 pins its base at
+`git merge-base origin/main HEAD`, and the declaration deliberately carries no
+base-branch value — a repo that named its own would be configuring the lifecycle
+rather than adopting it. So the mainline is fixed: after Mode 2's fetch and
+before it computes that merge-base, `origin/main` must resolve to a commit
+(`git rev-parse --verify origin/main`).
+
+If it does not, stop and report that this repo is not supported by the lifecycle
+as adopted, and review nothing. **Never infer a mainline**: not from
+`origin/HEAD`, not from another remote, not from a similarly named branch, not
+from the directory or the default branch of some other checkout. A repo whose
+mainline is not `origin/main` is incompletely adopted, and that is a
+configuration fact for a human to fix — inferring one would silently review
+against a base nobody chose.
+
 **Which skill owns a repo's PR iteration.** `/lfx-skills:lfx-pr-resolve` is the
 general-purpose PR-thread resolver, and it stays that for every repo that has
 not adopted this lifecycle. The boundary is the declaration, and it is decided
@@ -354,7 +369,7 @@ Use this mode after normal development commits while work continues.
 Entering this mode ends post-commit review for this PR attempt. Finish any active post-commit batch and retain every finding that Mode 1 requires the parent to address. Do not retry an invalid post-commit batch; the whole-branch review below replaces its coverage. Do not return to Mode 1.
 
 1. Run `git fetch origin`, set `target_sha=$(git rev-parse HEAD)` and `base_sha=$(git merge-base origin/main HEAD)`, and launch the three reviewers together once against the whole branch range. Use the shared prompt with the range label `the branch's diff against origin/main` and review `git diff <full base SHA> <full target SHA>`. Never use `reviewed_through_sha` for this review.
-2. If the batch is operationally incomplete, or invalid under the shared acceptance checks, it does not count as the review. Without editing files or creating commits, repeat step 1 so the unchanged branch is fetched, re-pinned, and reviewed again, until one valid and complete three-reviewer batch returns. Rerun the whole batch, never one reviewer alone, and never rerun a valid batch merely because it reported findings.
+2. If the batch is operationally incomplete, or invalid under the shared acceptance checks, it does not count as the review. Without editing files or creating commits, repeat step 1 so the unchanged branch is fetched, re-pinned, and reviewed again. Rerun the whole batch, never one reviewer alone, and never rerun a valid batch merely because it reported findings. Retry only a failure a fresh whole-batch attempt could plausibly clear. Stop and report instead—do not loop—when the output proves a defect that cannot clear without edits or configuration repair, such as a declared skill unavailable with no authorized fallback, a fallback file missing or unreadable or whose frontmatter names another skill, or pins that cannot be read; and when the same acceptance failure recurs at unchanged pins. Never move to step 3 or open the PR without one valid complete batch.
 3. Fix the retained post-commit findings and the issues raised by the whole-branch review, then complete the repository's documentation-currency updates. Commit all resulting changes with `git commit -s -S`, then run `{{READINESS}}` and `{{PREFLIGHT}}` against the clean, committed `HEAD`. If either check requires fixes, apply the remedy appropriate to the finding—rewrite local commits for existing-history defects or create a new signed/DCO commit for file changes—then rerun the affected deterministic checks. Ensure every resulting commit is signed and carries DCO sign-off. Do not run the local reviewers again.
 4. Push and open the PR. From that point onward, use Post-PR review only.
 

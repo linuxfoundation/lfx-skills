@@ -10,6 +10,9 @@ name: Review Lifecycle Check
       - 'skills/lfx-general-code-review/**'
       # the catalog entry must keep cataloging, not grow a second lifecycle
       - 'README.md'
+      # the checker asserts PR-iteration routing content in both of these
+      - 'skills/lfx/SKILL.md'
+      - 'skills/lfx-pr-resolve/SKILL.md'
       - '.github/scripts/check-review-lifecycle.sh'
       - '.github/workflows/review-lifecycle-check.yml'
 

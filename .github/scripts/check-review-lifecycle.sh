@@ -38,9 +38,10 @@ WORKFLOW=.github/workflows/review-lifecycle-check.yml
 #
 # Re-pinning this constant is the human gate. Whoever changes it is asserting
 # the new text was approved, not that the check was noisy. The current value
-# covers FINAL v10.3 plus two approved amendments: the Mode 2 invalid-batch
-# retry clarification, and the fallback identity check in both child prompts.
-CANONICAL_SHA256=8014a72aef82cdf2d6b6e77502be07c259f5b6fcd01ba3b41fe2c54f40b4a6e5
+# covers FINAL v10.3 plus three approved amendments: the Mode 2 invalid-batch
+# retry with its deterministic-stop bound, and the fallback identity check in
+# both child prompts.
+CANONICAL_SHA256=777710f4df8590967b32af04361d385472f2f53f0be839d9b9249feb32c202f6
 
 fails=0
 bad=()
@@ -214,6 +215,21 @@ need skills/lfx/SKILL.md '**PR review threads have two routes, decided by the re
 need skills/lfx-pr-resolve/SKILL.md '**Check first whether this repo owns its PR iteration elsewhere.**'
 kept skills/lfx-pr-resolve/SKILL.md
 
+# Mode 2's retry is bounded: it recovers from a transient batch failure, and
+# stops rather than looping when the evidence proves a deterministic defect.
+need "$SKILL" 'Retry only a failure a fresh whole-batch attempt could plausibly clear.'
+need "$SKILL" 'Stop and report instead—do not loop—when the output proves a defect that cannot clear without edits or configuration repair'
+need "$SKILL" 'when the same acceptance failure recurs at unchanged pins'
+need "$SKILL" 'Never move to step 3 or open the PR without one valid complete batch.'
+
+# item 3: origin/main is a prerequisite of adoption, never inferred
+need "$SKILL"     '**`origin/main` is an adoption prerequisite.**'
+need "$SKILL"     '`origin/main` must resolve to a commit
+(`git rev-parse --verify origin/main`)'
+need "$SKILL"     '**Never infer a mainline**: not from
+`origin/HEAD`, not from another remote, not from a similarly named branch'
+need "$OWNERSHIP" '`origin/main` resolves to a commit in a fresh clone'
+
 # the declared extension is executed, and bounded
 need "$SKILL" '**On entry to Post-PR review, load the declared extension.**'
 need "$SKILL" 'only to refine and carry out canonical steps 1 through 6'
@@ -286,6 +302,13 @@ has README.md 'compatibility tooling for repos that have not adopted the central
 # workflow whose run step was deleted would otherwise still satisfy a plain grep.
 grep -qE '^[[:space:]]*run:[[:space:]]*\./\.github/scripts/check-review-lifecycle\.sh[[:space:]]*$' "$WORKFLOW" ||
   note "$WORKFLOW has no run step invoking this checker"
+# Every file this script asserts content in must also trigger it, or a change to
+# that file alone lands with no CI signal.
+for guarded in 'skills/lfx-local-review/**' 'skills/lfx-general-code-review/**' \
+               'README.md' 'skills/lfx/SKILL.md' 'skills/lfx-pr-resolve/SKILL.md' \
+               '.github/scripts/check-review-lifecycle.sh'; do
+  grep -qF -- "- '$guarded'" "$WORKFLOW" || note "$WORKFLOW does not trigger on $guarded"
+done
 group "README catalog-only, and CI runs this checker"
 
 echo

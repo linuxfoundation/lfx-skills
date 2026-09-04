@@ -136,7 +136,16 @@ cases, wrong control flow, misuse of an API's contract.
 
 **Security** — secrets, API keys, passwords or credentials in the diff;
 unvalidated or unsanitized input; injection (SQL, command, XSS); broken
-authentication or authorization; unguarded sensitive operations.
+authentication or authorization; unguarded sensitive operations. In a changed
+`.github/workflows/*.yml` or `*.yaml` file, a `uses:` step pinned to a mutable
+tag (`@v4`) or branch (`@main`) instead of a full commit SHA is a finding — a
+tag can be repointed to different code by a compromised or malicious
+maintainer without notice, while a SHA is immutable; pin with a trailing
+version comment for readability, e.g.
+`uses: actions/checkout@<sha> # v4.1.1`. Also flag a missing least-privilege
+`permissions:` block, `pull_request_target` combined with checkout of an
+untrusted PR head, and unquoted `${{ github.event.* }}` interpolation in a
+`run:` step.
 
 **Data privacy and PII** — real user data in a log, fixture, sample or docs
 example; persisted outside a contract-owned field; or a change that weakens

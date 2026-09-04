@@ -126,6 +126,25 @@ would actually say — in such a session, and check the skill triggers and that 
 expected result. Simple one-step prompts are poor tests: agents skip skills for tasks they can handle
 directly, so test with the substantive multi-step requests the skill exists for.
 
+## Local review
+
+After every commit on the local branch, and before a pull request exists, run
+`/lfx-skills:lfx-local-review` from this repo, with no argument. It reviews
+the newest commit against its first parent. Run it from inside the checkout,
+or pass a resolved `--repo <path>`. Never pass a bare repo name for the
+launcher to look up.
+
+This repo owns two of the three reviewer brains:
+
+- `.claude/skills/local-code-review/SKILL.md` cites the written rule surface
+  (`.github/skills/lfx-skills-code-review`, this file, `README.md`)
+- `.claude/skills/local-learnings-review/SKILL.md` matches
+  `docs/reviews/knowledge-base/`
+
+The `general` brain stays central. Local review stops at PR-open. After the
+trio comes back clean, or remaining findings are documented as trade-offs,
+run the checks under Before you push.
+
 ## Before you push
 
 - `claude plugin validate .` — must pass. Its missing-`version` warning is expected: this plugin

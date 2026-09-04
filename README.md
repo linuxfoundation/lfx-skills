@@ -116,9 +116,10 @@ the seat's allowance, so review runs draw on it like any other Copilot use.
    confirms your seat serves it, and a seat that doesn't reports
    `PI_MODEL_UNAVAILABLE` and the trio falls back to Claude.
 
-Local review is currently enabled in **`lfx-v2-newsletter-service`,
+Local review is currently enabled in **`lfx-skills`**,
+**`lfx-v2-newsletter-service`**,
 `lfx-v2-meeting-service`, `lfx-v2-campaign-service`, and
-`lfx-v2-committee-service`** — the repos whose `main` carries the two repo
+`lfx-v2-committee-service` — the repos whose `main` carries the two repo
 reviewer skills below.
 
 The repo under review owns its own two reviewer skills at
@@ -169,6 +170,12 @@ prompt under `agents/` for the exact invocation contract.
 ├── .claude-plugin/
 │   ├── plugin.json              # Claude plugin manifest (name: lfx-skills; no `version` — see below)
 │   └── marketplace.json         # Marketplace manifest (name: lfx-skills)
+├── .claude/skills/              # repo-owned local-review brains (not shipped)
+│   ├── local-code-review/
+│   ├── local-learnings-review/
+│   └── local-review-fallback/
+├── .agents/skills/
+│   └── local-review-fallback    # symlink to .claude/skills/local-review-fallback
 ├── skills/
 │   ├── lfx/                     # central topology router
 │   ├── lfx-platform-architecture/
@@ -200,7 +207,10 @@ prompt under `agents/` for the exact invocation contract.
 │   ├── lfx-project-service-learnings-reviewer.md
 │   ├── lfx-self-serve-code-reviewer.md
 │   └── lfx-self-serve-learnings-reviewer.md
-├── docs/                        # plugin docs (platform install, tool mapping)
+├── docs/
+│   ├── platform-install.md
+│   ├── tool-mapping.md
+│   └── reviews/knowledge-base/  # empirical patterns for this repo's local review
 ├── install.sh                   # Agent Skills installer (Codex etc. → ~/.agents/skills)
 ├── update.sh                    # re-sync Agent Skills symlinks after a pull
 ├── uninstall.sh                 # remove LFX Agent Skills symlinks

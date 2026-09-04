@@ -16,11 +16,18 @@
 .Trashes
 Thumbs.db
 
-# Claude AI assistant
-.claude
-
-# Installed skill symlinks (created by per-repo installation)
-.claude/skills/
+# Claude AI assistant (local session state). The three local-review brains
+# are tracked exceptions — the launcher discovers them at
+# .claude/skills/local-*/SKILL.md.
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/local-code-review/
+!.claude/skills/local-code-review/**
+!.claude/skills/local-learnings-review/
+!.claude/skills/local-learnings-review/**
+!.claude/skills/local-review-fallback/
+!.claude/skills/local-review-fallback/**
 
 # Environment and configuration files
 .env

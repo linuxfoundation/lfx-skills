@@ -38,8 +38,9 @@ WORKFLOW=.github/workflows/review-lifecycle-check.yml
 #
 # Re-pinning this constant is the human gate. Whoever changes it is asserting
 # the new text was approved, not that the check was noisy. The current value
-# covers FINAL v10.3 plus the approved Mode 2 invalid-batch retry clarification.
-CANONICAL_SHA256=987fbe5304c1b308fcd248c9b010abf783789bbff06db640abebd8f9431ea5e9
+# covers FINAL v10.3 plus two approved amendments: the Mode 2 invalid-batch
+# retry clarification, and the fallback identity check in both child prompts.
+CANONICAL_SHA256=8014a72aef82cdf2d6b6e77502be07c259f5b6fcd01ba3b41fe2c54f40b4a6e5
 
 fails=0
 bad=()
@@ -192,6 +193,11 @@ that reviewer returns INCOMPLETE'
 need "$SKILL"     'This applies to
 both repo reviewers; the central general reviewer has no file fallback to
 validate.'
+# The child, not the parent, is the actor that follows a fallback — so the check
+# has to live in the prompt the child receives, not only in the authored rule.
+for role in '{{CODE_SKILL}}:{{CODE_PATH}}' '{{LEARNINGS_SKILL}}:{{LEARNINGS_PATH}}'; do
+  need "$SKILL" "read <repo-root>/${role#*:}. Before following that file, read its YAML frontmatter and require its name field to equal ${role%%:*} with the leading / removed; if the frontmatter is missing, unparseable, or names anything else, return INCOMPLETE and do not follow it."
+done
 need "$OWNERSHIP" 'its YAML frontmatter
 `name` has to equal the declared name with the leading `/` removed'
 need "$SKILL"     'not an alias directory, a sibling or similarly named skill, a

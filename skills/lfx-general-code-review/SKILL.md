@@ -144,8 +144,11 @@ maintainer without notice, while a SHA is immutable; pin with a trailing
 version comment for readability, e.g.
 `uses: actions/checkout@<sha> # v4.1.1`. Also flag a missing least-privilege
 `permissions:` block, `pull_request_target` combined with checkout of an
-untrusted PR head, and unquoted `${{ github.event.* }}` interpolation in a
-`run:` step.
+untrusted PR head, and `${{ github.event.* }}` interpolated directly into a
+`run:` step's script body — GitHub expands the expression before the shell
+sees it, so quoting the interpolated text does not stop injection; the value
+must instead be passed through an `env:` variable and referenced as `$VAR` in
+the script.
 
 **Data privacy and PII** — real user data in a log, fixture, sample or docs
 example; persisted outside a contract-owned field; or a change that weakens

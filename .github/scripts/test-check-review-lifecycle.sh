@@ -88,10 +88,13 @@ run_case "workflow drops the router path" bad "does not trigger on skills/lfx/SK
 run_case "workflow keeps paths: but loses the run step" bad "has no run step invoking this checker" \
   "sed -i.bak '/run: .\/.github\/scripts\/check-review-lifecycle.sh/d' .github/workflows/review-lifecycle-check.yml"
 
+run_case "workflow keeps paths: but loses the harness step" bad "has no run step invoking the checker's mutation tests" \
+  "sed -i.bak '/run: .\/.github\/scripts\/test-check-review-lifecycle.sh/d' .github/workflows/review-lifecycle-check.yml"
+
 # --- PR-iteration routing surfaces ----------------------------------------
 run_case "pr-resolve loses its adoption gate" bad \
   "skills/lfx-pr-resolve/SKILL.md: missing" \
-  "sed -i.bak 's/\*\*Check first whether this repo owns its PR iteration elsewhere\.\*\*/Check first./' skills/lfx-pr-resolve/SKILL.md"
+  "sed -i.bak 's/\*\*Before working any thread, check whether the PR.s repo owns its PR iteration/Before working any thread, check whether the repo owns its PR iteration/' skills/lfx-pr-resolve/SKILL.md"
 
 run_case "router loses its two-routes rule" bad \
   "skills/lfx/SKILL.md: missing" \

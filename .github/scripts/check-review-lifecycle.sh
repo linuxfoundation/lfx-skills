@@ -212,7 +212,8 @@ need "$SKILL" '**Which skill owns a repo'"'"'s PR iteration.**'
 need "$SKILL" 'A broken adoption is
   not an absent one, so it must never fall through to `lfx-pr-resolve`'
 need skills/lfx/SKILL.md '**PR review threads have two routes, decided by the repo, not by this table.**'
-need skills/lfx-pr-resolve/SKILL.md '**Check first whether this repo owns its PR iteration elsewhere.**'
+need skills/lfx-pr-resolve/SKILL.md '**Before working any thread, check whether the PR'"'"'s repo owns its PR iteration
+  elsewhere.**'
 kept skills/lfx-pr-resolve/SKILL.md
 
 # Mode 2's retry is bounded: it recovers from a transient batch failure, and
@@ -302,6 +303,10 @@ has README.md 'compatibility tooling for repos that have not adopted the central
 # workflow whose run step was deleted would otherwise still satisfy a plain grep.
 grep -qE '^[[:space:]]*run:[[:space:]]*\./\.github/scripts/check-review-lifecycle\.sh[[:space:]]*$' "$WORKFLOW" ||
   note "$WORKFLOW has no run step invoking this checker"
+# The harness is guarded the same way: its paths: entry alone would let the
+# `Test the checker` step be dropped with no signal.
+grep -qE '^[[:space:]]*run:[[:space:]]*\./\.github/scripts/test-check-review-lifecycle\.sh[[:space:]]*$' "$WORKFLOW" ||
+  note "$WORKFLOW has no run step invoking the checker's mutation tests"
 # Every file this script asserts content in must also trigger it, or a change to
 # that file alone lands with no CI signal.
 for guarded in 'skills/lfx-local-review/**' 'skills/lfx-general-code-review/**' \

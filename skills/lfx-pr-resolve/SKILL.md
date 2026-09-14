@@ -6,9 +6,9 @@ description: >
   a follow-up summary, dismisses stale "changes requested" reviews, and
   re-requests review. Use whenever someone wants to address PR feedback, fix
   review comments, resolve PR threads, or iterate on a pull request after review
-  — unless the repo's CLAUDE.md carries a valid `## Review lifecycle
-  configuration` section, in which case `/lfx-skills:lfx-local-review` owns its
-  PR iteration instead.
+  — unless the PR's repo carries a `## Review lifecycle configuration` section
+  in its root CLAUDE.md, in which case `/lfx-skills:lfx-local-review` owns its
+  PR iteration (and validates that section) instead.
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Skill
 ---
 
@@ -18,17 +18,17 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Skill
 
 # PR Review Comment Resolver
 
-**Check first whether this repo owns its PR iteration elsewhere.** Do this
-**after Step 1 has identified the PR's repository** — the PR may live in a
-different repo from the current checkout — and read only that repository's
-root `CLAUDE.md`. If it carries exactly one `## Review lifecycle
-configuration` section, the repo has adopted `/lfx-skills:lfx-local-review` as
-the sole owner of its review lifecycle: hand the work to that skill and stop;
-that skill validates the declaration and fails closed itself. If there is no
-such section, the repo is not an adopter and this skill is the right one. If
-there is more than one such section, say so and stop — that is a broken
-adoption, not an absent one, and running this skill instead would answer a
-configuration error with a different workflow.
+**Before working any thread, check whether the PR's repo owns its PR iteration
+elsewhere.** Run this check **after Step 1 has identified the PR's repository**
+— the PR may live in a different repo from the current checkout — and read only
+that repository's root `CLAUDE.md`. If it carries exactly one
+`## Review lifecycle configuration` section, the repo has adopted
+`/lfx-skills:lfx-local-review` as the sole owner of its review lifecycle: hand
+the work to that skill and stop; that skill validates the declaration and fails
+closed itself. If there is no such section, the repo is not an adopter and this
+skill is the right one. If there is more than one such section, say so and stop
+— that is a broken adoption, not an absent one, and running this skill instead
+would answer a configuration error with a different workflow.
 
 You address PR review feedback end-to-end: read the comments, make the code changes, commit, respond to each reviewer, resolve the threads, and post a summary. The goal is to close the feedback loop completely, reviewers should see exactly what was done and why.
 
@@ -40,12 +40,6 @@ Determine which PR to work on. The user may provide:
 - A PR URL (e.g., `https://github.com/org/repo/pull/142`)
 - Nothing, auto-detect from the current branch
 
-Once the PR's `org/repo` is known, apply the adoption check above against
-**that** repository's root `CLAUDE.md` before continuing. If it is not the
-current checkout, read the file from the identified repository (e.g.
-`gh api repos/<org>/<repo>/contents/CLAUDE.md` on the PR's base branch), not
-from wherever this session happens to be running.
-
 ### Verify GitHub CLI Authentication
 
 Before making any `gh` calls, verify authentication:
@@ -56,6 +50,19 @@ gh auth status 2>&1
 
 If auth fails, stop and tell the user to run `gh auth login`.
 
+### Apply the adoption check to the identified repository
+
+Once the PR's `org/repo` and base branch are known, run the adoption check
+from the top of this skill against **that** repository's root `CLAUDE.md`. If
+it is not the current checkout, read the file from the identified repository
+at the PR's base branch, as raw text rather than the JSON envelope:
+
+```bash
+gh api "repos/<org>/<repo>/contents/CLAUDE.md?ref=<base-branch>" \
+  -H "Accept: application/vnd.github.raw"
+```
+
+Do not read `CLAUDE.md` from wherever this session happens to be running.
 ### Auto-detection
 
 ```bash

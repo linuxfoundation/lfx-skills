@@ -25,8 +25,11 @@ that repository's root `CLAUDE.md`. If it carries exactly one
 `## Review lifecycle configuration` section, the repo has adopted
 `/lfx-skills:lfx-local-review` as the sole owner of its review lifecycle: hand
 the work to that skill and stop; that skill validates the declaration and fails
-closed itself. If there is no such section, the repo is not an adopter and this
-skill is the right one. If there is more than one such section, say so and stop
+closed itself. It also verifies the checkout it runs in against its `origin`,
+so if the current checkout is not that repository, do not hand off from here —
+tell the user to open a checkout of the PR's repository and run it there. If
+there is no such section, the repo is not an adopter and this skill is the
+right one. If there is more than one such section, say so and stop
 — that is a broken adoption, not an absent one, and running this skill instead
 would answer a configuration error with a different workflow.
 

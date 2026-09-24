@@ -101,22 +101,25 @@ phased out once they have.
 | `/lfx-skills:lfx-local-review`        | The earlier central review lifecycle: local pre-PR review and Post-PR iteration, end to end, for repos that have not yet adopted the pre-PR review block. Those repos point at it rather than describing it.                                                                                   |
 | `/lfx-skills:lfx-general-code-review` | The general review method itself: correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance, style — and the target repo's own written conventions, rules and checklists, read from that repo. Loaded by the `general` reviewer. Not invoked by hand. |
 
+What follows documents the **earlier lifecycle only**; a repo starting today
+uses the pre-PR review block above instead.
 The lifecycle itself is deliberately **not** described here — it lives in one
 place, and a second account of it in this README would be a copy to drift from.
-Read [`skills/lfx-local-review/SKILL.md`](skills/lfx-local-review/SKILL.md) for
+Repos still on it read
+[`skills/lfx-local-review/SKILL.md`](skills/lfx-local-review/SKILL.md) for
 the lifecycle, and
 [`references/ownership-and-adoption.md`](skills/lfx-local-review/references/ownership-and-adoption.md)
-for who owns what, the declaration a repo adds to adopt it, and how the two
+for who owns what, the declaration such a repo carries, and how its two
 repo-owned reviewer skills are written.
 
-A repo adopts by adding one `## Review lifecycle configuration` section to its
-own `CLAUDE.md`: a sentence loading `/lfx-skills:lfx-local-review`, then five
-values — its two reviewer skills, its two non-fixing checks, and its Post-PR
-extension or `none`.
-This plugin holds no per-repo mapping, so adoption changes only the adopting
-repo; a repo without a valid declaration is not adopted, and the lifecycle
-fails closed rather than reviewing it. Which repos have adopted is therefore not
-recorded here — ask the repo, not this README.
+A repo on the earlier lifecycle declares it with one
+`## Review lifecycle configuration` section in its own `CLAUDE.md`: a sentence
+loading `/lfx-skills:lfx-local-review`, then five values — its two reviewer
+skills, its two non-fixing checks, and its Post-PR extension or `none`.
+This plugin holds no per-repo mapping; a repo without a valid declaration is
+not on that lifecycle, which fails closed rather than reviewing it. Which repos
+are still on it is not recorded here — ask the repo, not this README. Migrating
+off it means replacing the declaration with the block above.
 
 ### Platform skill (1)
 

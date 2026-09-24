@@ -142,6 +142,17 @@ local skills, rules and docs.
 
 ## The repo's written conventions
 
+**Transition gate — check this first.** Repos that have not yet adopted the
+pre-PR review block still run the earlier lifecycle, which launches a separate
+repo-owned code-review skill alongside you to audit conventions. Read the
+target repo's root `CLAUDE.md` at `target_sha`. If it carries a
+`## Review lifecycle configuration` section (which names a `repo code
+reviewer`), or otherwise instructs the caller to launch a repo-specific
+code-review skill alongside this one, that reviewer owns conventions there:
+**skip this section entirely**, state `Conventions: skipped — covered by the
+repo's own code reviewer under the earlier lifecycle` in your report, and
+review general quality only. Otherwise, continue.
+
 The target repo's own rules are part of what you review against, and they win
 over your general taste wherever the two differ (the data-privacy rules below
 are the one thing no repo rule can weaken). You do not know these rules in

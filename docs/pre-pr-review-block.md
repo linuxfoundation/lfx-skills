@@ -52,8 +52,11 @@ after individual commits, and never again once the PR exists.
    reasonable Important finding in **EXACTLY ONE fix commit** (signed and
    DCO-signed-off). No fix commit if there is nothing to fix. Never one commit
    per finding.
-5. Run `<preflight>`. If it fails, fix in a further commit and rerun the
-   checks — but **do not rerun the reviewers**.
+5. Run `<preflight>`. If it fails, fold the remedy into the fix commit with
+   `git commit --amend` (re-sign and re-sign-off); if review found nothing and
+   there is no fix commit yet, this remedy becomes the one fix commit. Rerun
+   the checks — but **do not rerun the reviewers**. The branch gains exactly one
+   commit after the implementation, never more.
 6. Open the PR.
 
 **Hard rules.** No local review runs after any individual commit. The
@@ -89,8 +92,11 @@ after individual commits, and never again once the PR exists.
    reasonable Important finding in **EXACTLY ONE fix commit** (signed and
    DCO-signed-off). No fix commit if there is nothing to fix. Never one commit
    per finding.
-5. Run `<preflight>`. If it fails, fix in a further commit and rerun the
-   checks — but **do not rerun the reviewer**.
+5. Run `<preflight>`. If it fails, fold the remedy into the fix commit with
+   `git commit --amend` (re-sign and re-sign-off); if review found nothing and
+   there is no fix commit yet, this remedy becomes the one fix commit. Rerun
+   the checks — but **do not rerun the reviewer**. The branch gains exactly one
+   commit after the implementation, never more.
 6. Open the PR.
 
 **Hard rules.** No local review runs after any individual commit. The

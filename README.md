@@ -80,14 +80,26 @@ Cross-repo developer workflows that apply across every LFX repo.
 | `/lfx-skills:lfx-data-engineer`            | Generate PR-ready dbt models, SQL transformations, and tests for `lf-dbt`, including medallion architecture, sqlfluff conventions, macros, and validation workflow guidance. |
 | `/lfx-skills:lfx-security-engineer`        | Security review for LFX repos: OWASP Top 10 scan, auth/authz review, secret detection, Terraform audit, migration safety. Use before PRs touching auth, permissions, or data handling. |
 
+### Pre-PR review block
+
+The local review lifecycle every LFX repo runs before opening a PR is a short
+block a repo pastes into its own `CLAUDE.md`, copied from
+[`docs/pre-pr-review-block.md`](docs/pre-pr-review-block.md). One review round
+of the whole branch, one reviewer per skill in parallel, one fix commit,
+preflight, PR — then PR-side review only. Two variants: with the repo's own
+knowledge-base reviewer, and without. The block is a template to copy, not a
+skill to load; the review method it launches is `/lfx-skills:lfx-general-code-review`.
+
 ### Review lifecycle skills (2)
 
-The canonical LFX review lifecycle and the general review method it loads.
+The earlier central lifecycle and the general review method. The lifecycle
+skill is kept for repos that have not yet adopted the block above and is being
+phased out once they have.
 
-| Skill                                 | Purpose                                                                                                                                                                                             |
-|---------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `/lfx-skills:lfx-local-review`        | The canonical LFX review lifecycle, and the single source of truth for it: local pre-PR review and Post-PR iteration, end to end. Adopting repos point at it rather than describing it.             |
-| `/lfx-skills:lfx-general-code-review` | The general review method itself: correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance, style. Loaded by the `general` reviewer. Not invoked by hand. |
+| Skill                                 | Purpose                                                                                                                                                                                                                                                                                        |
+|---------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/lfx-skills:lfx-local-review`        | The earlier central review lifecycle: local pre-PR review and Post-PR iteration, end to end, for repos that have not yet adopted the pre-PR review block. Those repos point at it rather than describing it.                                                                                   |
+| `/lfx-skills:lfx-general-code-review` | The general review method itself: correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance, style — and the target repo's own written conventions, rules and checklists, read from that repo. Loaded by the `general` reviewer. Not invoked by hand. |
 
 The lifecycle itself is deliberately **not** described here — it lives in one
 place, and a second account of it in this README would be a copy to drift from.
@@ -167,9 +179,9 @@ prompt under `agents/` for the exact invocation contract.
 │   ├── lfx-object-store-ops/
 │   ├── lfx-security-engineer/   # OWASP scan + security review
 │   ├── lfx-v2-ticket-writer/
-│   ├── lfx-local-review/        # the canonical review lifecycle
+│   ├── lfx-local-review/        # earlier central lifecycle, kept for repos not yet on the block
 │   │   └── references/          # the ownership and adoption contract
-│   └── lfx-general-code-review/ # the general review method the trio loads
+│   └── lfx-general-code-review/ # the general review method the pre-PR block loads
 ├── agents/
 │   ├── lfx-committee-service-code-reviewer.md
 │   ├── lfx-committee-service-learnings-reviewer.md
@@ -184,7 +196,7 @@ prompt under `agents/` for the exact invocation contract.
 │   ├── lfx-project-service-learnings-reviewer.md
 │   ├── lfx-self-serve-code-reviewer.md
 │   └── lfx-self-serve-learnings-reviewer.md
-├── docs/                        # plugin docs (platform install, tool mapping)
+├── docs/                        # plugin docs (platform install, tool mapping, pre-PR review block)
 ├── install.sh                   # Agent Skills installer (Codex etc. → ~/.agents/skills)
 ├── update.sh                    # re-sync Agent Skills symlinks after a pull
 ├── uninstall.sh                 # remove LFX Agent Skills symlinks

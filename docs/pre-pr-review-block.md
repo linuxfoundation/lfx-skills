@@ -55,8 +55,9 @@ after individual commits, and never again once the PR exists.
 5. Run `<preflight>`. If it fails, fold the remedy into the fix commit with
    `git commit --amend` (re-sign and re-sign-off); if review found nothing and
    there is no fix commit yet, this remedy becomes the one fix commit. Rerun
-   the checks — but **do not rerun the reviewers**. The branch gains exactly one
-   commit after the implementation, never more.
+   the checks — but **do not rerun the reviewers**. The branch gains **at most one**
+   commit after the implementation — the single fix commit, or none at all —
+   never more.
 6. Open the PR.
 
 **Hard rules.** No local review runs after any individual commit. The
@@ -95,8 +96,9 @@ after individual commits, and never again once the PR exists.
 5. Run `<preflight>`. If it fails, fold the remedy into the fix commit with
    `git commit --amend` (re-sign and re-sign-off); if review found nothing and
    there is no fix commit yet, this remedy becomes the one fix commit. Rerun
-   the checks — but **do not rerun the reviewer**. The branch gains exactly one
-   commit after the implementation, never more.
+   the checks — but **do not rerun the reviewer**. The branch gains **at most one**
+   commit after the implementation — the single fix commit, or none at all —
+   never more.
 6. Open the PR.
 
 **Hard rules.** No local review runs after any individual commit. The

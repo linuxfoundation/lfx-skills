@@ -240,7 +240,7 @@ stand-in, since design skills explicitly exclude provisioning work.
 
 ## Workflow skills (this plugin)
 
-Eight workflow skills ship alongside the architecture skills in this same
+Nine workflow skills ship alongside the architecture skills in this same
 `lfx-skills` plugin. Forward to them by name when relevant.
 
 | Topic                                | Skill                                      |
@@ -253,6 +253,7 @@ Eight workflow skills ship alongside the architecture skills in this same
 | Snowflake access requests            | `/lfx-skills:lfx-snowflake-access`         |
 | CDP Snowflake connector scaffolding  | `/lfx-skills:lfx-cdp-snowflake-connectors` |
 | Security review before merging       | `/lfx-skills:lfx-security-engineer`        |
+| Pre-PR review round, before a PR     | `/lfx-skills:lfx-pre-pr-review`            |
 
 **PR review threads have two routes, decided by the repo, not by this table.**
 A repo whose root `CLAUDE.md` carries exactly one

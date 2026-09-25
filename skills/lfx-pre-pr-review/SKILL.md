@@ -81,8 +81,15 @@ touch GitHub. Return your review as Markdown. If you cannot complete the
 review, say INCOMPLETE and why.
 ```
 
-For the `security` reviewer add: "Scope the review to the files changed in
-that range (`git diff --name-only <base_sha> <target_sha>`), default mode."
+For the `security` reviewer add: "Phase 1: do not run the scanner in its
+default mode (it derives its own base and includes working-tree and untracked
+files). Run `security-scan.sh --file <path>` once per path in
+`git diff --name-only --diff-filter=AMR <base_sha> <target_sha>`; the tree is
+at `target_sha` and is not edited while you run. Phase 2: read those files
+with `git show <target_sha>:<path>`."
+
+While the reviewers run, **do not edit, stage, commit or check out anything**:
+the working tree must stay at `target_sha` until all reports are in.
 
 ## Wait, then judge
 

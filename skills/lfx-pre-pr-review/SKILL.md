@@ -46,6 +46,8 @@ base_sha=$(git merge-base origin/main HEAD)   # or the branch the PR will target
 target_sha=$(git rev-parse HEAD)
 ```
 
+`git status --porcelain` must print nothing first: a dirty tree means the
+branch is not "implemented and committed" — stop and tell the developer.
 Every reviewer gets both full 40-character SHAs and reviews exactly
 `git diff <base_sha> <target_sha>`. Nothing is derived from the working tree.
 
@@ -84,8 +86,13 @@ For the `security` reviewer add: "Phase 1: do not run the scanner in its
 default mode (it derives its own base and includes working-tree and untracked
 files). Run `security-scan.sh --file <path>` once per path in
 `git diff --name-only --diff-filter=AMR <base_sha> <target_sha>`; the tree is
-at `target_sha` and is not edited while you run. Phase 2: read those files
-with `git show <target_sha>:<path>`."
+clean at `target_sha` and is not edited while you run. The scanner reads whole
+files: keep a hit only if its line is added or changed in
+`git diff -U0 <base_sha> <target_sha> -- <path>`; drop the rest as
+pre-existing. Phase 2: read those files with `git show <target_sha>:<path>`;
+for files deleted or renamed in the range (`--diff-filter=DR`), read the
+base side with `git show <base_sha>:<old path>` and judge what the removal
+takes away (a check, a guard, a validation)."
 
 While the reviewers run, **do not edit, stage, commit or check out anything**:
 the working tree must stay at `target_sha` until all reports are in.

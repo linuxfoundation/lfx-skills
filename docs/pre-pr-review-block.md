@@ -1,135 +1,68 @@
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
-<!-- Tool names in this file use Claude Code vocabulary. See docs/tool-mapping.md for other platforms. -->
 
 # Pre-PR review block
 
-The canonical local review lifecycle for LFX repos, as a block a repo pastes
-into its own `CLAUDE.md`. Copy it verbatim, fill the placeholders, and delete
-every other local-review instruction in the repo so that one block is the only
-account of the lifecycle there.
+The lifecycle lives in one place, `/lfx-skills:lfx-pre-pr-review`. A repo
+adopts it by pasting this short block into its own `CLAUDE.md`, in the section
+that describes the local work cycle. The block points at the skill, repeats the
+two rules that must not be forgotten, and carries the two values the skill
+reads from the repo. Nothing else about the lifecycle is written in the repo.
 
-This is a template to copy, not a skill to load. The review *method* is
-centralised in `/lfx-skills:lfx-general-code-review`; the *lifecycle* is short
-enough to live where developers and their agents already look.
+Copy it verbatim and fill the two values:
 
-Two variants: use **with knowledge base** when the repo has its own KB-review
-skill (a skill that matches the change against `docs/reviews/knowledge-base/`
-or equivalent); otherwise use **without knowledge base**.
+```markdown
+## Pre-PR review
 
-Placeholders:
+> **IMPORTANT — follow this exactly.** When the implementation is complete
+> and committed and you are about to open a PR, load
+> `/lfx-skills:lfx-pre-pr-review` with the Skill tool and follow it. It runs
+> **one** review round of the whole branch — general, security and
+> knowledge-base reviewers in parallel — once, right before the PR. Two rules
+> bear repeating here: **all accepted findings from that round land in
+> exactly one fix commit** (none if there is nothing to fix); and **once the
+> PR is open there are no local reviews of any kind** — iterate only on the
+> PR's bot and human feedback, still running tests and checks. Do not work
+> from memory: **reload the skill before each step** of the round — before
+> launching the reviewers, before the fix commit, before opening the PR.
 
-| Placeholder | Fill with |
+- KB review skill: `<kb-skill>`
+- Preflight: `<preflight>`
+```
+
+| Value | Fill with |
 | --- | --- |
-| `<kb-skill>` | the repo's KB-review skill, exact slash name (for example `/my-service-learnings-reviewer`) |
-| `<preflight>` | the repo's deterministic pre-PR check(s), exact command or skill invocation, non-fixing (for example `make check && make test`) |
-| `<base>` | the branch the PR will target, normally `origin/main` |
-
-## With knowledge base
-
-```markdown
-## Pre-PR review
-
-Run **one** local review of the whole branch before opening the PR — never
-after individual commits, and never again once the PR exists.
-
-1. When the implementation is complete and committed, run `git fetch origin`
-   and pin the range: `base_sha=$(git merge-base <base> HEAD)`,
-   `target_sha=$(git rev-parse HEAD)`.
-2. Launch **two** independent background subagents **in parallel**, one per
-   skill, each with `subagent_type: general-purpose`, `model: opus` (Opus 5.5),
-   `run_in_background: true`. Tell each to load exactly one skill with the
-   Skill tool and follow it: one loads `/lfx-skills:lfx-general-code-review`
-   (general quality plus this repo's written conventions, style and rules);
-   the other loads `<kb-skill>` (this repo's review knowledge base). Give each
-   the full 40-character `base_sha` and `target_sha`, the instruction to review
-   exactly `git diff <base_sha> <target_sha>`, and the report-only rule: they
-   never edit, commit, push or write GitHub state.
-3. Wait for both reports. A failed, empty or `INCOMPLETE` report is **not** a
-   clean review: fix the cause and relaunch that reviewer once; if it fails
-   again, stop and tell the developer.
-4. Verify every finding against the code. Address every Critical and every
-   reasonable Important finding in **EXACTLY ONE fix commit** (signed and
-   DCO-signed-off). No fix commit if there is nothing to fix. Never one commit
-   per finding.
-5. Run `<preflight>`. If it fails, fold the remedy into the fix commit with
-   `git commit --amend` (re-sign and re-sign-off); if review found nothing and
-   there is no fix commit yet, this remedy becomes the one fix commit. Rerun
-   the checks — but **do not rerun the reviewers**. The branch gains **at most one**
-   commit after the implementation — the single fix commit, or none at all —
-   never more.
-6. Open the PR.
-
-**Hard rules.** No local review runs after any individual commit. The
-reviewers are **never** rerun on the fix commit. From the moment the PR is
-open, **no local reviews of any kind**: iterate only on the PR's bot and human
-review feedback, still running tests and checks, and batch each round of fixes
-into as few commits as possible.
-```
-
-## Without knowledge base
-
-```markdown
-## Pre-PR review
-
-Run **one** local review of the whole branch before opening the PR — never
-after individual commits, and never again once the PR exists.
-
-1. When the implementation is complete and committed, run `git fetch origin`
-   and pin the range: `base_sha=$(git merge-base <base> HEAD)`,
-   `target_sha=$(git rev-parse HEAD)`.
-2. Launch **one** independent background subagent with
-   `subagent_type: general-purpose`, `model: opus` (Opus 5.5),
-   `run_in_background: true`. Tell it to load `/lfx-skills:lfx-general-code-review`
-   with the Skill tool and follow it (general quality plus this repo's written
-   conventions, style and rules). Give it the full 40-character `base_sha` and
-   `target_sha`, the instruction to review exactly
-   `git diff <base_sha> <target_sha>`, and the report-only rule: it never
-   edits, commits, pushes or writes GitHub state.
-3. Wait for the report. A failed, empty or `INCOMPLETE` report is **not** a
-   clean review: fix the cause and relaunch once; if it fails again, stop and
-   tell the developer.
-4. Verify every finding against the code. Address every Critical and every
-   reasonable Important finding in **EXACTLY ONE fix commit** (signed and
-   DCO-signed-off). No fix commit if there is nothing to fix. Never one commit
-   per finding.
-5. Run `<preflight>`. If it fails, fold the remedy into the fix commit with
-   `git commit --amend` (re-sign and re-sign-off); if review found nothing and
-   there is no fix commit yet, this remedy becomes the one fix commit. Rerun
-   the checks — but **do not rerun the reviewer**. The branch gains **at most one**
-   commit after the implementation — the single fix commit, or none at all —
-   never more.
-6. Open the PR.
-
-**Hard rules.** No local review runs after any individual commit. The
-reviewer is **never** rerun on the fix commit. From the moment the PR is open,
-**no local reviews of any kind**: iterate only on the PR's bot and human
-review feedback, still running tests and checks, and batch each round of fixes
-into as few commits as possible.
-```
-
-## Why one round
-
-The earlier lifecycle reviewed after every commit and again before the PR.
-That produced long chains of review-fix commits, slow cycles, and a workflow
-that was hard to follow, while the extra rounds did not catch more. One
-full-branch round with a strong model, one fix commit, deterministic checks,
-then PR-side review is faster, produces a cleaner history, and is easy to
-explain. The PR's own reviewers see the final branch either way.
+| `<kb-skill>` | the repo's knowledge-base review skill, exact slash name (for example `/committee-service-learnings-reviewer`), or `none` when the repo has no `docs/reviews/knowledge-base/` |
+| `<preflight>` | the repo's deterministic, non-fixing pre-PR check — an exact command (for example `make check && make test`) or skill invocation; the same checks CI runs |
 
 ## Adopting
 
-1. Paste the applicable variant into `CLAUDE.md` (and `AGENTS.md` if the repo
-   keeps both as real files), filling the placeholders.
-2. Remove every other local-review instruction in the repo: any earlier
-   lifecycle section, any `## Review lifecycle configuration` declaration, any
-   pointer to `/lfx-skills:lfx-local-review`, any reviewer launch after
-   commits, any separate final sweep.
-3. Keep the repo's own KB-review skill and knowledge base; they are unchanged
-   by adoption. Repo conventions stay in the repo's `CLAUDE.md`, rules,
-   checklists and docs — the general skill reads them there.
+1. Paste the block into `CLAUDE.md` where the work cycle is described (and
+   into `AGENTS.md` only if that is a separate real file the repo keeps in
+   sync). Fill the two values.
+2. Remove every other local-review instruction in the repo: earlier lifecycle
+   sections, a `## Review lifecycle configuration` declaration, pointers to
+   `/lfx-skills:lfx-local-review`, reviewer launches after commits, separate
+   final sweeps, and any checklist item about a reviewer trio.
+3. Keep the repo's knowledge-base review skill and `docs/reviews/knowledge-base/`;
+   they are unchanged by adoption. Retire the repo's conventions-review skill:
+   the general skill now reads the repo's written conventions itself, from
+   `CLAUDE.md`, `.claude/rules/`, checklists and the docs they name. Before
+   deleting it, salvage only what is expertise rather than a restatement of the
+   repo's docs or code — known false positives and "never a finding" items go
+   into the repo's `docs/reviews/knowledge-base/known-false-positives.md`;
+   a genuine convention documented nowhere else goes into the repo's rule
+   surface, path-scoped under `.claude/rules/`.
 4. Keep the repo's deterministic checks as `<preflight>`; CI should run the
    same commands.
 
-`/lfx-skills:lfx-local-review` remains available for repos that have not yet
-adopted this block; it is being phased out once they have.
+## Why this shape
+
+The procedure has one authoritative home, so a fix to the lifecycle is one
+change here, not nine. The block is short enough to sit where developers and
+their agents already read, and it states in place the two rules that a
+pointer alone would let drift out of mind. The two values are the only facts
+that belong to the repo.
+
+`/lfx-skills:lfx-local-review` remains for repos that have not yet adopted
+this block; it is removed once they all have.

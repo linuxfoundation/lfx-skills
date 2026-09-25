@@ -80,29 +80,35 @@ Cross-repo developer workflows that apply across every LFX repo.
 | `/lfx-skills:lfx-data-engineer`            | Generate PR-ready dbt models, SQL transformations, and tests for `lf-dbt`, including medallion architecture, sqlfluff conventions, macros, and validation workflow guidance. |
 | `/lfx-skills:lfx-security-engineer`        | Security review for LFX repos: OWASP Top 10 scan, auth/authz review, secret detection, Terraform audit, migration safety. Use before PRs touching auth, permissions, or data handling. |
 
-### Pre-PR review block
+### Pre-PR review (1)
 
-The local review lifecycle every LFX repo runs before opening a PR is a short
-block a repo pastes into its own `CLAUDE.md`, copied from
-[`docs/pre-pr-review-block.md`](docs/pre-pr-review-block.md). One review round
-of the whole branch, one reviewer per skill in parallel, one fix commit,
-preflight, PR — then PR-side review only. Two variants: with the repo's own
-knowledge-base reviewer, and without. The block is a template to copy, not a
-skill to load; the review method it launches is `/lfx-skills:lfx-general-code-review`.
+The local review lifecycle every LFX repo runs before opening a PR, in one
+place. A repo adopts it with the short block in
+[`docs/pre-pr-review-block.md`](docs/pre-pr-review-block.md): a pointer to the
+skill, the two rules worth repeating in place, and the two values the skill
+reads from the repo (its knowledge-base review skill, its preflight).
+
+| Skill                              | Purpose                                                                                                                                                                                                                                         |
+|------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/lfx-skills:lfx-pre-pr-review`    | One review round of the whole branch right before the PR: general, security and knowledge-base reviewers in parallel, all accepted findings in exactly one fix commit, the repo's preflight, then the PR — and no local reviews after it opens. |
+
+It launches `/lfx-skills:lfx-general-code-review` (below) and
+`/lfx-skills:lfx-security-engineer` (above) beside the repo's own
+knowledge-base reviewer.
 
 ### Review lifecycle skills (2)
 
 The earlier central lifecycle and the general review method. The lifecycle
-skill is kept for repos that have not yet adopted the block above and is being
-phased out once they have.
+skill is kept for repos that have not yet adopted `/lfx-skills:lfx-pre-pr-review`
+and is removed once they all have.
 
 | Skill                                 | Purpose                                                                                                                                                                                                                                                                                        |
 |---------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `/lfx-skills:lfx-local-review`        | The earlier central review lifecycle: local pre-PR review and Post-PR iteration, end to end, for repos that have not yet adopted the pre-PR review block. Those repos point at it rather than describing it.                                                                                   |
-| `/lfx-skills:lfx-general-code-review` | The general review method itself: correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance, style — and the target repo's own written conventions, rules and checklists, read from that repo. Loaded by the `general` reviewer. Not invoked by hand. |
+| `/lfx-skills:lfx-general-code-review` | The general review method itself: correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance, style — and the target repo's own written conventions, rules and checklists, read from that repo. Loaded by the `general` reviewer of `/lfx-skills:lfx-pre-pr-review`. Not invoked by hand. |
 
 What follows documents the **earlier lifecycle only**; a repo starting today
-uses the pre-PR review block above instead.
+uses `/lfx-skills:lfx-pre-pr-review` above instead.
 The lifecycle itself is deliberately **not** described here — it lives in one
 place, and a second account of it in this README would be a copy to drift from.
 Repos still on it read
@@ -119,7 +125,7 @@ skills, its two non-fixing checks, and its Post-PR extension or `none`.
 This plugin holds no per-repo mapping; a repo without a valid declaration is
 not on that lifecycle, which fails closed rather than reviewing it. Which repos
 are still on it is not recorded here — ask the repo, not this README. Migrating
-off it means replacing the declaration with the block above.
+off it means replacing the declaration with the pre-PR review block above.
 
 ### Platform skill (1)
 
@@ -182,9 +188,10 @@ prompt under `agents/` for the exact invocation contract.
 │   ├── lfx-object-store-ops/
 │   ├── lfx-security-engineer/   # OWASP scan + security review
 │   ├── lfx-v2-ticket-writer/
-│   ├── lfx-local-review/        # earlier central lifecycle, kept for repos not yet on the block
+│   ├── lfx-pre-pr-review/       # the pre-PR review lifecycle, one home
+│   ├── lfx-local-review/        # earlier central lifecycle, kept until every repo has adopted the above
 │   │   └── references/          # the ownership and adoption contract
-│   └── lfx-general-code-review/ # the general review method the pre-PR block loads
+│   └── lfx-general-code-review/ # the general review method lfx-pre-pr-review launches
 ├── agents/
 │   ├── lfx-committee-service-code-reviewer.md
 │   ├── lfx-committee-service-learnings-reviewer.md

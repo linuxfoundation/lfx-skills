@@ -80,31 +80,53 @@ Cross-repo developer workflows that apply across every LFX repo.
 | `/lfx-skills:lfx-data-engineer`            | Generate PR-ready dbt models, SQL transformations, and tests for `lf-dbt`, including medallion architecture, sqlfluff conventions, macros, and validation workflow guidance. |
 | `/lfx-skills:lfx-security-engineer`        | Security review for LFX repos: OWASP Top 10 scan, auth/authz review, secret detection, Terraform audit, migration safety. Use before PRs touching auth, permissions, or data handling. |
 
+### Pre-PR review (1)
+
+The local review lifecycle every LFX repo runs before opening a PR, in one
+place. A repo adopts it with the short block in
+[`docs/pre-pr-review-block.md`](docs/pre-pr-review-block.md): a pointer to the
+skill, the sequence that follows it (the repo's preflight, then the PR), the
+two rules worth repeating in place, and the repo's two values (its
+knowledge-base review skill, which the skill reads, and its preflight).
+
+| Skill                              | Purpose                                                                                                                                                                                                                                         |
+|------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/lfx-skills:lfx-pre-pr-review`    | One review round of the whole branch right before the PR: general, security and knowledge-base reviewers in parallel, then all accepted findings in one fix commit. Preflight and the PR follow per the repo's block; no local reviews after.   |
+
+It launches `/lfx-skills:lfx-general-code-review` (below) and
+`/lfx-skills:lfx-security-engineer` (above) beside the repo's own
+knowledge-base reviewer.
+
 ### Review lifecycle skills (2)
 
-The canonical LFX review lifecycle and the general review method it loads.
+The earlier central lifecycle and the general review method. The lifecycle
+skill is kept for repos that have not yet adopted `/lfx-skills:lfx-pre-pr-review`
+and is removed once they all have.
 
-| Skill                                 | Purpose                                                                                                                                                                                             |
-|---------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `/lfx-skills:lfx-local-review`        | The canonical LFX review lifecycle, and the single source of truth for it: local pre-PR review and Post-PR iteration, end to end. Adopting repos point at it rather than describing it.             |
-| `/lfx-skills:lfx-general-code-review` | The general review method itself: correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance, style. Loaded by the `general` reviewer. Not invoked by hand. |
+| Skill                                 | Purpose                                                                                                                                                                                                                                                                                        |
+|---------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/lfx-skills:lfx-local-review`        | The earlier central review lifecycle: local pre-PR review and Post-PR iteration, end to end, for repos that have not yet adopted the pre-PR review block. Those repos point at it rather than describing it.                                                                                   |
+| `/lfx-skills:lfx-general-code-review` | The general review method itself: correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance, style — and the target repo's own written conventions, rules and checklists, read from that repo. Loaded by the `general` reviewer of `/lfx-skills:lfx-pre-pr-review`. Not invoked by hand. |
 
+What follows documents the **earlier lifecycle only**; a repo starting today
+uses `/lfx-skills:lfx-pre-pr-review` above instead.
 The lifecycle itself is deliberately **not** described here — it lives in one
 place, and a second account of it in this README would be a copy to drift from.
-Read [`skills/lfx-local-review/SKILL.md`](skills/lfx-local-review/SKILL.md) for
+Repos still on it read
+[`skills/lfx-local-review/SKILL.md`](skills/lfx-local-review/SKILL.md) for
 the lifecycle, and
 [`references/ownership-and-adoption.md`](skills/lfx-local-review/references/ownership-and-adoption.md)
-for who owns what, the declaration a repo adds to adopt it, and how the two
+for who owns what, the declaration such a repo carries, and how its two
 repo-owned reviewer skills are written.
 
-A repo adopts by adding one `## Review lifecycle configuration` section to its
-own `CLAUDE.md`: a sentence loading `/lfx-skills:lfx-local-review`, then five
-values — its two reviewer skills, its two non-fixing checks, and its Post-PR
-extension or `none`.
-This plugin holds no per-repo mapping, so adoption changes only the adopting
-repo; a repo without a valid declaration is not adopted, and the lifecycle
-fails closed rather than reviewing it. Which repos have adopted is therefore not
-recorded here — ask the repo, not this README.
+A repo on the earlier lifecycle declares it with one
+`## Review lifecycle configuration` section in its own `CLAUDE.md`: a sentence
+loading `/lfx-skills:lfx-local-review`, then five values — its two reviewer
+skills, its two non-fixing checks, and its Post-PR extension or `none`.
+This plugin holds no per-repo mapping; a repo without a valid declaration is
+not on that lifecycle, which fails closed rather than reviewing it. Which repos
+are still on it is not recorded here — ask the repo, not this README. Migrating
+off it means replacing the declaration with the pre-PR review block above.
 
 ### Platform skill (1)
 
@@ -167,9 +189,10 @@ prompt under `agents/` for the exact invocation contract.
 │   ├── lfx-object-store-ops/
 │   ├── lfx-security-engineer/   # OWASP scan + security review
 │   ├── lfx-v2-ticket-writer/
-│   ├── lfx-local-review/        # the canonical review lifecycle
+│   ├── lfx-pre-pr-review/       # the pre-PR review lifecycle, one home
+│   ├── lfx-local-review/        # earlier central lifecycle, kept until every repo has adopted the above
 │   │   └── references/          # the ownership and adoption contract
-│   └── lfx-general-code-review/ # the general review method the trio loads
+│   └── lfx-general-code-review/ # the general review method lfx-pre-pr-review launches
 ├── agents/
 │   ├── lfx-committee-service-code-reviewer.md
 │   ├── lfx-committee-service-learnings-reviewer.md
@@ -184,7 +207,7 @@ prompt under `agents/` for the exact invocation contract.
 │   ├── lfx-project-service-learnings-reviewer.md
 │   ├── lfx-self-serve-code-reviewer.md
 │   └── lfx-self-serve-learnings-reviewer.md
-├── docs/                        # plugin docs (platform install, tool mapping)
+├── docs/                        # plugin docs (platform install, tool mapping, pre-PR review block)
 ├── install.sh                   # Agent Skills installer (Codex etc. → ~/.agents/skills)
 ├── update.sh                    # re-sync Agent Skills symlinks after a pull
 ├── uninstall.sh                 # remove LFX Agent Skills symlinks

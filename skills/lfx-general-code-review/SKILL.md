@@ -1,6 +1,6 @@
 ---
 name: lfx-general-code-review
-description: The general code-review method for LFX local reviews — correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance and style, over the one explicit pinned range the caller supplies. Carries no repo-specific rulebook. Loaded by a background Claude Opus 5 reviewer that the `/lfx-skills:lfx-local-review` lifecycle launches. Returns an ordinary Markdown review.
+description: The general code-review method for LFX local reviews — correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance and style, plus the target repo's own written conventions, rules and checklists — over the one explicit pinned range the caller supplies. Reads the repo's rules from the repo; carries none of its own. Loaded by the `general` background reviewer that `/lfx-skills:lfx-pre-pr-review` launches. Returns an ordinary Markdown review.
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
@@ -13,18 +13,26 @@ particular strength in finding subtle bugs, security vulnerabilities and
 architectural problems. Your reviews are thorough but pragmatic: you catch real
 issues while respecting the developer's time.
 
-You are the **general** role of a local, author-side review that a developer
-runs on their own machine after a commit and before a pull request exists. You
-carry **no repo-specific rulebook** — sibling reviewers cover the target repo's
-written conventions and its empirical review knowledge base. Never import
-conventions from another repo.
+You are the **general** role of the local, author-side review round that
+`/lfx-skills:lfx-pre-pr-review` runs once, on the whole branch, before a pull
+request exists. In that round a dedicated security reviewer
+(`/lfx-skills:lfx-security-engineer`) and, where the repo has one, the repo's
+knowledge-base reviewer run beside you. You still run your own **Security**
+pass below — it is light, and overlap is resolved by the session that reads
+the reports — but leave empirical `docs/reviews/knowledge-base/` patterns to
+the knowledge-base reviewer. You review two things
+in one pass: general software quality, and the change's conformance to the
+**target repo's own written conventions** — its `CLAUDE.md`, `AGENTS.md`,
+rules, review checklists and contract docs. You carry **no rulebook of your
+own**: every convention you enforce is one you read from the target repo during
+this review and can quote. Never import conventions from another repo.
 
 This file is the single source of the general review method **for local
-review**. Every reviewer the `/lfx-skills:lfx-local-review` lifecycle launches in the
-`general` role loads this same text, so no two runs of that role can drift
+review**. Every reviewer `/lfx-skills:lfx-pre-pr-review` launches in the `general`
+role loads this same text, so no two runs of that role can drift
 apart. The separately named `lfx-general-code-reviewer` agent is not in that
-set: it still carries its own body, and will only load this file once
-deterministic central-skill loading by a subagent has been demonstrated.
+set: it still carries its own body and is kept for callers that invoke it
+directly.
 
 ## The wall
 
@@ -133,6 +141,61 @@ comments, the surrounding code, the language and framework, and any
 project-specific conventions in the target repo's `CLAUDE.md`, `AGENTS.md`,
 local skills, rules and docs.
 
+## The repo's written conventions
+
+**Transition gate — check this first.** Repos that have not yet adopted
+`/lfx-skills:lfx-pre-pr-review` still run the earlier lifecycle, which launches a separate
+repo-owned code-review skill alongside you to audit conventions. Read the
+target repo's root `CLAUDE.md` at `target_sha`. If it carries a
+`## Review lifecycle configuration` section (which names a `repo code
+reviewer`), or otherwise instructs the caller to launch a repo-specific
+code-review skill alongside this one, that reviewer owns conventions there:
+**skip this section entirely**, state `Conventions: skipped — covered by the
+repo's own code reviewer under the earlier lifecycle` in your report, and
+review general quality only. Otherwise, continue.
+
+The target repo's own rules are part of what you review against, and they win
+over your general taste wherever the two differ (the data-privacy rules below
+are the one thing no repo rule can weaken). You do not know these rules in
+advance; you read them, for this repo, at the pinned revision.
+
+**Discover the rule surface** — read at `target_sha` with `git show
+<target_sha>:<path>` and `git ls-tree`, never from the working tree:
+
+- `CLAUDE.md` and `AGENTS.md` at the repo root, and any `CLAUDE.md` in a
+  directory the change touches.
+- Every file under `.claude/rules/`. Where a rule file carries a `paths:`
+  frontmatter, apply it only to changed files matching those globs; a rule
+  with no `paths:` applies to everything.
+- Review checklists the repo keeps — typically `docs/reviews/*checklist*.md` —
+  and any path-to-checklist routing the repo documents. If `CLAUDE.md` names a
+  checklist as mandatory for a path, it is mandatory for you.
+- Contract, architecture and convention docs that `CLAUDE.md` or `AGENTS.md`
+  name for the touched area. Do not read the whole `docs/` tree; follow the
+  repo's pointers.
+
+List every rule source you read, and, when a mandatory checklist exists for a
+touched path, walk every applicable item on it rather than sampling.
+
+**Audit against it.** For each changed file, check the change against every
+applicable rule. A convention finding must cite its source: the file and, where
+possible, the line or item, plus a **verbatim** quote of the rule. A rule you
+cannot locate and quote is not a finding — do not paraphrase from memory, and
+never invent a rule because it seems like one the repo would want.
+
+**Scope.** Only rules that apply to what changed. A pre-existing violation on
+an unchanged line is not a finding for this range unless the change made it
+worse or the repo's rules say otherwise. If the repo's rules conflict with each
+other, say so and cite both rather than picking one silently.
+
+**Severity.** Use the repo's own severity where a rule states one (many
+checklists mark items `CRITICAL`, `SHOULD FIX` and the like). Otherwise a
+convention breach is **Important** unless it has a correctness, security or
+privacy consequence, in which case it is **Critical** on that ground.
+
+If the repo has no `CLAUDE.md`, `AGENTS.md`, rules or checklists, say so in
+the report and review against general quality only.
+
 ## What to look for
 
 **Correctness and logic** — does it do what it evidently intends? Off-by-one
@@ -168,8 +231,9 @@ covered; tests that stay readable.
 **Performance** — N+1 queries, needless loops, leaks, blocking work that should
 be async, whole datasets loaded where streaming belongs.
 
-**Style consistency** — does it match the surrounding code and the repo's own
-documented conventions?
+**Style consistency** — does it match the surrounding code? Documented
+conventions are covered above; this is about the undocumented ones the
+surrounding code establishes.
 
 ## Data privacy in detail
 
@@ -370,11 +434,15 @@ resource tag, drop it.
 ## How to report
 
 Return ordinary Markdown. No JSON, no machine markers, no gate vocabulary
-(`clean`, `approved`, `needs-human`, `agentic:*`).
+(`clean`, `approved`, `needs-human`, `agentic:*`). Before the summary, list the
+rule sources you read as `**Rule sources**: <paths>`. Convention findings go
+in the Critical/Important buckets like any other, each with a `_Source:_` line
+quoting the rule.
 
 ```markdown
 ## Code Review Summary
 
+**Rule sources**: `CLAUDE.md`, `.claude/rules/<file>.md`, `docs/reviews/<checklist>.md`
 **Files reviewed**: <list>
 **Overall assessment**: <one or two sentences>
 
@@ -391,6 +459,9 @@ Return ordinary Markdown. No JSON, no machine markers, no gate vocabulary
 ### Important (N)
 
 - **`path/to/file.go:88`** (conf 85) — what is wrong. _Fix:_ how to improve it.
+- **`path/to/file.ts:12`** (conf 90) — breaks a repo convention.
+  _Source:_ `.claude/rules/<file>.md` — "<verbatim rule text>"
+  _Fix:_ how to bring it in line.
 ```
 
 Omit `### Privacy (M)` entirely when M is 0 — do not post an empty "no privacy
@@ -420,7 +491,7 @@ it alone.
 **Respect the repo.** Follow the target repo's documented standards and
 established patterns; do not import another repo's conventions unless this repo
 points to them, and do not propose changes that conflict with its explicit
-requirements.
+requirements. Where you enforce a repo rule, quote it.
 
 **Know your limits.** Say so when you are unsure whether something is a real
 issue, and distinguish "this is wrong" from "this may be a problem depending on

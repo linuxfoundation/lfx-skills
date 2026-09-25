@@ -74,12 +74,19 @@ base_sha: <40 chars>
 target_sha: <40 chars>
 
 Load the skill <skill> with the Skill tool and follow it exactly, as the
-<role> reviewer. Review exactly `git diff <base_sha> <target_sha>`; read
+<role> reviewer. Sibling reviewers running beside you in this round, each
+with its own skill: <the other rows of the table, as "role (skill)", e.g.
+security (/lfx-skills:lfx-security-engineer), kb (<KB review skill value>)>.
+Leave their ground to them. Review exactly `git diff <base_sha> <target_sha>`; read
 files at target_sha with `git show <target_sha>:<path>`, never from the
 working tree. You are report-only: do not edit files, commit, push, or
 touch GitHub. Return your review as Markdown. If you cannot complete the
 review, say INCOMPLETE and why.
 ```
+
+For the `general` reviewer, the sibling list is what tells it to leave
+OWASP-class findings to `security` and knowledge-base patterns to `kb`;
+with `KB review skill: none`, list `security` alone.
 
 For the `security` reviewer add: "Phase 1: do not run the scanner in its
 default mode (it derives its own base and includes working-tree and untracked

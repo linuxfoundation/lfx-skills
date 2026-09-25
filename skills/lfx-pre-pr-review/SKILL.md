@@ -20,9 +20,8 @@ You are the developer's main session — the agent driving the branch. The
 branch is implemented and committed and you are about to open the pull
 request. This skill is the local review round: the reviewers, and the one
 commit that answers them. The repo's `CLAUDE.md` points here instead of
-describing it, and asks you to **reload this skill before each step** below
-rather than work from memory. What follows the round — the repo's own checks,
-then the PR — is stated in that `CLAUDE.md` section, not here.
+describing it. What follows the round — the repo's own checks, then the PR —
+is stated in that `CLAUDE.md` section, not here.
 
 Run this **once** per branch, on the whole branch, right before the PR.
 Not after individual commits. Not on the fix commit. Never once the PR exists.

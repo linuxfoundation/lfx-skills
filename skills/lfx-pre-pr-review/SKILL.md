@@ -4,11 +4,11 @@ description: >-
   The LFX pre-PR review lifecycle, in one place: exactly one local review
   round of the whole branch before a pull request is opened — three
   independent background reviewers in parallel (general code review, security
-  review, and the repo's knowledge-base review), all accepted findings in
-  exactly one fix commit, the repo's preflight, then the PR. Load this when a
-  repo's CLAUDE.md `## Pre-PR review` section tells you to, when the
-  implementation is complete and committed and you are about to open a PR.
-  Never load it after the PR exists.
+  review, and the repo's knowledge-base review), then all accepted findings
+  in exactly one fix commit. Load this when a repo's CLAUDE.md
+  `## Pre-PR review` section tells you to, when the implementation is
+  complete and committed and you are about to open a PR. Never load it after
+  the PR exists.
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
@@ -18,26 +18,26 @@ description: >-
 
 You are the developer's main session — the agent driving the branch. The
 branch is implemented and committed and you are about to open the pull
-request. This skill is the whole local review lifecycle; the repo's
-`CLAUDE.md` points here instead of describing it, and asks you to **reload
-this skill before each step** below rather than work from memory.
+request. This skill is the local review round: the reviewers, and the one
+commit that answers them. The repo's `CLAUDE.md` points here instead of
+describing it, and asks you to **reload this skill before each step** below
+rather than work from memory. What follows the round — the repo's own checks,
+then the PR — is stated in that `CLAUDE.md` section, not here.
 
 Run this **once** per branch, on the whole branch, right before the PR.
 Not after individual commits. Not on the fix commit. Never once the PR exists.
 
-## Read the repo's two values
+## Read the repo's KB review skill
 
 Open the target repo's root `CLAUDE.md` and find its `## Pre-PR review`
-section. It carries exactly two values:
+section. Read one value from it:
 
 - `KB review skill:` the repo's knowledge-base review skill as a slash name
   (for example `/committee-service-learnings-reviewer`), or `none`.
-- `Preflight:` the repo's deterministic, non-fixing pre-PR check — a command
-  or a skill invocation.
 
-If the section, either value, or the skill the KB value names is missing,
-**stop** and tell the developer what is missing. Do not guess a KB skill, do
-not substitute a preflight, do not review without them.
+If the section, the value, or the skill it names is missing, **stop** and
+tell the developer what is missing. Do not guess a KB skill, do not review
+without it.
 
 ## Pin the range
 
@@ -102,29 +102,18 @@ reviewers in **one** commit, signed and DCO-signed-off. If nothing needs
 fixing, make **no** commit — never an empty one. Never one commit per finding
 or per reviewer. Do not rerun the reviewers on the fix.
 
-## Preflight
-
-Run the repo's `Preflight` value. If it fails because of your change, fold the
-remedy into the fix commit with `git commit --amend -s -S` — it is still local
-and unpushed — or, if review found nothing and there is no fix commit yet, the
-remedy becomes the one fix commit. Rerun the preflight, not the reviewers. The
-branch gains **at most one** commit after the implementation.
-
-## Open the PR
-
-Push and open the pull request. From this moment there are **no local reviews
-of any kind**: iterate only on the PR's bot and human review feedback, keep
-running tests and checks, and batch each round of fixes into as few commits as
-possible. This skill is not loaded again for this branch.
+The round is over. Do not launch the reviewers again on this branch — not on
+the fix commit, not on anything committed after it. Return to the repo's
+`## Pre-PR review` section for what comes next. This skill is not loaded
+again for this branch.
 
 ## Hard rules
 
 - One round, whole branch, before the PR. Nothing after individual commits.
 - Three reviewers (two when the repo has no knowledge base), independent,
   parallel, report-only. They judge; you write.
-- At most one commit after the implementation: the single fix commit, which
-  also carries any preflight remedy.
-- After the PR opens: PR feedback only. No local reviews.
-- Missing repo values or a missing skill stop the lifecycle; they are never
-  worked around.
+- All accepted findings in one commit; no commit when there are none.
+- The reviewers never run again on this branch, locally or after the PR opens.
+- A missing `## Pre-PR review` section, KB value or KB skill stops the round;
+  it is never worked around.
 - Reviewers run on Claude Opus 5.5 (`model: opus`), always.

@@ -85,12 +85,13 @@ Cross-repo developer workflows that apply across every LFX repo.
 The local review lifecycle every LFX repo runs before opening a PR, in one
 place. A repo adopts it with the short block in
 [`docs/pre-pr-review-block.md`](docs/pre-pr-review-block.md): a pointer to the
-skill, the two rules worth repeating in place, and the two values the skill
-reads from the repo (its knowledge-base review skill, its preflight).
+skill, the sequence that follows it (the repo's preflight, then the PR), the
+two rules worth repeating in place, and the repo's two values (its
+knowledge-base review skill, which the skill reads, and its preflight).
 
 | Skill                              | Purpose                                                                                                                                                                                                                                         |
 |------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `/lfx-skills:lfx-pre-pr-review`    | One review round of the whole branch right before the PR: general, security and knowledge-base reviewers in parallel, all accepted findings in exactly one fix commit, the repo's preflight, then the PR — and no local reviews after it opens. |
+| `/lfx-skills:lfx-pre-pr-review`    | One review round of the whole branch right before the PR: general, security and knowledge-base reviewers in parallel, then all accepted findings in one fix commit. Preflight and the PR follow per the repo's block; no local reviews after.   |
 
 It launches `/lfx-skills:lfx-general-code-review` (below) and
 `/lfx-skills:lfx-security-engineer` (above) beside the repo's own

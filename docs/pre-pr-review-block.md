@@ -3,11 +3,13 @@
 
 # Pre-PR review block
 
-The lifecycle lives in one place, `/lfx-skills:lfx-pre-pr-review`. A repo
+The review round lives in one place, `/lfx-skills:lfx-pre-pr-review`. A repo
 adopts it by pasting this short block into its own `CLAUDE.md`, in the section
-that describes the local work cycle. The block points at the skill, repeats the
-two rules that must not be forgotten, and carries the two values the skill
-reads from the repo. Nothing else about the lifecycle is written in the repo.
+that describes the local work cycle. The block states the three steps between
+"implementation committed" and "PR open" — the review round, the repo's own
+checks, the PR — with the rules that must not be forgotten, and carries the
+two values that belong to the repo. Nothing else about the lifecycle is
+written in the repo.
 
 Copy it verbatim and fill the two values:
 
@@ -15,16 +17,21 @@ Copy it verbatim and fill the two values:
 ## Pre-PR review
 
 > **IMPORTANT — follow this exactly.** When the implementation is complete
-> and committed and you are about to open a PR, load
-> `/lfx-skills:lfx-pre-pr-review` with the Skill tool and follow it. It runs
-> **one** review round of the whole branch — general, security and
-> knowledge-base reviewers in parallel — once, right before the PR. Two rules
-> bear repeating here: **all accepted findings from that round land in
-> exactly one fix commit** (none if there is nothing to fix); and **once the
-> PR is open there are no local reviews of any kind** — iterate only on the
-> PR's bot and human feedback, still running tests and checks. Do not work
-> from memory: **reload the skill before each step** of the round — before
-> launching the reviewers, before the fix commit, before opening the PR.
+> and committed and you are about to open a PR:
+>
+> 1. **Review once.** Load `/lfx-skills:lfx-pre-pr-review` with the Skill
+>    tool and follow it. It runs **one** review round of the whole branch —
+>    general, security and knowledge-base reviewers in parallel — and lands
+>    **all accepted findings from that round in exactly one fix commit**
+>    (none if there is nothing to fix). Do not work from memory: **reload the
+>    skill before each step** of the round — before launching the reviewers
+>    and before the fix commit.
+> 2. **Preflight.** Run the `Preflight` value below and make it pass. It is
+>    deterministic checks, not a review: fix what it reports in its own
+>    commit(s), as many as it takes, and rerun it — never the reviewers.
+> 3. **Open the PR.** From then on there are **no local reviews of any
+>    kind** — iterate only on the PR's bot and human feedback, still running
+>    tests and checks.
 
 - KB review skill: `<kb-skill>`
 - Preflight: `<preflight>`
@@ -32,8 +39,8 @@ Copy it verbatim and fill the two values:
 
 | Value | Fill with |
 | --- | --- |
-| `<kb-skill>` | the repo's knowledge-base review skill, exact slash name (for example `/committee-service-learnings-reviewer`), or `none` when the repo has no `docs/reviews/knowledge-base/` |
-| `<preflight>` | the repo's deterministic, non-fixing pre-PR check — an exact command (for example `make check && make test`) or skill invocation; the same checks CI runs |
+| `<kb-skill>` | the repo's knowledge-base review skill, exact slash name (for example `/committee-service-learnings-reviewer`), or `none` when the repo has no `docs/reviews/knowledge-base/`; the only value the skill reads |
+| `<preflight>` | the repo's deterministic pre-PR checks — an exact command (for example `make check && make test`) or the repo's own check skill invocations, in order; the same checks CI runs. Step 2 of the block runs it; the review skill does not |
 
 ## Adopting
 
@@ -54,15 +61,20 @@ Copy it verbatim and fill the two values:
    a genuine convention documented nowhere else goes into the repo's rule
    surface, path-scoped under `.claude/rules/`.
 4. Keep the repo's deterministic checks as `<preflight>`; CI should run the
-   same commands.
+   same commands. Where the repo has its own readiness/preflight check
+   skills, the value is their invocations in order; none of them may
+   restate the review round or require it to be rerun.
 
 ## Why this shape
 
-The procedure has one authoritative home, so a fix to the lifecycle is one
-change here, not nine. The block is short enough to sit where developers and
-their agents already read, and it states in place the two rules that a
-pointer alone would let drift out of mind. The two values are the only facts
-that belong to the repo.
+The review round has one authoritative home, so a fix to it is one change
+here, not nine. The block is short enough to sit where developers and their
+agents already read, and it states in place the sequence and the two rules
+that a pointer alone would let drift out of mind: one batched fix commit for
+the round, no local reviews once the PR exists. Preflight is the repo's own
+deterministic gate and stays in the repo's hands — the review skill neither
+runs it nor folds its remedies into the review fix commit. The two values are
+the only facts that belong to the repo.
 
 `/lfx-skills:lfx-local-review` remains for repos that have not yet adopted
 this block; it is removed once they all have.

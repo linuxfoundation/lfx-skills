@@ -98,7 +98,7 @@ run_case "pr-resolve loses its adoption gate" bad \
 
 run_case "router loses its two-routes rule" bad \
   "skills/lfx/SKILL.md: missing" \
-  "sed -i.bak 's/\*\*PR review threads have two routes, decided by the repo, not by this table\.\*\*/PR review threads./' skills/lfx/SKILL.md"
+  "sed -i.bak 's/\*\*PR review threads are routed by the repo, not by this table\.\*\*/PR review threads./' skills/lfx/SKILL.md"
 
 # --- retired Pi harness must stay gone -------------------------------------
 run_case "a retired launcher file reappears" bad "must be deleted" \

@@ -211,7 +211,7 @@ need "$SKILL"     '**Fail closed.**'
 need "$SKILL" '**Which skill owns a repo'"'"'s PR iteration.**'
 need "$SKILL" 'A broken adoption is
   not an absent one, so it must never fall through to `lfx-pr-resolve`'
-need skills/lfx/SKILL.md '**PR review threads have two routes, decided by the repo, not by this table.**'
+need skills/lfx/SKILL.md '**PR review threads are routed by the repo, not by this table.**'
 need skills/lfx-pr-resolve/SKILL.md '**Before working any thread, check whether the PR'"'"'s repo owns its PR iteration
   elsewhere.**'
 kept skills/lfx-pr-resolve/SKILL.md

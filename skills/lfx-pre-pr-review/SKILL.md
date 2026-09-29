@@ -109,7 +109,12 @@ files: keep a hit if its line is added or changed in
 checks that report a block's opening line (the silent-catch `logging` check,
 the Terraform sensitive-output check) — if any hunk of that diff falls between
 the reported line and the block's closing brace; drop a hit as pre-existing
-only when no hunk touches its line or its block. Phase 2: read those files with `git show <target_sha>:<path>`;
+only when no hunk touches its line or its block. Then walk the history of the
+range without checking anything out — `git log --format=fuller -p
+<base_sha>..<target_sha>` — and treat a credential, token or key on an added
+line of **any** commit, or in any commit message, as a finding even when a
+later commit removed it: it ships in the branch history. Label such a finding
+`history-only`. Phase 2: read those files with `git show <target_sha>:<path>`;
 for files deleted or renamed in the range (`--diff-filter=DR`), read the
 base side with `git show <base_sha>:<old path>` and judge what the removal
 takes away (a check, a guard, a validation)."
@@ -138,6 +143,17 @@ reviewers in **one** commit, signed and DCO-signed-off. If nothing needs
 fixing, make **no** commit — never an empty one. Never one commit per finding
 or per reviewer. Do not rerun the reviewers on the fix.
 
+A **history-only** finding — a secret or personal data that exists only in an
+intermediate commit or in a commit message, so it is absent from `target_sha`
+yet ships in the branch — cannot be fixed by a new commit. The branch is
+unpushed, so rewrite its history instead: `git rebase -i <base_sha>`, remove
+the material from the offending commit or message, keep every commit signed
+and DCO-signed-off, then re-pin `target_sha` and re-run only the same
+`git log --format=fuller -p <base_sha>..<target_sha>` walk to verify it is
+gone. This rewrite is not a review round — do not relaunch the reviewers —
+and it does not count against the one-fix-commit rule, which governs content
+findings; if both kinds are present, land the fix commit first, then rewrite.
+
 The round is over. Do not launch the reviewers again on this branch — not on
 the fix commit, not on anything committed after it. Return to the repo's
 `## Pre-PR review` section for what comes next. This skill is not loaded
@@ -149,6 +165,8 @@ again for this branch.
 - Three reviewers (two when the repo has no knowledge base), independent,
   parallel, report-only. They judge; you write.
 - All accepted findings in one commit; no commit when there are none.
+  History-only findings are removed by rewriting the unpushed branch, not by a
+  commit.
 - The reviewers never run again on this branch, locally or after the PR opens.
 - A missing `## Pre-PR review` section, KB value or KB skill stops the round;
   it is never worked around.

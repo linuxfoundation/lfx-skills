@@ -37,10 +37,13 @@ section. Read one value from it:
   (for example `/committee-service-learnings-reviewer`), or `none`.
 
 If the section, the value, or the skill it names is missing, **stop** and
-tell the developer what is missing. If the repo instead carries a
-`## Review lifecycle configuration` section, say so: it has not adopted this
-round, and `/lfx-skills:lfx-local-review` owns its pre-PR review. Do not guess
-a KB skill, do not review without it.
+tell the developer what is missing. If the repo carries a
+`## Review lifecycle configuration` section — with or without a
+`## Pre-PR review` section beside it — **stop** as well: alone, it means the
+repo has not adopted this round and `/lfx-skills:lfx-local-review` owns its
+pre-PR review; together with `## Pre-PR review`, it is a broken migration
+(two lifecycles declared), and neither skill runs until the repo removes one.
+Do not guess a KB skill, do not review without it.
 
 ## Pin the range
 

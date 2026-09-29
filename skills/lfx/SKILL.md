@@ -260,7 +260,9 @@ repo whose root `CLAUDE.md` carries a `## Pre-PR review` section runs
 `/lfx-skills:lfx-pre-pr-review`; a repo that still carries
 `## Review lifecycle configuration` runs `/lfx-skills:lfx-local-review` (its
 Mode 2) and must not be sent to the new skill, which stops on the missing
-section. The table row above is the former case.
+section. A `CLAUDE.md` carrying **both** headings is a broken migration, not
+a choice: report it and route to neither. The table row above is the former
+case.
 
 **PR review threads have two routes, decided by the repo, not by this table.**
 A repo whose root `CLAUDE.md` carries exactly one

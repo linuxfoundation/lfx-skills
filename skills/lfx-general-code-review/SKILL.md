@@ -152,11 +152,15 @@ local skills, rules and docs.
 repo-owned code-review skill alongside you to audit conventions. Read the
 target repo's root `CLAUDE.md` at `target_sha`. If it carries a
 `## Review lifecycle configuration` section (which names a `repo code
-reviewer`), or otherwise instructs the caller to launch a repo-specific
-code-review skill alongside this one, that reviewer owns conventions there:
-**skip this section entirely**, state `Conventions: skipped — covered by the
-repo's own code reviewer under the earlier lifecycle` in your report, and
-review general quality only. Otherwise, continue.
+reviewer`) **and no** `## Pre-PR review` section, or otherwise instructs the
+caller to launch a repo-specific code-review skill alongside this one, that
+reviewer owns conventions there: **skip this section entirely**, state
+`Conventions: skipped — covered by the repo's own code reviewer under the
+earlier lifecycle` in your report, and review general quality only. If it
+carries **both** headings, the repo has declared two lifecycles: do not skip
+— audit conventions as below and open your report with
+`INCOMPLETE — CLAUDE.md declares both lifecycles; remove one` so the host
+fails closed. Otherwise, continue.
 
 The target repo's own rules are part of what you review against, and they win
 over your general taste wherever the two differ (the data-privacy rules below

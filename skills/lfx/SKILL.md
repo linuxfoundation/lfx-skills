@@ -263,8 +263,10 @@ forward its PR-thread work there, not to `lfx-pr-resolve` — that skill
 validates the declaration and fails closed itself, so a malformed section is
 its problem to report, not a reason to route elsewhere. A repo with no such
 section is not an adopter, and `/lfx-skills:lfx-pr-resolve` above is correct
-for it. More than one such section is a broken adoption, not an absent one:
-report the problem rather than routing to either skill.
+for it — unless its `## Pre-PR review` section names a `PR driver:`; forward
+PR-thread work to that repo skill instead. More than one
+`## Review lifecycle configuration` section is a broken adoption, not an absent
+one: report the problem rather than routing to either skill.
 
 ## Cross-repo path convention
 

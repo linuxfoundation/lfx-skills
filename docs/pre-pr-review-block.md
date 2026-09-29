@@ -8,7 +8,7 @@ adopts it by pasting this short block into its own `CLAUDE.md`, in the section
 that describes the local work cycle. The block states the three steps between
 "implementation committed" and "PR open" — the review round, the repo's own
 checks, the PR — with the rules that must not be forgotten, and carries the
-two values that belong to the repo. Nothing else about the lifecycle is
+values that belong to the repo (two, plus an optional PR driver). Nothing else about the lifecycle is
 written in the repo.
 
 Copy it verbatim and fill the two values:
@@ -30,15 +30,25 @@ Copy it verbatim and fill the two values:
 >    commit(s), as many as it takes, and rerun it — never the reviewers.
 > 3. **Open the PR.** From then on there are **no local reviews of any
 >    kind** — iterate only on the PR's bot and human feedback, still running
->    tests and checks.
+>    tests and checks. Where a `PR driver` is named below, load that skill and
+>    follow it for that iteration instead of `/lfx-skills:lfx-pr-resolve`.
 
 - KB review skill: `<kb-skill>`
 - Preflight: `<preflight>`
 ```
 
+A repo whose PR-thread iteration is owned by one of its own skills (for
+example the driver of an agentic review gate) adds a third line under the two
+values, and only then:
+
+```markdown
+- PR driver: `<pr-driver>`
+```
+
 | Value | Fill with |
 | --- | --- |
 | `<kb-skill>` | the repo's knowledge-base review skill, exact slash name (for example `/committee-service-learnings-reviewer`), or `none` when the repo has no `docs/reviews/knowledge-base/`; the only value the skill reads |
+| `<pr-driver>` | optional — the repo skill that owns PR-thread iteration once the PR is open, exact slash name (for example `/newsletter-service-agentic-pr`); `/lfx-skills:lfx-pr-resolve` and the `/lfx` router hand off to it. Omit the line when the repo has none |
 | `<preflight>` | the repo's deterministic pre-PR checks — an exact command (for example `make check && make test`) or the repo's own check skill invocations, in order; the same checks CI runs. Step 2 of the block runs it; the review skill does not |
 
 ## Adopting

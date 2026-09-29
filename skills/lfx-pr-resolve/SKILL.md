@@ -8,7 +8,8 @@ description: >
   review comments, resolve PR threads, or iterate on a pull request after review
   — unless the PR's repo carries a `## Review lifecycle configuration` section
   in its root CLAUDE.md, in which case `/lfx-skills:lfx-local-review` owns its
-  PR iteration (and validates that section) instead.
+  PR iteration (and validates that section) instead, or a `PR driver:` value in
+  its `## Pre-PR review` section, in which case that repo skill owns it.
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Skill
 ---
 
@@ -29,7 +30,9 @@ closed itself. It also verifies the checkout it runs in against its `origin`,
 so if the current checkout is not that repository, do not hand off from here —
 tell the user to open a checkout of the PR's repository and run it there. If
 there is no such section, the repo is not an adopter and this skill is the
-right one. If there is more than one such section, say so and stop
+right one — unless its `## Pre-PR review` section carries a `PR driver:`
+value: that repo skill owns its PR iteration, so hand the work to it and stop.
+If there is more than one such section, say so and stop
 — that is a broken adoption, not an absent one, and running this skill instead
 would answer a configuration error with a different workflow.
 

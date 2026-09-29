@@ -264,7 +264,7 @@ section. A `CLAUDE.md` carrying **both** headings is a broken migration, not
 a choice: report it and route to neither. The table row above is the former
 case.
 
-**PR review threads have two routes, decided by the repo, not by this table.**
+**PR review threads are routed by the repo, not by this table.**
 First the same guard as above: a root `CLAUDE.md` carrying both
 `## Review lifecycle configuration` and `## Pre-PR review` is a broken
 migration — report it and route to neither (`lfx-local-review` validates only

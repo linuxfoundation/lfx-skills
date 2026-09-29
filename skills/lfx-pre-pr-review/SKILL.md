@@ -147,14 +147,19 @@ or per reviewer. Do not rerun the reviewers on the fix.
 A **history-only** finding — a secret or personal data that exists only in an
 intermediate commit or in a commit message, so it is absent from `target_sha`
 yet ships in the branch — cannot be fixed by a new commit; the history must
-be rewritten. First check that the branch is not published: `git fetch origin`
-and `git ls-remote --heads origin <branch>` must print nothing. If it is on
-the remote, **stop**: tell the developer the material is already published, a
-secret must be rotated, and a force-push is their call, not this round's.
-Otherwise rewrite without an editor — set `GIT_SEQUENCE_EDITOR` to a command
-that marks the offending commit `edit` (or `reword` for a commit message),
-run `git rebase -i <base_sha>`, amend, `git rebase --continue` — keeping every
-commit signed and DCO-signed-off, then re-pin `target_sha` and re-run only the
+be rewritten. First check that the offending commit is not published:
+`git fetch --all --tags` and then
+`git for-each-ref --contains <offending_sha> refs/remotes refs/tags` must
+print nothing — a same-named branch is not the only way a commit reaches a
+remote. If anything lists it, **stop**: tell the developer the material is
+already published, a secret must be rotated, and a force-push is their call,
+not this round's. Otherwise rewrite without an editor — set
+`GIT_SEQUENCE_EDITOR` to a command that marks the offending commit `edit` (or
+`reword` for a commit message), run `git rebase -i -S <base_sha>` (`-S`
+re-signs every replayed commit; the `Signed-off-by` trailer is part of each
+message and survives), amend with `-S`, `git rebase --continue` — then
+verify `git log --format='%h %G? %(trailers:key=Signed-off-by)' <base_sha>..HEAD`
+shows `G` and a trailer on every commit, re-pin `target_sha` and re-run only the
 same `git log --format=fuller -p <base_sha>..<target_sha>` walk to verify it
 is gone. This rewrite is not a review round — do not relaunch the reviewers —
 and it does not count against the one-fix-commit rule, which governs content
@@ -172,7 +177,8 @@ again for this branch.
   parallel, report-only. They judge; you write.
 - All accepted findings in one commit; no commit when there are none.
   History-only findings are removed by rewriting the branch — only after
-  confirming it is not on the remote — never by a commit.
+  confirming the offending commit is reachable from no remote ref — never by
+  a commit.
 - The reviewers never run again on this branch, locally or after the PR opens.
 - A missing `## Pre-PR review` section, KB value or KB skill stops the round;
   it is never worked around.

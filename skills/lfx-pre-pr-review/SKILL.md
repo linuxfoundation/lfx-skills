@@ -44,9 +44,14 @@ a KB skill, do not review without it.
 
 ## Pin the range
 
+First establish the branch the PR will target — from the developer's request,
+the task, or the repo's stated convention — and state it back before pinning.
+`main` is the default only when nothing says otherwise; if the target cannot
+be established, **stop** and ask rather than review against the wrong base.
+
 ```bash
 git fetch origin
-base_sha=$(git merge-base origin/main HEAD)   # or the branch the PR will target, if the developer says otherwise
+base_sha=$(git merge-base origin/<target-branch> HEAD)
 target_sha=$(git rev-parse HEAD)
 ```
 
@@ -81,12 +86,17 @@ target_sha: <40 chars>
 Load the skill <skill> with the Skill tool and follow it exactly, as the
 <role> reviewer. Review exactly `git diff <base_sha> <target_sha>`; read
 files at target_sha with `git show <target_sha>:<path>`, never from the
-working tree. You are report-only: do not edit files, commit, push, or
-touch GitHub. Return your review as Markdown. If you cannot complete the
-review, say INCOMPLETE and why.
+working tree. The checkout is shared with the other reviewers and frozen at
+target_sha: run no builds, tests, linters, generators or any other command
+that reads or writes the working tree — `git show`, `git diff`, `git grep`
+and `git log` against the pinned SHAs are your only view of the code. You
+are report-only: do not edit files, commit, push, or touch GitHub. Return
+your review as Markdown. If you cannot complete the review, say INCOMPLETE
+and why.
 ```
 
-For the `security` reviewer add: "Phase 1: do not run the scanner in its
+For the `security` reviewer add: "The one exception to the no-working-tree
+rule is the read-only scanner. Phase 1: do not run the scanner in its
 default mode (it derives its own base and includes working-tree and untracked
 files). Run `security-scan.sh --file <path>` once per path in
 `git diff --name-only --diff-filter=AMR <base_sha> <target_sha>`; the tree is

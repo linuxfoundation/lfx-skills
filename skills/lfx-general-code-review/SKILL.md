@@ -45,15 +45,19 @@ This is local, pre-PR, author-side work and it stops at PR-open.
 - Reading GitHub is fine when it genuinely helps (linked issues, an upstream
   API, a referenced PR). Ordinary `git fetch` is fine. Nothing you do may
   change a remote.
-- Running ordinary builds, tests, linters and checks is allowed, and the
-  caches, binaries and coverage files they leave behind are fine. What is not
-  allowed is *fixing*: no auto-fix formatters or generators, no `--write` or
+- In the `/lfx-skills:lfx-pre-pr-review` round the checkout is shared with the
+  sibling reviewers and frozen at the pinned target: run **no** builds, tests,
+  linters or checks there — `git show`, `git diff`, `git grep` and `git log`
+  against the pinned SHAs are your only view of the code. Launched by another
+  host with a checkout of your own, running ordinary builds, tests, linters and
+  checks is allowed, and the caches, binaries and coverage files they leave
+  behind are fine. What is never allowed is *fixing*: no auto-fix formatters or generators, no `--write` or
   `--fix` mode, no commit, no reset, no push. Never treat tool output as a
   substitute for reading the diff.
 - Run a working-tree check only while the checkout still represents the pinned
   target closely enough for that check to mean anything — and **check, do not
-  assume**. The host runs reviews in the background while the developer keeps
-  working, so the tree can move under you mid-review. `git rev-parse HEAD`
+  assume**. A host other than the pre-PR round may run you in the background
+  while the developer keeps working, so the tree can move under you mid-review. `git rev-parse HEAD`
   equalling the pinned target is necessary but not sufficient: confirm tracked
   content is clean too (`git status --porcelain` empty, or
   `git diff --quiet && git diff --cached --quiet`), because staged and unstaged

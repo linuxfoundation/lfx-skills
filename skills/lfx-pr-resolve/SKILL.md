@@ -32,6 +32,9 @@ tell the user to open a checkout of the PR's repository and run it there. If
 there is no such section, the repo is not an adopter and this skill is the
 right one — unless its `## Pre-PR review` section carries a `PR driver:`
 value: that repo skill owns its PR iteration, so hand the work to it and stop.
+The driver is a repo-local skill, so the same checkout rule applies as above:
+if the current checkout is not that repository, do not hand off from here —
+tell the user to open a checkout of the PR's repository and run it there.
 If there is more than one such section, say so and stop
 — that is a broken adoption, not an absent one, and running this skill instead
 would answer a configuration error with a different workflow.

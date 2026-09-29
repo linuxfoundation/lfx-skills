@@ -265,15 +265,20 @@ a choice: report it and route to neither. The table row above is the former
 case.
 
 **PR review threads have two routes, decided by the repo, not by this table.**
-A repo whose root `CLAUDE.md` carries exactly one
-`## Review lifecycle configuration` section has adopted
+First the same guard as above: a root `CLAUDE.md` carrying both
+`## Review lifecycle configuration` and `## Pre-PR review` is a broken
+migration — report it and route to neither (`lfx-local-review` validates only
+its own declaration and will not notice the second heading). Then: a repo
+whose root `CLAUDE.md` carries exactly one
+`## Review lifecycle configuration` section and no `## Pre-PR review` section has adopted
 `/lfx-skills:lfx-local-review` as the sole owner of its review lifecycle;
 forward its PR-thread work there, not to `lfx-pr-resolve` — that skill
 validates the declaration and fails closed itself, so a malformed section is
 its problem to report, not a reason to route elsewhere. A repo with no such
 section is not an adopter, and `/lfx-skills:lfx-pr-resolve` above is correct
 for it — unless its `## Pre-PR review` section names a `PR driver:`; forward
-PR-thread work to that repo skill instead. More than one
+PR-thread work to that repo skill instead (the third destination, for repos
+that own their own PR iteration). More than one
 `## Review lifecycle configuration` section is a broken adoption, not an absent
 one: report the problem rather than routing to either skill.
 

@@ -47,8 +47,8 @@ This is local, pre-PR, author-side work and it stops at PR-open.
   change a remote.
 - In the `/lfx-skills:lfx-pre-pr-review` round the checkout is shared with the
   sibling reviewers and frozen at the pinned target: run **no** builds, tests,
-  linters or checks there — `git show`, `git diff`, `git grep` and `git log`
-  against the pinned SHAs are your only view of the code. Launched by another
+  linters or checks there — `git show`, `git diff`, `git grep`, `git ls-tree`
+  and `git log` against the pinned SHAs are your only view of the code. Launched by another
   host with a checkout of your own, running ordinary builds, tests, linters and
   checks is allowed, and the caches, binaries and coverage files they leave
   behind are fine. What is never allowed is *fixing*: no auto-fix formatters or generators, no `--write` or

@@ -91,8 +91,9 @@ Load the skill <skill> with the Skill tool and follow it exactly, as the
 files at target_sha with `git show <target_sha>:<path>`, never from the
 working tree. The checkout is shared with the other reviewers and frozen at
 target_sha: run no builds, tests, linters, generators or any other command
-that reads or writes the working tree — `git show`, `git diff`, `git grep`
-and `git log` against the pinned SHAs are your only view of the code. You
+that reads or writes the working tree — `git show`, `git diff`, `git grep`,
+`git ls-tree` and `git log` against the pinned SHAs are your only view of the
+code. You
 are report-only: do not edit files, commit, push, or touch GitHub. Return
 your review as Markdown. If you cannot complete the review, say INCOMPLETE
 and why.
@@ -145,12 +146,17 @@ or per reviewer. Do not rerun the reviewers on the fix.
 
 A **history-only** finding — a secret or personal data that exists only in an
 intermediate commit or in a commit message, so it is absent from `target_sha`
-yet ships in the branch — cannot be fixed by a new commit. The branch is
-unpushed, so rewrite its history instead: `git rebase -i <base_sha>`, remove
-the material from the offending commit or message, keep every commit signed
-and DCO-signed-off, then re-pin `target_sha` and re-run only the same
-`git log --format=fuller -p <base_sha>..<target_sha>` walk to verify it is
-gone. This rewrite is not a review round — do not relaunch the reviewers —
+yet ships in the branch — cannot be fixed by a new commit; the history must
+be rewritten. First check that the branch is not published: `git fetch origin`
+and `git ls-remote --heads origin <branch>` must print nothing. If it is on
+the remote, **stop**: tell the developer the material is already published, a
+secret must be rotated, and a force-push is their call, not this round's.
+Otherwise rewrite without an editor — set `GIT_SEQUENCE_EDITOR` to a command
+that marks the offending commit `edit` (or `reword` for a commit message),
+run `git rebase -i <base_sha>`, amend, `git rebase --continue` — keeping every
+commit signed and DCO-signed-off, then re-pin `target_sha` and re-run only the
+same `git log --format=fuller -p <base_sha>..<target_sha>` walk to verify it
+is gone. This rewrite is not a review round — do not relaunch the reviewers —
 and it does not count against the one-fix-commit rule, which governs content
 findings; if both kinds are present, land the fix commit first, then rewrite.
 
@@ -165,8 +171,8 @@ again for this branch.
 - Three reviewers (two when the repo has no knowledge base), independent,
   parallel, report-only. They judge; you write.
 - All accepted findings in one commit; no commit when there are none.
-  History-only findings are removed by rewriting the unpushed branch, not by a
-  commit.
+  History-only findings are removed by rewriting the branch — only after
+  confirming it is not on the remote — never by a commit.
 - The reviewers never run again on this branch, locally or after the PR opens.
 - A missing `## Pre-PR review` section, KB value or KB skill stops the round;
   it is never worked around.

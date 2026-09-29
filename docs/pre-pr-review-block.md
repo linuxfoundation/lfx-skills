@@ -65,10 +65,15 @@ values, and only then:
    the general skill now reads the repo's written conventions itself, from
    `CLAUDE.md`, `.claude/rules/`, checklists and the docs they name. Before
    deleting it, salvage only what is expertise rather than a restatement of the
-   repo's docs or code — known false positives and "never a finding" items go
-   into the repo's `docs/reviews/knowledge-base/known-false-positives.md`;
-   a genuine convention documented nowhere else goes into the repo's rule
-   surface, path-scoped under `.claude/rules/`.
+   repo's docs or code, and put each item where the reviewer that will meet it
+   reads: a convention false positive or "never a finding" item goes **next to
+   the rule it concerns** — a dated exception or status note in `CLAUDE.md`,
+   the rule's own `.claude/rules/` file or the skill that states it — because
+   the general reviewer reads the rule surface and never
+   `docs/reviews/knowledge-base/`; only a false positive about an empirical KB
+   pattern goes into `known-false-positives.md`, which the KB reviewer alone
+   applies. A genuine convention documented nowhere else goes into the repo's
+   rule surface, path-scoped under `.claude/rules/`.
 4. Keep the repo's deterministic checks as `<preflight>`; CI should run the
    same commands. Where the repo has its own readiness/preflight check
    skills, the value is their invocations in order; none of them may

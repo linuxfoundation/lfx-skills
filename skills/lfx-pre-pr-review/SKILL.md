@@ -7,8 +7,10 @@ description: >-
   and the repo's knowledge-base review where the repo has one), then all
   accepted findings in exactly one fix commit. Load this when a repo's CLAUDE.md
   `## Pre-PR review` section tells you to, when the implementation is
-  complete and committed and you are about to open a PR. Never load it after
-  the PR exists.
+  complete and committed and you are about to open a PR. Not for a repo whose
+  root CLAUDE.md still carries a `## Review lifecycle configuration` section —
+  `/lfx-skills:lfx-local-review` owns that repo's pre-PR review. Never load it
+  after the PR exists.
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
@@ -35,8 +37,10 @@ section. Read one value from it:
   (for example `/committee-service-learnings-reviewer`), or `none`.
 
 If the section, the value, or the skill it names is missing, **stop** and
-tell the developer what is missing. Do not guess a KB skill, do not review
-without it.
+tell the developer what is missing. If the repo instead carries a
+`## Review lifecycle configuration` section, say so: it has not adopted this
+round, and `/lfx-skills:lfx-local-review` owns its pre-PR review. Do not guess
+a KB skill, do not review without it.
 
 ## Pin the range
 
@@ -87,9 +91,12 @@ default mode (it derives its own base and includes working-tree and untracked
 files). Run `security-scan.sh --file <path>` once per path in
 `git diff --name-only --diff-filter=AMR <base_sha> <target_sha>`; the tree is
 clean at `target_sha` and is not edited while you run. The scanner reads whole
-files: keep a hit only if its line is added or changed in
-`git diff -U0 <base_sha> <target_sha> -- <path>`; drop the rest as
-pre-existing. Phase 2: read those files with `git show <target_sha>:<path>`;
+files: keep a hit if its line is added or changed in
+`git diff -U0 <base_sha> <target_sha> -- <path>`, or — for the block-scoped
+checks that report a block's opening line (the silent-catch `logging` check,
+the Terraform sensitive-output check) — if any hunk of that diff falls between
+the reported line and the block's closing brace; drop a hit as pre-existing
+only when no hunk touches its line or its block. Phase 2: read those files with `git show <target_sha>:<path>`;
 for files deleted or renamed in the range (`--diff-filter=DR`), read the
 base side with `git show <base_sha>:<old path>` and judge what the removal
 takes away (a check, a guard, a validation)."

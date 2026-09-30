@@ -147,18 +147,24 @@ or per reviewer. Do not rerun the reviewers on the fix.
 A **history-only** finding — a secret or personal data that exists only in an
 intermediate commit or in a commit message, so it is absent from `target_sha`
 yet ships in the branch — cannot be fixed by a new commit; the history must
-be rewritten. First check that the offending commit is not published:
-`git fetch --all --tags` and then
-`git for-each-ref --contains <offending_sha> refs/remotes refs/tags` must
-print nothing — a same-named branch is not the only way a commit reaches a
-remote. If anything lists it, **stop**: tell the developer the material is
+be rewritten. First check that no offending commit is published.
+`git fetch --all --tags` must **succeed**; if it fails, **stop** and tell the
+developer publication could not be ruled out — stale `refs/remotes` would
+make the next check pass for a commit pushed since the last fetch. Then, for
+**every** commit the history walk labelled `history-only`,
+`git for-each-ref --contains <sha> refs/remotes refs/tags` must print nothing
+— a same-named branch is not the only way a commit reaches a remote. If
+anything lists any of them, **stop**: tell the developer the material is
 already published, a secret must be rotated, and a force-push is their call,
-not this round's. Otherwise rewrite without an editor — set
-`GIT_SEQUENCE_EDITOR` to a command that marks the offending commit `edit` (or
-`reword` for a commit message), run `git rebase -i -S <base_sha>` (`-S`
-re-signs every replayed commit; the `Signed-off-by` trailer is part of each
-message and survives), amend with `-S`, `git rebase --continue` — then
-verify `git log --format='%h %G? %(trailers:key=Signed-off-by)' <base_sha>..HEAD`
+not this round's. Otherwise rewrite with no editor at any step: set
+`GIT_SEQUENCE_EDITOR` to a command that marks each offending commit `edit`
+(use `edit` for message findings too — `reword` opens an editor), run
+`git rebase -i -S <base_sha>` (`-S` re-signs every replayed commit). At each
+stop remove the material and run `git commit --amend -S --no-edit`; for a
+commit-message finding run `git commit --amend -S -F <file>` instead, with
+the cleaned message and its `Signed-off-by` trailer. Then
+`GIT_EDITOR=true git rebase --continue`. Afterwards verify
+`git log --format='%h %G? %(trailers:key=Signed-off-by)' <base_sha>..HEAD`
 shows `G` and a trailer on every commit, re-pin `target_sha` and re-run only the
 same `git log --format=fuller -p <base_sha>..<target_sha>` walk to verify it
 is gone. This rewrite is not a review round — do not relaunch the reviewers —
@@ -176,9 +182,9 @@ again for this branch.
 - Three reviewers (two when the repo has no knowledge base), independent,
   parallel, report-only. They judge; you write.
 - All accepted findings in one commit; no commit when there are none.
-  History-only findings are removed by rewriting the branch — only after
-  confirming the offending commit is reachable from no remote ref — never by
-  a commit.
+  History-only findings are removed by rewriting the branch — only after a
+  successful fetch confirms no offending commit is reachable from any remote
+  ref — never by a commit.
 - The reviewers never run again on this branch, locally or after the PR opens.
 - A missing `## Pre-PR review` section, KB value or KB skill stops the round;
   it is never worked around.

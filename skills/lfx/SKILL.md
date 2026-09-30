@@ -240,7 +240,7 @@ stand-in, since design skills explicitly exclude provisioning work.
 
 ## Workflow skills (this plugin)
 
-Eight workflow skills ship alongside the architecture skills in this same
+Nine workflow skills ship alongside the architecture skills in this same
 `lfx-skills` plugin. Forward to them by name when relevant.
 
 | Topic                                | Skill                                      |
@@ -253,17 +253,34 @@ Eight workflow skills ship alongside the architecture skills in this same
 | Snowflake access requests            | `/lfx-skills:lfx-snowflake-access`         |
 | CDP Snowflake connector scaffolding  | `/lfx-skills:lfx-cdp-snowflake-connectors` |
 | Security review before merging       | `/lfx-skills:lfx-security-engineer`        |
+| Pre-PR review round, before a PR     | `/lfx-skills:lfx-pre-pr-review`            |
 
-**PR review threads have two routes, decided by the repo, not by this table.**
-A repo whose root `CLAUDE.md` carries exactly one
-`## Review lifecycle configuration` section has adopted
+**Pre-PR review has two routes, decided by the repo, not by this table.** A
+repo whose root `CLAUDE.md` carries a `## Pre-PR review` section runs
+`/lfx-skills:lfx-pre-pr-review`; a repo that still carries
+`## Review lifecycle configuration` runs `/lfx-skills:lfx-local-review` (its
+Mode 2) and must not be sent to the new skill, which stops on the missing
+section. A `CLAUDE.md` carrying **both** headings is a broken migration, not
+a choice: report it and route to neither. The table row above is the former
+case.
+
+**PR review threads are routed by the repo, not by this table.**
+First the same guard as above: a root `CLAUDE.md` carrying both
+`## Review lifecycle configuration` and `## Pre-PR review` is a broken
+migration — report it and route to neither (`lfx-local-review` validates only
+its own declaration and will not notice the second heading). Then: a repo
+whose root `CLAUDE.md` carries exactly one
+`## Review lifecycle configuration` section and no `## Pre-PR review` section has adopted
 `/lfx-skills:lfx-local-review` as the sole owner of its review lifecycle;
 forward its PR-thread work there, not to `lfx-pr-resolve` — that skill
 validates the declaration and fails closed itself, so a malformed section is
 its problem to report, not a reason to route elsewhere. A repo with no such
 section is not an adopter, and `/lfx-skills:lfx-pr-resolve` above is correct
-for it. More than one such section is a broken adoption, not an absent one:
-report the problem rather than routing to either skill.
+for it — unless its `## Pre-PR review` section names a `PR driver:`; forward
+PR-thread work to that repo skill instead (the third destination, for repos
+that own their own PR iteration). More than one
+`## Review lifecycle configuration` section is a broken adoption, not an absent
+one: report the problem rather than routing to either skill.
 
 ## Cross-repo path convention
 

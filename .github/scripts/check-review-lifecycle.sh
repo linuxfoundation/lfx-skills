@@ -211,9 +211,20 @@ need "$SKILL"     '**Fail closed.**'
 need "$SKILL" '**Which skill owns a repo'"'"'s PR iteration.**'
 need "$SKILL" 'A broken adoption is
   not an absent one, so it must never fall through to `lfx-pr-resolve`'
-need skills/lfx/SKILL.md '**PR review threads have two routes, decided by the repo, not by this table.**'
+need skills/lfx/SKILL.md '**PR review threads are routed by the repo, not by this table.**'
+# both lifecycle headings = broken migration: the guard under the heading, on
+# the router and on lfx-pr-resolve, must survive — not just the heading itself
+need skills/lfx/SKILL.md 'carrying both
+`## Review lifecycle configuration` and `## Pre-PR review` is a broken
+migration — report it and route to neither'
+need skills/lfx/SKILL.md 'section and no `## Pre-PR review` section has adopted'
 need skills/lfx-pr-resolve/SKILL.md '**Before working any thread, check whether the PR'"'"'s repo owns its PR iteration
   elsewhere.**'
+need skills/lfx-pr-resolve/SKILL.md 'If it carries **both** a
+`## Review lifecycle configuration` section and a `## Pre-PR review` section,
+two lifecycles are declared: say so and stop'
+need skills/lfx-pr-resolve/SKILL.md 'section and no `## Pre-PR review`
+section, the repo has adopted'
 kept skills/lfx-pr-resolve/SKILL.md
 
 # Mode 2's retry is bounded: it recovers from a transient batch failure, and

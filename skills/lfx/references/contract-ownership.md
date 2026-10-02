@@ -12,7 +12,7 @@ After identifying an owner here:
 
 1. Ensure the repo exists at `$LFX_DEV_ROOT/<repo>`. If it is missing, clone
    the `GitHub:` URL from `repo-map.md` into the workspace root.
-2. Read the owner repo's `CLAUDE.md` or equivalent local setup.
+2. Read the owner repo's `AGENTS.md`/`CLAUDE.md` or equivalent local setup.
 3. Read the owner files listed below.
 4. Report the exact owner file read. If the path is absent, report a
    repo-readiness gap instead of substituting central guidance.
@@ -42,18 +42,18 @@ by agents working from another repo.
 | `lfx-v2-indexer-service` | Generic indexer envelope, OpenSearch document writes, index event consumption | `docs/indexer-contract.md`, `docs/client-guide.md`, `.claude/rules/indexer-contract.md` |
 | `lfx-v2-fga-sync` | Generic FGA envelope, tuple sync, protected types, cache, access-check semantics | `docs/fga-sync-contract.md`, `docs/fga-protected-types.md`, `docs/client-guide.md`, `docs/fga-catalog.md` |
 | `lfx-v2-helm` | Shared platform chart, local platform setup, service chart conventions, OpenFGA model | `docs/platform-chart.md`, `docs/local-platform-getting-started.md`, `docs/service-chart-patterns.md`, `docs/openfga.md`, `PERMISSIONS.md`, `charts/lfx-platform/templates/openfga/model.yaml` |
-| `lfx-v2-argocd` | Deployed environment values, chart pins, image tags, ApplicationSets, ExternalSecret manifests | `CLAUDE.md`, `apps/<env>/`, `values/`, `custom-resources/`, `docs/agent-guidance/` while migration is in progress |
-| `lfx-v2-invite-service` | `send_invite` NATS request/reply contract (`lfx.invite-service.send_invite`), invite `pkg/api` payloads (`SendInviteRequest`/`SendInviteResponse`, `InviteRole`), invite email rendering and email-service forwarding, and invite-service chart behavior. Live committee invite/application resource-API behavior still belongs to `lfx-v2-committee-service`. | `CLAUDE.md`, `pkg/api/invite.go`, `.claude/skills/invite-service-readiness/SKILL.md`, `docs/agent-guidance/platform-readiness-handoff.md` |
-| `lfx-v2-persona-service` | Persona/navigation summary contract, user-involvement reads, CDP/Snowflake cache behavior, persona-service chart behavior | `CLAUDE.md`, `ARCHITECTURE.md`, `docs/agent-guidance/nats-messaging.md`, `docs/service-helm-chart.md` |
+| `lfx-v2-argocd` | Deployed environment values, chart pins, image tags, ApplicationSets, ExternalSecret manifests | `AGENTS.md`/`CLAUDE.md`, `apps/<env>/`, `values/`, `custom-resources/`, `docs/agent-guidance/` while migration is in progress |
+| `lfx-v2-invite-service` | `send_invite` NATS request/reply contract (`lfx.invite-service.send_invite`), invite `pkg/api` payloads (`SendInviteRequest`/`SendInviteResponse`, `InviteRole`), invite email rendering and email-service forwarding, and invite-service chart behavior. Live committee invite/application resource-API behavior still belongs to `lfx-v2-committee-service`. | `AGENTS.md`/`CLAUDE.md`, `pkg/api/invite.go`, `.claude/skills/invite-service-readiness/SKILL.md`, `docs/agent-guidance/platform-readiness-handoff.md` |
+| `lfx-v2-persona-service` | Persona/navigation summary contract, user-involvement reads, CDP/Snowflake cache behavior, persona-service chart behavior | `AGENTS.md`/`CLAUDE.md`, `ARCHITECTURE.md`, `docs/agent-guidance/nats-messaging.md`, `docs/service-helm-chart.md` |
 | `lfx-v1-sync-helper` | v1/v2 ID mapping service, WAL/Dynamo stream replication, Meltano backfills, and v1 bridge research | `AGENTS.md`, `README.md`, `cmd/lfx-v1-sync-helper/README.md`, `research/` |
 
 ## Cross-Cutting Ownership
 
 | Owned truth | Owner | Where to read |
 | --- | --- | --- |
-| Repo work mode, local context order, review gate | Owning repo | `CLAUDE.md` |
-| Repo-local coding conventions | Owning service/app repo | `.claude/skills/<short-repo-name>-dev/`, `.claude/rules/`, or repo-local skill named in `CLAUDE.md` |
-| Self Serve Angular/BFF/shared-package work | `lfx-self-serve` | `CLAUDE.md`, `.claude/skills/self-serve-dev/SKILL.md`, `.claude/skills/preflight/SKILL.md`, `.claude/rules/`, `docs/architecture/`, `docs/reviews/` |
+| Repo work mode, local context order, review gate | Owning repo | `AGENTS.md`/`CLAUDE.md` |
+| Repo-local coding conventions | Owning service/app repo | `.claude/skills/<short-repo-name>-dev/`, `.claude/rules/`, or repo-local skill named in `AGENTS.md`/`CLAUDE.md` |
+| Self Serve Angular/BFF/shared-package work | `lfx-self-serve` | `AGENTS.md`/`CLAUDE.md`, `.claude/skills/self-serve-dev/SKILL.md`, `.claude/skills/preflight/SKILL.md`, `.claude/rules/`, `docs/architecture/`, `docs/reviews/` |
 | Resource-specific FGA emissions | Owning resource or wrapper service | `docs/fga-contract.md` |
 | Generic FGA envelope, tuple sync, cache, and NATS access-check semantics | `lfx-v2-fga-sync` | `docs/fga-sync-contract.md`, `docs/fga-protected-types.md`, `docs/client-guide.md`, `docs/fga-catalog.md` |
 | OpenFGA authorization model | `lfx-v2-helm` | `charts/lfx-platform/templates/openfga/model.yaml`, `docs/openfga.md` |
@@ -64,16 +64,16 @@ by agents working from another repo.
 | Access-check HTTP API and service chart behavior | `lfx-v2-access-check` | `docs/access-check-contract.md`, `docs/service-helm-chart.md` |
 | Auth/profile runtime behavior and profile events | `lfx-v2-auth-service` | `docs/email_lookups.md`, `docs/email_verification.md`, `docs/identity_linking.md`, `docs/impersonation.md`, `docs/password_management.md`, `docs/user_emails.md`, `docs/user_metadata.md`, `docs/username_lookups.md`, `docs/profile-events.md`, `docs/service-helm-chart.md` |
 | Auth0 tenant control plane | `auth0-terraform` | Terraform/OpenTofu resources in that repo |
-| Intercom identity bridge runtime, identify page, CSP, and hostname allow-list coordination | `identity-cookie-helper` | `CLAUDE.md`, `docs/agent-guidance/intercom-identity-bridge.md`, `.claude/skills/intercom-identity-bridge/SKILL.md` |
+| Intercom identity bridge runtime, identify page, CSP, and hostname allow-list coordination | `identity-cookie-helper` | `AGENTS.md`/`CLAUDE.md`, `docs/agent-guidance/intercom-identity-bridge.md`, `.claude/skills/intercom-identity-bridge/SKILL.md` |
 | ITX wrapper plumbing and v1 ID mapping client behavior | Owning wrapper service plus central ITX skill | Wrapper repo `docs/itx-proxy-implementation.md`, `docs/event-processing.md`, `docs/api-contracts.md`, `docs/api-contracts/*.md`, and `/lfx-skills:lfx-itx-integration` |
 | v1 bridge, WAL/Dynamo stream replication, and `lfx.lookup_v1_mapping` server | `lfx-v1-sync-helper` | `AGENTS.md`, `README.md`, `cmd/lfx-v1-sync-helper/README.md`, `research/`, and repo-local code |
 | Service-local Helm chart templates/defaults | Owning service/app repo | `charts/<repo-name>/` |
 | Shared platform chart, platform dependencies, local stack, and shared chart conventions | `lfx-v2-helm` | `charts/lfx-platform/`, `docs/platform-chart.md`, `docs/local-platform-getting-started.md`, `docs/service-chart-patterns.md` |
-| Deployed environment state, values, pins, image tags, previews, and ExternalSecret manifests | `lfx-v2-argocd` | `CLAUDE.md`, `apps/<env>/`, `values/`, `custom-resources/`, `docs/agent-guidance/` while migration is in progress |
-| Local fixture load/reset behavior | `lfx-v2-mockdata` | `CLAUDE.md`, `.claude/skills/load-mock-data/SKILL.md`, `README.md`, `Makefile`, `playbooks/`, `scripts/setup-env.sh`, `scripts/reset-data.sh`, `scripts/mock-heimdall-jwt.sh` |
-| `send_invite` NATS contract, invite payloads, and invite email rendering | `lfx-v2-invite-service` | `CLAUDE.md`, `pkg/api/invite.go`, `.claude/skills/invite-service-readiness/SKILL.md` |
-| Member Salesforce integration and cache behavior | `lfx-v2-member-service` | `CLAUDE.md`, `docs/agent-guidance/salesforce-integration.md`, `docs/agent-guidance/salesforce-cache.md` |
+| Deployed environment state, values, pins, image tags, previews, and ExternalSecret manifests | `lfx-v2-argocd` | `AGENTS.md`/`CLAUDE.md`, `apps/<env>/`, `values/`, `custom-resources/`, `docs/agent-guidance/` while migration is in progress |
+| Local fixture load/reset behavior | `lfx-v2-mockdata` | `AGENTS.md`/`CLAUDE.md`, `.claude/skills/load-mock-data/SKILL.md`, `README.md`, `Makefile`, `playbooks/`, `scripts/setup-env.sh`, `scripts/reset-data.sh`, `scripts/mock-heimdall-jwt.sh` |
+| `send_invite` NATS contract, invite payloads, and invite email rendering | `lfx-v2-invite-service` | `AGENTS.md`/`CLAUDE.md`, `pkg/api/invite.go`, `.claude/skills/invite-service-readiness/SKILL.md` |
+| Member Salesforce integration and cache behavior | `lfx-v2-member-service` | `AGENTS.md`/`CLAUDE.md`, `docs/agent-guidance/salesforce-integration.md`, `docs/agent-guidance/salesforce-cache.md` |
 | `b2b_org`/`project_membership`/`key_contact` FGA tuple emissions and index documents | `lfx-v2-member-service` | `docs/fga-contract.md`, `docs/indexer-contract.md` |
-| Transactional email delivery and email engagement tracking | `lfx-v2-email-service` | `CLAUDE.md`, `docs/email-service-contract.md`, `docs/email-engagement-tracking.md` |
-| Newsletter API, recipient resolution, and email-service group handoff | `lfx-v2-newsletter-service` | `CLAUDE.md`, `docs/newsletter-service-contract.md`, `docs/recipient-resolution.md` |
-| Persona/navigation summary behavior | `lfx-v2-persona-service` | `CLAUDE.md`, `ARCHITECTURE.md`, `docs/agent-guidance/nats-messaging.md`, `docs/service-helm-chart.md` |
+| Transactional email delivery and email engagement tracking | `lfx-v2-email-service` | `AGENTS.md`/`CLAUDE.md`, `docs/email-service-contract.md`, `docs/email-engagement-tracking.md` |
+| Newsletter API, recipient resolution, and email-service group handoff | `lfx-v2-newsletter-service` | `AGENTS.md`/`CLAUDE.md`, `docs/newsletter-service-contract.md`, `docs/recipient-resolution.md` |
+| Persona/navigation summary behavior | `lfx-v2-persona-service` | `AGENTS.md`/`CLAUDE.md`, `ARCHITECTURE.md`, `docs/agent-guidance/nats-messaging.md`, `docs/service-helm-chart.md` |

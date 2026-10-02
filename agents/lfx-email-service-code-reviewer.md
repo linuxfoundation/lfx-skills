@@ -1,6 +1,6 @@
 ---
 name: lfx-email-service-code-reviewer
-description: "Post-commit code-convention audit for lfx-v2-email-service. Audits the latest commit in the email service repo against the repo-owned documented rule surface: CLAUDE.md, .claude/skills/email-service-dev, pr-readiness/preflight boundaries, README/docs, public pkg/api contract, cmd/internal layout, Makefile, and chart docs. May be launched from the LFX workspace root, but always operates in lfx-v2-email-service. Every repo-convention finding quotes a loaded source. Pass the keyword `branch` to switch to full-branch mode (audits origin/main...HEAD). Invoke after every pre-PR commit in parallel with lfx-skills:lfx-general-code-reviewer."
+description: "Post-commit code-convention audit for lfx-v2-email-service. Audits the latest commit in the email service repo against the repo-owned documented rule surface: AGENTS.md/CLAUDE.md, .claude/skills/email-service-dev, pr-readiness/preflight boundaries, README/docs, public pkg/api contract, cmd/internal layout, Makefile, and chart docs. May be launched from the LFX workspace root, but always operates in lfx-v2-email-service. Every repo-convention finding quotes a loaded source. Pass the keyword `branch` to switch to full-branch mode (audits origin/main...HEAD). Invoke after every pre-PR commit in parallel with lfx-skills:lfx-general-code-reviewer."
 model: opus
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
@@ -85,7 +85,7 @@ Always pull current contents. Never rely on memory from prior reviews.
 
 Read these files for every review:
 
-- `CLAUDE.md`
+- `AGENTS.md`/`CLAUDE.md`
 - `README.md`
 - `.claude/skills/email-service-dev/SKILL.md`
 - `.claude/skills/email-service-dev/references/go-conventions.md`
@@ -112,7 +112,7 @@ Load additional context by changed path:
 | `internal/service/**` | The changed handler, neighboring handler tests, `internal/service/mocks/kv.go`, `pkg/api/nats.go`, contract docs |
 | `internal/infrastructure/smtp/**` | SMTP sender/message tests, `docs/email-engagement-tracking.md`, contract docs for tracking IDs and error behavior |
 | `internal/infrastructure/sqs/**` or engagement handler changes | SQS poller, engagement handler tests, `docs/email-engagement-tracking.md`, chart env wiring |
-| `pkg/redaction/**` or logging changes | `internal/logging/logging.go`, local logging guidance in `CLAUDE.md` and `email-service-dev` |
+| `pkg/redaction/**` or logging changes | `internal/logging/logging.go`, local logging guidance in `AGENTS.md`/`CLAUDE.md` and `email-service-dev` |
 | `charts/lfx-v2-email-service/**` | `charts/lfx-v2-email-service/values.yaml`, changed templates, `docs/service-helm-chart.md`; if locally available, also read `../lfx-v2-helm/docs/service-chart-patterns.md` |
 | `docs/**` | The implementation and contract files that own the documented behavior |
 | `go.mod`, `go.sum`, `Makefile`, Docker/build files | `Makefile`, preflight skill, and any changed build/test entry points |

@@ -5,10 +5,10 @@ description: >-
   round of the whole branch before a pull request is opened — independent
   background reviewers in parallel (general code review, security review,
   and the repo's knowledge-base review where the repo has one), then all
-  accepted findings in exactly one fix commit. Load this when a repo's CLAUDE.md
+  accepted findings in exactly one fix commit. Load this when a repo's AGENTS.md/CLAUDE.md
   `## Pre-PR review` section tells you to, when the implementation is
   complete and committed and you are about to open a PR. Not for a repo whose
-  root CLAUDE.md still carries a `## Review lifecycle configuration` section —
+  root AGENTS.md/CLAUDE.md still carries a `## Review lifecycle configuration` section —
   `/lfx-skills:lfx-local-review` owns that repo's pre-PR review. Never load it
   after the PR exists.
 ---
@@ -21,16 +21,16 @@ description: >-
 You are the developer's main session — the agent driving the branch. The
 branch is implemented and committed and you are about to open the pull
 request. This skill is the local review round: the reviewers, and the one
-commit that answers them. The repo's `CLAUDE.md` points here instead of
+commit that answers them. The repo's `AGENTS.md`/`CLAUDE.md` points here instead of
 describing it. What follows the round — the repo's own checks, then the PR —
-is stated in that `CLAUDE.md` section, not here.
+is stated in that `AGENTS.md`/`CLAUDE.md` section, not here.
 
 Run this **once** per branch, on the whole branch, right before the PR.
 Not after individual commits. Not on the fix commit. Never once the PR exists.
 
 ## Read the repo's KB review skill
 
-Open the target repo's root `CLAUDE.md` and find its `## Pre-PR review`
+Open the target repo's root `AGENTS.md`/`CLAUDE.md` and find its `## Pre-PR review`
 section. Read one value from it:
 
 - `KB review skill:` the repo's knowledge-base review skill as a slash name

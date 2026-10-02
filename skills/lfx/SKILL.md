@@ -10,7 +10,7 @@ description: >
   and topology questions, and performs read-only discovery when the user asks
   whether a contract, API, event, field, workflow, or repo capability exists.
   Do not fire for single-repo implementation tasks
-  where the active repo's own CLAUDE.md already governs (those belong to
+  where the active repo's own AGENTS.md/CLAUDE.md already governs (those belong to
   the repo's local skills). Do not fire for V2 platform composition, service
   classes, or cross-service handoffs (use
   `/lfx-skills:lfx-platform-architecture`), ITX wrapper plumbing
@@ -87,7 +87,7 @@ Three steps apply to every scenario:
    FGA/indexer data, deployment values, or product consumption that matter.
 4. **Resolve missing checkouts** by cloning the `GitHub:` URL listed in
    `repo-map.md` when a primary or required peer repo is absent locally.
-5. **Read owned truth from the owner repo**. Use `CLAUDE.md` for local work
+5. **Read owned truth from the owner repo**. Use `AGENTS.md`/`CLAUDE.md` for local work
    mode and the top-level `docs/` files it names for contracts and other
    repo-owned truth that other agents may consume.
 
@@ -102,16 +102,16 @@ For each repo:
 
 - If `$LFX_DEV_ROOT/<repo>` is missing, clone the repo from the `GitHub:` URL
   in `references/repo-map.md`, then continue with local reads.
-- Load `$LFX_DEV_ROOT/<repo>/CLAUDE.md`
+- Load `$LFX_DEV_ROOT/<repo>/AGENTS.md` (or `CLAUDE.md` if not yet migrated)
 - Load `$LFX_DEV_ROOT/<repo>/.claude/rules/` for path-scoped conventions
 - Load `$LFX_DEV_ROOT/<repo>/.claude/skills/` for available workflows
-- Read the top-level `docs/` contract files named by that repo's `CLAUDE.md`
+- Read the top-level `docs/` contract files named by that repo's `AGENTS.md`/`CLAUDE.md`
   when cross-repo contracts, payloads, subjects, chart handoffs,
   integrations, or deployment surfaces matter.
 - Browse `$LFX_DEV_ROOT/<repo>/docs/agent-guidance/` only when
   `references/repo-map.md` explicitly lists that path as a transitional owner
   location for the repo. For Self Serve, use `docs/architecture/` when
-  `CLAUDE.md` or local skills point there.
+  `AGENTS.md`/`CLAUDE.md` or local skills point there.
 
 Work continues in the same session with the loaded context.
 
@@ -137,7 +137,7 @@ Do not infer cross-repo contracts from local examples.
    detail being checked.
 4. Read `$LFX_DEV_ROOT/<owner-repo>/CLAUDE.md` or `AGENTS.md` for that repo's
    local context order.
-5. Read the top-level `docs/` files named by that repo's `CLAUDE.md` for the
+5. Read the top-level `docs/` files named by that repo's `AGENTS.md`/`CLAUDE.md` for the
    relevant owned contract.
 6. Prefer stable top-level contract docs such as `docs/fga-contract.md`,
    `docs/indexer-contract.md`, `docs/fga-sync-contract.md`,
@@ -256,20 +256,20 @@ Nine workflow skills ship alongside the architecture skills in this same
 | Pre-PR review round, before a PR     | `/lfx-skills:lfx-pre-pr-review`            |
 
 **Pre-PR review has two routes, decided by the repo, not by this table.** A
-repo whose root `CLAUDE.md` carries a `## Pre-PR review` section runs
+repo whose root `AGENTS.md`/`CLAUDE.md` carries a `## Pre-PR review` section runs
 `/lfx-skills:lfx-pre-pr-review`; a repo that still carries
 `## Review lifecycle configuration` runs `/lfx-skills:lfx-local-review` (its
 Mode 2) and must not be sent to the new skill, which stops on the missing
-section. A `CLAUDE.md` carrying **both** headings is a broken migration, not
+section. An `AGENTS.md`/`CLAUDE.md` carrying **both** headings is a broken migration, not
 a choice: report it and route to neither. The table row above is the former
 case.
 
 **PR review threads are routed by the repo, not by this table.**
-First the same guard as above: a root `CLAUDE.md` carrying both
+First the same guard as above: a root `AGENTS.md`/`CLAUDE.md` carrying both
 `## Review lifecycle configuration` and `## Pre-PR review` is a broken
 migration — report it and route to neither (`lfx-local-review` validates only
 its own declaration and will not notice the second heading). Then: a repo
-whose root `CLAUDE.md` carries exactly one
+whose root `AGENTS.md`/`CLAUDE.md` carries exactly one
 `## Review lifecycle configuration` section and no `## Pre-PR review` section has adopted
 `/lfx-skills:lfx-local-review` as the sole owner of its review lifecycle;
 forward its PR-thread work there, not to `lfx-pr-resolve` — that skill

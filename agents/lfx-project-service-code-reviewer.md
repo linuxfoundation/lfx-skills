@@ -1,6 +1,6 @@
 ---
 name: lfx-project-service-code-reviewer
-description: "Post-commit code-convention audit for lfx-v2-project-service. Audits the latest commit in the lfx-v2-project-service repo against the repo documented rule surface: CLAUDE.md, .claude/skills/project-service-dev, project-service readiness/preflight scope boundaries, README/DEVELOPMENT, Goa design/gen layout, NATS/KV rules, indexer/FGA contract docs, chart docs, Makefile, and current code. May be launched from the LFX workspace root, but always operates in lfx-v2-project-service. Every repo-convention finding quotes a loaded source. Pass the keyword `branch` to switch to full-branch mode, auditing the branch diff against origin/main for the pre-PR sweep. Invoke after every pre-PR commit in parallel with lfx-skills:lfx-general-code-reviewer."
+description: "Post-commit code-convention audit for lfx-v2-project-service. Audits the latest commit in the lfx-v2-project-service repo against the repo documented rule surface: AGENTS.md/CLAUDE.md, .claude/skills/project-service-dev, project-service readiness/preflight scope boundaries, README/DEVELOPMENT, Goa design/gen layout, NATS/KV rules, indexer/FGA contract docs, chart docs, Makefile, and current code. May be launched from the LFX workspace root, but always operates in lfx-v2-project-service. Every repo-convention finding quotes a loaded source. Pass the keyword `branch` to switch to full-branch mode, auditing the branch diff against origin/main for the pre-PR sweep. Invoke after every pre-PR commit in parallel with lfx-skills:lfx-general-code-reviewer."
 model: opus
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
@@ -59,7 +59,7 @@ Always pull current contents. Never rely on memory of these files from prior run
 
 **Always read:**
 
-- `CLAUDE.md`
+- `AGENTS.md`/`CLAUDE.md`
 - `README.md`
 - `DEVELOPMENT.md`
 - `Makefile`
@@ -81,10 +81,10 @@ Always pull current contents. Never rely on memory of these files from prior run
 | `api/project/v1/design/**`, `api/project/v1/gen/**`, `cmd/project-api/**` | All changed design files, generated OpenAPI files when API shape changes, matching endpoint adapter files under `cmd/project-api/`, and `charts/lfx-v2-project-service/templates/ruleset.yaml` when authorization can change |
 | `internal/service/**`, `internal/domain/**`, `internal/middleware/**`, `pkg/constants/**`, `pkg/utils/**`, `pkg/struct/**` | Full changed files plus nearby tests and interfaces referenced by the changed code |
 | `internal/infrastructure/nats/**`, `pkg/constants/nats.go`, `internal/domain/models/**` | `internal/infrastructure/nats/message.go`, `internal/infrastructure/nats/repository.go`, `pkg/constants/nats.go`, and any changed model `IndexingConfig` or FGA helper code |
-| `docs/indexer-contract.md`, `docs/fga-contract.md`, publisher code | The generic peer contract docs named by `CLAUDE.md` if available locally: `../lfx-v2-indexer-service/docs/indexer-contract.md`, `../lfx-v2-fga-sync/docs/fga-sync-contract.md`, and `../lfx-v2-helm/charts/lfx-platform/templates/openfga/model.yaml` |
+| `docs/indexer-contract.md`, `docs/fga-contract.md`, publisher code | The generic peer contract docs named by `AGENTS.md`/`CLAUDE.md` if available locally: `../lfx-v2-indexer-service/docs/indexer-contract.md`, `../lfx-v2-fga-sync/docs/fga-sync-contract.md`, and `../lfx-v2-helm/charts/lfx-platform/templates/openfga/model.yaml` |
 | `charts/lfx-v2-project-service/**` | Every changed chart template, `charts/lfx-v2-project-service/values.yaml`, and `../lfx-v2-helm/docs/service-chart-patterns.md` if available locally |
 | `go.mod`, `go.sum`, `Makefile`, `.github/**`, `.mega-linter.yml` | `Makefile`, `DEVELOPMENT.md`, relevant workflow files, and any changed dependency/build files |
-| `.claude/skills/**`, `CLAUDE.md` | The changed local skill or guidance file plus the companion local skill files it references |
+| `.claude/skills/**`, `AGENTS.md`/`CLAUDE.md` | The changed local skill or guidance file plus the companion local skill files it references |
 
 If a required project-service file cannot be loaded, mark the report `INCOMPLETE`. If a peer contract referenced by this repo is missing locally, say manual verification is required only in the affected contract section.
 

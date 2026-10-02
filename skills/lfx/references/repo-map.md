@@ -13,7 +13,7 @@ This is the agent-facing ownership and classifier index for the `/lfx` skill and
 2. Pick the repo that owns the code, contract, chart layer, deployment layer, or product surface being changed.
 3. Add default peers only when their contracts, consumers, platform behavior, or deployment state are relevant.
 4. If a required repo is not present at the workspace root, clone its `GitHub:` URL into `$LFX_DEV_ROOT/<Path>`.
-5. Once routed, stop using this central map for implementation detail. The primary repo's local setup owns the detailed work plan. For cross-repo contract ownership, read `contract-ownership.md`, then the owner repo's `CLAUDE.md` and the top-level `docs/` contract files it names.
+5. Once routed, stop using this central map for implementation detail. The primary repo's local setup owns the detailed work plan. For cross-repo contract ownership, read `contract-ownership.md`, then the owner repo's `AGENTS.md`/`CLAUDE.md` and the top-level `docs/` contract files it names.
 
 ## Ownership Model
 
@@ -21,15 +21,15 @@ Ownership means "the repo whose code, contract, deployment layer, or docs own th
 
 After choosing a primary repo, hand off to that repo's local setup:
 
-- `CLAUDE.md` owns the repo work mode, review gate, and local context order.
+- `AGENTS.md`/`CLAUDE.md` owns the repo work mode, review gate, and local context order.
 - Top-level `docs/` files own contracts, subjects, payloads, chart handoffs, integration details, deployment surfaces, and other repo-owned truth that agents from other repos may need. Stable examples include `docs/fga-contract.md`, `docs/indexer-contract.md`, `docs/fga-sync-contract.md`, `docs/query-service-contract.md`, and `docs/service-chart-patterns.md`.
 - `.claude/rules/`, `.claude/skills/`, hooks, architecture docs, review docs, contracts, and KBs own implementation and review detail.
-- If a repo lacks a `CLAUDE.md` or equivalent local setup, treat that as a repo-readiness gap. Do not fill the gap by growing central implementation instructions.
+- If a repo lacks a `AGENTS.md`/`CLAUDE.md` or equivalent local setup, treat that as a repo-readiness gap. Do not fill the gap by growing central implementation instructions.
 - Central reviewer-agent prompt files may name repo-specific docs to read, but repo-specific findings must come from the owning repo's local setup and contracts.
 
 `docs/agent-guidance/` is a transitional location from the fan-out pass. Use it
 only when a repo entry below explicitly lists it. Otherwise, prefer the
-top-level `docs/` contract files named by `CLAUDE.md`.
+top-level `docs/` contract files named by `AGENTS.md`/`CLAUDE.md`.
 
 The `GitHub:` field is the clone/read fallback when the `Path:` directory is
 missing locally. Clone into the workspace root using the `Path:` value as the
@@ -52,7 +52,7 @@ this map identifies the likely owner or peers.
 - Path: `lfx-self-serve`
 - GitHub: https://github.com/linuxfoundation/lfx-self-serve
 - Owns: LFX One / Self Serve Angular app, Express BFF, `@lfx-one/shared`, Self Serve setup, preflight, review lifecycle, review KB, product routes, user-facing workflows, and app-owned chart behavior.
-- Local entrypoints: `CLAUDE.md`, `.claude/skills/self-serve-dev/SKILL.md`, `.claude/skills/preflight/SKILL.md`, `.claude/skills/lfx-review-pr/SKILL.md`, `.claude/skills/lfx-self-serve-pr-readiness/SKILL.md`, `.claude/rules/`, `docs/architecture/`, `docs/reviews/`, and service chart under `charts/lfx-self-serve/`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, `.claude/skills/self-serve-dev/SKILL.md`, `.claude/skills/preflight/SKILL.md`, `.claude/skills/lfx-review-pr/SKILL.md`, `.claude/skills/lfx-self-serve-pr-readiness/SKILL.md`, `.claude/rules/`, `docs/architecture/`, `docs/reviews/`, and service chart under `charts/lfx-self-serve/`.
 - Route when the task mentions: Self Serve, LFX One, Angular app, Express BFF, shared package, meetings UI, committees UI, dashboard UI, PCC, Admin Mode, persona UI, persona-based navigation UI, persona product consumption, L2 navigation.
 - Default peers: `lfx-v2-query-service`, `lfx-v2-fga-sync`
 - Handoff: Start in `lfx-self-serve` because local setup owns Angular, BFF, shared-package, review lifecycle, and app-chart detail.
@@ -63,7 +63,7 @@ this map identifies the likely owner or peers.
 - Path: `lfx-v2-project-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-project-service
 - Owns: Project resource API, project RPC subjects, NATS/KV storage, project model contracts, project indexer messages, project FGA messages, and service-local chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-project-service/`, and local conventions under `.claude/skills/project-service-dev/`. Contract docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-project-service/`, and local conventions under `.claude/skills/project-service-dev/`. Contract docs are listed in `contract-ownership.md`.
 - Route when the task mentions: project API, projects, project field, project resource, project RPC, project NATS KV.
 - Default peers: `lfx-v2-indexer-service`, `lfx-v2-fga-sync`, `lfx-v2-query-service`, `lfx-self-serve`
 - Handoff: Start in project-service because it owns project resource contracts and emitted platform data.
@@ -73,7 +73,7 @@ this map identifies the likely owner or peers.
 - Path: `lfx-v2-committee-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-committee-service
 - Owns: Committee, committee-member, invite, application, and committee-link resource APIs and contracts, plus emitted indexer/FGA data and service-local chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-committee-service/`, and local conventions under `.claude/skills/committee-service-dev/`. Contract docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-committee-service/`, and local conventions under `.claude/skills/committee-service-dev/`. Contract docs are listed in `contract-ownership.md`.
 - Route when the task mentions: committee, committees, invite, application, committee member, committee link.
 - Default peers: `lfx-v2-indexer-service`, `lfx-v2-fga-sync`, `lfx-v2-query-service`, `lfx-self-serve`
 - Handoff: Start in committee-service because it owns committee, committee-member, invite, application, and link contracts. If local Claude setup is missing, treat that as repo-readiness work.
@@ -83,7 +83,7 @@ this map identifies the likely owner or peers.
 - Path: `lfx-v2-meeting-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-meeting-service
 - Owns: Meeting API, ITX/Zoom proxy behavior, v1 event sync, meeting indexer/FGA data, external-system mapping, and service-local chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-meeting-service/`, and local conventions under `.claude/skills/meeting-service-dev/`. Contract and ITX docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-meeting-service/`, and local conventions under `.claude/skills/meeting-service-dev/`. Contract and ITX docs are listed in `contract-ownership.md`.
 - Route when the task mentions: meeting, meetings, calendar, Zoom, ITX meeting, meeting event sync.
 - Default peers: `lfx-v2-query-service`, `lfx-v2-fga-sync`, `lfx-self-serve`
 - Handoff: Start in meeting-service because it owns meeting APIs, proxy behavior, external-system mapping, and event sync.
@@ -93,7 +93,7 @@ this map identifies the likely owner or peers.
 - Path: `lfx-v2-mailing-list-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-mailing-list-service
 - Owns: Mailing-list API, Groups.io/ITX proxy behavior, v1 stream processors, mailing-list indexer/FGA data, external-system mapping, and service-local chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-mailing-list-service/`, and local conventions under `.claude/skills/mailing-list-service-dev/`. Contract and event docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-mailing-list-service/`, and local conventions under `.claude/skills/mailing-list-service-dev/`. Contract and event docs are listed in `contract-ownership.md`.
 - Route when the task mentions: mailing list, mailing lists, Groups.io, mailing list event sync.
 - Default peers: `lfx-v2-query-service`, `lfx-v2-fga-sync`, `lfx-self-serve`
 - Handoff: Start in mailing-list-service because it owns mailing-list APIs, proxy behavior, external-system mapping, and event sync.
@@ -103,7 +103,7 @@ this map identifies the likely owner or peers.
 - Path: `lfx-v2-voting-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-voting-service
 - Owns: Voting API, ITX proxy behavior, voting event processing, voting indexer/FGA data, external-system mapping, and service-local chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-voting-service/`, and local conventions under `.claude/skills/voting-service-dev/`. Contract and ITX docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-voting-service/`, and local conventions under `.claude/skills/voting-service-dev/`. Contract and ITX docs are listed in `contract-ownership.md`.
 - Route when the task mentions: vote, voting, poll, polls, voting event sync.
 - Default peers: `lfx-v2-query-service`, `lfx-v2-fga-sync`, `lfx-self-serve`
 - Handoff: Start in voting-service because it owns voting APIs, proxy behavior, external-system mapping, and event processing.
@@ -113,7 +113,7 @@ this map identifies the likely owner or peers.
 - Path: `lfx-v2-survey-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-survey-service
 - Owns: Survey API, ITX proxy behavior, survey event processing, survey indexer/FGA data, external-system mapping, and service-local chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-survey-service/`, and local conventions under `.claude/skills/survey-service-dev/`. Contract and ITX docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-survey-service/`, and local conventions under `.claude/skills/survey-service-dev/`. Contract and ITX docs are listed in `contract-ownership.md`.
 - Route when the task mentions: survey, surveys, NPS, survey event sync.
 - Default peers: `lfx-v2-query-service`, `lfx-v2-fga-sync`, `lfx-self-serve`
 - Handoff: Start in survey-service because it owns survey APIs, proxy behavior, external-system mapping, and event processing.
@@ -123,7 +123,7 @@ this map identifies the likely owner or peers.
 - Path: `lfx-v2-member-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-member-service
 - Owns: Membership reads, Salesforce/NATS integration, project ID mapping, membership-facing service behavior, the `b2b_org`/`project_membership`/`key_contact` FGA tuple emissions and indexer documents, and service-local chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-member-service/`, local conventions under `.claude/skills/member-service-dev/`, and contract docs (`docs/fga-contract.md`, `docs/indexer-contract.md`) listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-member-service/`, local conventions under `.claude/skills/member-service-dev/`, and contract docs (`docs/fga-contract.md`, `docs/indexer-contract.md`) listed in `contract-ownership.md`.
 - Route when the task mentions: member, membership, Salesforce, project ID mapping, b2b_org, project_membership, key contact, member FGA tuples, member index documents.
 - Default peers: `lfx-v2-fga-sync`, `lfx-v2-indexer-service`, `lfx-v2-query-service`, `lfx-self-serve`
 - Handoff: Start in member-service because it owns membership reads, Salesforce mapping, and the `b2b_org`/`project_membership`/`key_contact` FGA and indexer emissions.
@@ -133,7 +133,7 @@ this map identifies the likely owner or peers.
 - Path: `lfx-v2-email-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-email-service
 - Owns: Transactional email NATS request/reply contract, public email-service `pkg/api` payloads, pre-rendered SMTP/SES delivery, email engagement tracking records in NATS KV, SES/SQS engagement event handling, and service-local chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-email-service/`, local conventions under `.claude/skills/email-service-dev/`, and contract docs listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-email-service/`, local conventions under `.claude/skills/email-service-dev/`, and contract docs listed in `contract-ownership.md`.
 - Route when the task mentions: email service, transactional email, send email NATS subject, `lfx.email-service.*`, SES delivery, SES engagement events, email open/delivery/bounce/complaint tracking, email tracking KV, email group analytics.
 - Default peers: `lfx-v2-newsletter-service`, `lfx-self-serve`
 - Handoff: Start in email-service because it owns the email NATS contract, SMTP delivery behavior, engagement tracking records, and service-local chart surfaces.
@@ -143,7 +143,7 @@ this map identifies the likely owner or peers.
 - Path: `lfx-v2-newsletter-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-newsletter-service
 - Owns: Newsletter HTTP API, draft persistence, draft-to-sent state transition, recipient preview/count behavior, local open tracking, newsletter analytics, Postgres schema, query-service recipient-resolution client, email-service `groupId` handoff, and service-local chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-newsletter-service/`, local conventions under `.claude/skills/newsletter-service-dev/`, and contract docs listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-newsletter-service/`, local conventions under `.claude/skills/newsletter-service-dev/`, and contract docs listed in `contract-ownership.md`.
 - Route when the task mentions: newsletter, newsletters, newsletter draft, newsletter send, newsletter recipients, recipient-count, newsletter analytics, newsletter opens, email-service groupId handoff.
 - Default peers: `lfx-v2-query-service`, `lfx-v2-committee-service`, `lfx-v2-email-service`, `lfx-self-serve`
 - Handoff: Start in newsletter-service because it owns newsletter persistence, API behavior, recipient resolution orchestration, analytics, and chart surfaces. Add query-service or committee-service only when the task changes upstream recipient lookup or indexed committee-member data.
@@ -153,7 +153,7 @@ this map identifies the likely owner or peers.
 - Path: `lfx-v2-persona-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-persona-service
 - Owns: Persona/navigation summary contract for user involvement, persona read behavior, and service-local chart templates/defaults when present.
-- Local entrypoints: `CLAUDE.md`, `ARCHITECTURE.md`, and `docs/agent-guidance/*.md`. Persona docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, `ARCHITECTURE.md`, and `docs/agent-guidance/*.md`. Persona docs are listed in `contract-ownership.md`.
 - Route when the task mentions: persona, personas, navigation summary, involvement.
 - Default peers: `lfx-self-serve`
 - Handoff: Start in persona-service because it owns persona and navigation summary contracts.
@@ -163,7 +163,7 @@ this map identifies the likely owner or peers.
 - Path: `lfx-v2-invite-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-invite-service
 - Owns: `send_invite` NATS request/reply handler (`lfx.invite-service.send_invite`) that resource services call to issue an invite: it renders the invite email template, forwards a pre-rendered email to `lfx-v2-email-service`, and replies with the invite UID. Also owns the public `pkg/api` invite contract (subjects, `SendInviteRequest`/`SendInviteResponse`, `InviteRole`), invite email templates, and service-local chart templates/defaults. Future: LFID invite token issuance (NATS KV), `/invite/:uuid` acceptance endpoint, and acceptance broadcast.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-invite-service/`, public contract under `pkg/api/invite.go`, and the local `.claude/skills/invite-service-readiness/` skill. Contract/readiness docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-invite-service/`, public contract under `pkg/api/invite.go`, and the local `.claude/skills/invite-service-readiness/` skill. Contract/readiness docs are listed in `contract-ownership.md`.
 - Route when the task mentions: invite service, send_invite, `lfx.invite-service.send_invite`, invite email rendering, invite UID, invite token issuance.
 - Default peers: `lfx-v2-email-service`, `lfx-v2-committee-service`, `lfx-v2-project-service`
 - Handoff: Start in invite-service for `send_invite` request/reply behavior, invite email rendering, and the invite contract. Live committee invite/application/join/leave resource-API behavior still belongs to `lfx-v2-committee-service`; this service is the notification/token side, not the committee resource API.
@@ -173,7 +173,7 @@ this map identifies the likely owner or peers.
 - Path: `lfx-v2-auth-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-auth-service
 - Owns: Runtime auth/profile abstraction over Auth0/Authelia, local auth behavior, identity/profile service contracts, impersonation service behavior, Auth0 runtime integration, and service-local chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-auth-service/`, and local conventions under `.claude/skills/auth-service-dev/`. Auth/profile docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-auth-service/`, and local conventions under `.claude/skills/auth-service-dev/`. Auth/profile docs are listed in `contract-ownership.md`.
 - Route when the task mentions: auth runtime, profile API, identity service, Authelia runtime integration, Auth0 runtime integration, impersonation service behavior, user/profile service contract.
 - Default peers: `lfx-self-serve`
 - Handoff: Start in auth-service because it owns identity/profile runtime behavior and impersonation service contracts. Add `auth0-terraform` only when the change requires Auth0 tenant resources such as clients, audiences, grants, scopes, Actions, token exchange configuration, or connections.
@@ -214,7 +214,7 @@ Route phrases: Intercom, Intercom identity verification, Intercom JWT, identity-
 - Path: `lfx-v2-query-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-query-service
 - Owns: Search/read aggregation API, OpenSearch query behavior, pagination/filter/sort semantics, count behavior, access filtering, generic resource reads, and query-service chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-query-service/`, and local conventions under `.claude/skills/query-service-dev/`. Query contract docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-query-service/`, and local conventions under `.claude/skills/query-service-dev/`. Query contract docs are listed in `contract-ownership.md`.
 - Route when the task mentions: query, search, resources, OpenSearch, pagination, filter, filters, access filtering.
 - Default peers: `lfx-v2-indexer-service`, `lfx-v2-fga-sync`
 - Handoff: Start in query-service because it owns generic search, read, pagination, and access-filtering behavior.
@@ -224,7 +224,7 @@ Route phrases: Intercom, Intercom identity verification, Intercom JWT, identity-
 - Path: `lfx-v2-indexer-service`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-indexer-service
 - Owns: Index event consumption, OpenSearch document writes, domain event emission from platform indexing, generic indexing behavior, and indexer-service chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-indexer-service/`, `.claude/rules/indexer-contract.md`, and local conventions under `.claude/skills/indexer-service-dev/`. Indexer contract docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-indexer-service/`, `.claude/rules/indexer-contract.md`, and local conventions under `.claude/skills/indexer-service-dev/`. Indexer contract docs are listed in `contract-ownership.md`.
 - Route when the task mentions: indexer, indexing, search document, OpenSearch document, index event.
 - Default peers: `lfx-v2-query-service`
 - Handoff: Start in indexer-service because it owns generic index-event consumption and OpenSearch writes.
@@ -234,7 +234,7 @@ Route phrases: Intercom, Intercom identity verification, Intercom JWT, identity-
 - Path: `lfx-v2-fga-sync`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-fga-sync
 - Owns: FGA event consumption, OpenFGA tuple writes/reads/checks, access-check NATS behavior, FGA cache behavior, and fga-sync chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-fga-sync/`, and local conventions under `.claude/skills/fga-sync-dev/`. FGA contract docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-fga-sync/`, and local conventions under `.claude/skills/fga-sync-dev/`. FGA contract docs are listed in `contract-ownership.md`.
 - Route when the task mentions: FGA, OpenFGA, authorization tuple, tuple, access data, access-check NATS, FGA cache.
 - Default peers: `lfx-v2-access-check`, `lfx-v2-query-service`
 - Handoff: Start in fga-sync because it owns generic tuple sync, checks, and cache behavior.
@@ -244,7 +244,7 @@ Route phrases: Intercom, Intercom identity verification, Intercom JWT, identity-
 - Path: `lfx-v2-access-check`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-access-check
 - Owns: HTTP Goa wrapper around NATS/OpenFGA access checks, access-check API contract, and access-check chart templates/defaults.
-- Local entrypoints: `CLAUDE.md`, service chart under `charts/lfx-v2-access-check/`, and local conventions under `.claude/skills/access-check-dev/`. Access-check docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, service chart under `charts/lfx-v2-access-check/`, and local conventions under `.claude/skills/access-check-dev/`. Access-check docs are listed in `contract-ownership.md`.
 - Route when the task mentions: access check, permission check, authorization check, access-check API.
 - Default peers: `lfx-v2-fga-sync`
 - Handoff: Start in access-check because it owns the HTTP access-check API wrapper.
@@ -254,7 +254,7 @@ Route phrases: Intercom, Intercom identity verification, Intercom JWT, identity-
 - Path: `lfx-v2-helm`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-helm
 - Owns: `charts/lfx-platform`, shared/local platform install behavior, platform dependency composition, umbrella subchart wiring, OpenFGA authorization model, Gateway/Traefik/Heimdall/NATS/OpenSearch/OpenFGA topology, External Secrets Operator as a platform dependency, and platform chart release mechanics.
-- Local entrypoints: `CLAUDE.md` and platform chart under `charts/lfx-platform/`. Platform chart and OpenFGA docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md` and platform chart under `charts/lfx-platform/`. Platform chart and OpenFGA docs are listed in `contract-ownership.md`.
 - Route when the task mentions: Helm, local platform, LFX platform chart, `charts/lfx-platform`, OpenFGA model, Gateway, Traefik, Heimdall, NATS, OpenSearch, platform dependency, umbrella chart, platform chart.
 - Default peers: `lfx-v2-argocd`
 - Handoff: Start in Helm because it owns shared local platform composition and OpenFGA model topology.
@@ -265,7 +265,7 @@ Route phrases: Intercom, Intercom identity verification, Intercom JWT, identity-
 - Path: `lfx-v2-argocd`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-argocd
 - Owns: `apps/<env>/` Applications/ApplicationSets, deployed app membership, namespaces, chart source type, source revisions and chart pins, `values/global` plus environment overlays, image tags, deployed custom resources, ExternalSecret/SecretStore manifests, preview deployment wiring, and promotion mechanics.
-- Local entrypoints: `CLAUDE.md`, `apps/<env>/`, `values/`, and `custom-resources/`. Deployment handoff docs are listed in `contract-ownership.md`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, `apps/<env>/`, `values/`, and `custom-resources/`. Deployment handoff docs are listed in `contract-ownership.md`.
 - Route when the task mentions: ArgoCD, GitOps, app membership, namespace, environment values, image tag, chart pin, targetRevision, ApplicationSet, preview deployment, promotion, custom resources, ExternalSecrets, SecretStores, deployed secret references.
 - Default peers: `lfx-v2-helm`
 - Handoff: Start in ArgoCD because it owns deployed environment state and promotion mechanics.
@@ -287,7 +287,7 @@ Route phrases: Intercom, Intercom identity verification, Intercom JWT, identity-
 - Path: `lfx-v2-mockdata`
 - GitHub: https://github.com/linuxfoundation/lfx-v2-mockdata
 - Owns: Local fixture loading/reset tooling through APIs, NATS requests, NATS KV writes, seed data, and local data reset behavior.
-- Local entrypoints: `CLAUDE.md`, `.claude/skills/load-mock-data/SKILL.md`, `README.md`, `Makefile`, `playbooks/`, `scripts/setup-env.sh`, `scripts/reset-data.sh`, and `scripts/mock-heimdall-jwt.sh`.
+- Local entrypoints: `AGENTS.md`/`CLAUDE.md`, `.claude/skills/load-mock-data/SKILL.md`, `README.md`, `Makefile`, `playbooks/`, `scripts/setup-env.sh`, `scripts/reset-data.sh`, and `scripts/mock-heimdall-jwt.sh`.
 - Route when the task mentions: mockdata, fixture, fixtures, reset data, seed data.
 - Default peers: `lfx-v2-helm`
 - Handoff: Start in mockdata because it owns local fixture load, reset, and seed behavior.

@@ -285,4 +285,4 @@ Suggest next steps:
 - Understand V2 service shape: use `/lfx-skills:lfx-platform-architecture`
 - Understand Go conventions: rely on the owning repo's path-scoped
   `<short-repo-name>-dev` skill
-- Build or modify a feature: use the owning repo's local skills and `CLAUDE.md`
+- Build or modify a feature: use the owning repo's local skills and `AGENTS.md`/`CLAUDE.md`

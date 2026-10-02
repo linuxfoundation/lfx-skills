@@ -7,7 +7,7 @@ description: >
   re-requests review. Use whenever someone wants to address PR feedback, fix
   review comments, resolve PR threads, or iterate on a pull request after review
   — unless the PR's repo carries a `## Review lifecycle configuration` section
-  in its root CLAUDE.md, in which case `/lfx-skills:lfx-local-review` owns its
+  in its root AGENTS.md/CLAUDE.md, in which case `/lfx-skills:lfx-local-review` owns its
   PR iteration (and validates that section) instead, or a `PR driver:` value in
   its `## Pre-PR review` section, in which case that repo skill owns it; both
   headings together is a broken migration — stop.
@@ -23,7 +23,7 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Skill
 **Before working any thread, check whether the PR's repo owns its PR iteration
 elsewhere.** Run this check **after Step 1 has identified the PR's repository**
 — the PR may live in a different repo from the current checkout — and read only
-that repository's root `CLAUDE.md`. If it carries **both** a
+that repository's root `AGENTS.md`/`CLAUDE.md`. If it carries **both** a
 `## Review lifecycle configuration` section and a `## Pre-PR review` section,
 two lifecycles are declared: say so and stop — a broken migration, routed to
 neither owner. If it carries exactly one
@@ -67,16 +67,19 @@ If auth fails, stop and tell the user to run `gh auth login`.
 ### Apply the adoption check to the identified repository
 
 Once the PR's `org/repo` and base branch are known, run the adoption check
-from the top of this skill against **that** repository's root `CLAUDE.md`. If
+from the top of this skill against **that** repository's root `AGENTS.md`/`CLAUDE.md`. If
 it is not the current checkout, read the file from the identified repository
-at the PR's base branch, as raw text rather than the JSON envelope:
+at the PR's base branch, as raw text rather than the JSON envelope — try
+`AGENTS.md` first, falling back to `CLAUDE.md` if the repo has not migrated:
 
 ```bash
-gh api "repos/<org>/<repo>/contents/CLAUDE.md?ref=<base-branch>" \
+gh api "repos/<org>/<repo>/contents/AGENTS.md?ref=<base-branch>" \
+  -H "Accept: application/vnd.github.raw" \
+  || gh api "repos/<org>/<repo>/contents/CLAUDE.md?ref=<base-branch>" \
   -H "Accept: application/vnd.github.raw"
 ```
 
-Do not read `CLAUDE.md` from wherever this session happens to be running.
+Do not read `AGENTS.md`/`CLAUDE.md` from wherever this session happens to be running.
 ### Auto-detection
 
 ```bash
@@ -151,7 +154,7 @@ For each unresolved thread, follow the four-step validation flow in [`references
 
 1. Read the actual code at the referenced location (with 20-30 lines of surrounding context).
 2. Check the repo's existing patterns via `grep`.
-3. Cross-reference with project conventions (CLAUDE.md, eslint, style guides).
+3. Cross-reference with project conventions (AGENTS.md/CLAUDE.md, eslint, style guides).
 4. Assign one of four assessments: **Valid**, **Likely false positive**, **Partially valid**, or **Outdated**, and act accordingly.
 
 Lean toward implementing when in doubt, but always surface your assessment to the user.
@@ -241,7 +244,7 @@ Only address these after the user provides direction in Step 4.
 For complex changes that span multiple files or require repo-specific pattern
 knowledge (e.g., "refactor this to use signals instead of BehaviorSubject"),
 route to the owning repo's local workflow. Use `/lfx-skills:lfx` when the
-owner is unclear, then use that repo's `CLAUDE.md` and local skills.
+owner is unclear, then use that repo's `AGENTS.md`/`CLAUDE.md` and local skills.
 
 ```
 Skill(skill: "<repo-local-skill>", args: "FIX PR REVIEW: [description of the change needed]. File: [path]. Context: reviewer asked for [what they said]. Follow the existing pattern in [example file].")
@@ -499,7 +502,7 @@ If the user runs this skill again on the same PR:
 - Push changes to the remote branch
 - Dismiss stale "changes requested" reviews after addressing feedback
 - Re-request review from reviewers whose feedback was addressed
-- Route complex changes to the owning repo's local skills and `CLAUDE.md`
+- Route complex changes to the owning repo's local skills and `AGENTS.md`/`CLAUDE.md`
 
 **This skill does NOT:**
 - Create new PRs (use the owning repo's local preflight/readiness flow first)

@@ -82,7 +82,7 @@ Check all of the following and produce a gap report:
 | **JWT pre-set** | Is `window.intercomSettings.intercom_user_jwt` set *before* `window.Intercom('boot')` is called? | ✅ Required |
 | **JWT stripped from boot options** | Is `intercom_user_jwt` removed from the options passed to `window.Intercom('boot')`? | ✅ Required — JWT only in `intercomSettings`, not boot payload |
 | **Anonymous boot** | Is `bootIntercomAnonymous()` called in `ngOnInit()` before user auth check? | ✅ Required if app has public pages; skip if auth-only app |
-| **Anonymous→identified upgrade** | Does `boot()` detect anonymous session and upgrade to identified via `shutdownForReboot()`? | ✅ Required if anonymous boot is used — `bootedWithIdentity` flag tracks session type |
+| **Anonymous→identified upgrade** | Does `boot()` detect anonymous session and upgrade to identified via `shutdownForReboot()`? | ✅ Required if anonymous boot is used — must use `shutdown()+boot()`, NOT `update()`. `Intercom('update')` with `user_id` does NOT promote an anonymous session to identified — the server still treats the visitor as anonymous, causing wrong audience targeting for posts/banners. |
 | **Identified boot** | Is identified `boot()` called inside `userProfile$` subscription with `intercomBootAttempted` guard? | ✅ Required |
 | **Shutdown on logout** | Is `Intercom('shutdown')` called, JWT cleared, and anonymous session re-booted on logout? | ✅ Required |
 | **App IDs** | Dev: `mxl90k6y`, Prod: `w29sqomy` | ✅ Shared across all LFX apps |
@@ -648,8 +648,25 @@ PCC follow the same pattern and can be used for cross-validation.
 you fix the app. Do not defer it. The skill is wrong for everyone until it's
 fixed.
 
-**Last validated**: 2026-03-24 against LFX Mentorship (PRs #147, #148),
+**Last validated**: 2026-03-31 against LFX Mentorship (PRs #147, #148),
 Crowdfunding (PRs #31-#38), and PCC.
+
+**Lesson learned (2026-03-31)**: `Intercom('update', { user_id })` on an
+anonymous session does NOT promote it to identified. The Intercom server still
+treats the visitor as anonymous — audience-targeted content (posts, banners)
+will target the wrong audience. Always use `shutdown()` + `boot()` with
+`user_id` to properly transition from anonymous to identified.
+
+**Lesson learned (2026-03-31)**: Intercom banner dismissals are tracked
+**server-side per user**, not in cookies or localStorage. Clearing browser
+storage does not reset them. When debugging "banner not showing" issues, first
+rule out prior dismissal by creating a new banner version (which resets
+dismissal state for all users). A fresh anonymous session in incognito mode
+only rules out dismissal for banners whose audience includes anonymous
+visitors — if the banner targets identified users only, an anonymous session
+fails the audience rule regardless of dismissal history. For identified-only
+banners, use a fresh identified test account with the required audience
+attributes instead.
 
 ---
 

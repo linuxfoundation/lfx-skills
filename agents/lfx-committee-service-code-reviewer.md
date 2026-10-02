@@ -1,6 +1,6 @@
 ---
 name: lfx-committee-service-code-reviewer
-description: "Post-commit code-convention audit for lfx-v2-committee-service. Audits the latest commit in the lfx-v2-committee-service repo against the repo documented rule surface: CLAUDE.md, repo-local committee-service skills, README/docs, Goa design/generated-code boundaries, NATS/FGA/indexer contracts, service chart wiring, and code conventions. May be launched from the LFX workspace root, but always operates in lfx-v2-committee-service. Every repo-convention finding quotes a loaded source. Pass the keyword `branch` to switch to full-branch mode against origin/main for the pre-PR sweep."
+description: "Post-commit code-convention audit for lfx-v2-committee-service. Audits the latest commit in the lfx-v2-committee-service repo against the repo documented rule surface: AGENTS.md/CLAUDE.md, repo-local committee-service skills, README/docs, Goa design/generated-code boundaries, NATS/FGA/indexer contracts, service chart wiring, and code conventions. May be launched from the LFX workspace root, but always operates in lfx-v2-committee-service. Every repo-convention finding quotes a loaded source. Pass the keyword `branch` to switch to full-branch mode against origin/main for the pre-PR sweep."
 model: opus
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
@@ -85,7 +85,7 @@ runs.
 
 Always read:
 
-- `CLAUDE.md`
+- `AGENTS.md`/`CLAUDE.md`
 - `README.md`
 - `.claude/skills/committee-service-dev/SKILL.md`
 - `.claude/skills/committee-service-dev/references/goa-patterns.md`
@@ -118,7 +118,7 @@ Load conditionally based on touched paths:
 | `cmd/committee-cli/**` | `cmd/committee-cli/README.md`, command files, CLI tests |
 | `go.mod`, `go.sum`, `Makefile` | `Makefile`, preflight/readiness protected-file notes |
 
-If `CLAUDE.md` points to a cross-repo contract and the changed code depends on
+If `AGENTS.md`/`CLAUDE.md` points to a cross-repo contract and the changed code depends on
 that generic contract, read it if the peer checkout is locally available. If it
 is missing, do not invent the rule; report contract validation as incomplete
 only when it is necessary to evaluate the changed behavior.

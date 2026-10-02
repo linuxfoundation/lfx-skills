@@ -61,7 +61,7 @@ If the diff is too big for context, save to `/tmp/member-learnings-reviewer-diff
 | `endpoint-and-goa.md` | any file under `cmd/member-api/design/**`, `cmd/member-api/service/**`, `internal/service/**`, or `gen/**` |
 | `fga-and-indexer.md` | any file under `internal/service/**` or `internal/domain/model/**` building FGA/indexer messages (`message_builders.go`, `b2b_org_settings.go`, `*_writer.go`, `member_message.go`), `pkg/constants/subjects.go`, or `docs/fga-contract.md` |
 | `chart-and-deploy.md` | any file under `charts/lfx-v2-member-service/**` |
-| `docs-and-comments-drift.md` | any diff that changes a `.go` doc-comment, `CLAUDE.md`, `README.md`, `ARCHITECTURE.md`, or `docs/**` — especially alongside a behavior change in the same diff |
+| `docs-and-comments-drift.md` | any diff that changes a `.go` doc-comment, `AGENTS.md`/`CLAUDE.md`, `README.md`, `ARCHITECTURE.md`, or `docs/**` — especially alongside a behavior change in the same diff |
 | `observability-and-resilience.md` | `pkg/errors/**`, `cmd/member-api/service/error.go`, `internal/infrastructure/nats/project_rpc.go`, `internal/infrastructure/nats/project_id_map_handler.go`, `internal/infrastructure/nats/client.go`, or any handler that maps/logs errors |
 
 Read ONLY the rows whose condition matches. Do NOT blanket-read — wasted context with no audit value. When borderline, lean toward reading.

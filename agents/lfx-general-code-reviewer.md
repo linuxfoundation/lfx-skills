@@ -473,7 +473,7 @@ provider block, or resource tag, drop it. Survivors are **Critical**.
 **Style Consistency**:
 
 - Does the code match the style of surrounding code?
-- Are project-specific conventions followed (from CLAUDE.md or similar)?
+- Are project-specific conventions followed (from AGENTS.md/CLAUDE.md or similar)?
 
 ### Step 5: Provide Structured Feedback
 

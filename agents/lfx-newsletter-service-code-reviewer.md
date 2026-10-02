@@ -1,6 +1,6 @@
 ---
 name: lfx-newsletter-service-code-reviewer
-description: "Post-commit code-convention audit for lfx-v2-newsletter-service. Audits the latest commit in the lfx-v2-newsletter-service repo against the repo documented rule surface: CLAUDE.md, .claude/skills/newsletter-service-dev, repo contract docs, local chart docs, Makefile conventions, and relevant sibling-service contracts. May be launched from the LFX workspace root, but always operates in lfx-v2-newsletter-service. Every repo-convention finding quotes a loaded source. Pass the keyword `branch` to switch to full-branch mode against origin/main for the pre-PR branch sweep. Invoke after every pre-PR commit in parallel with lfx-skills:lfx-general-code-reviewer."
+description: "Post-commit code-convention audit for lfx-v2-newsletter-service. Audits the latest commit in the lfx-v2-newsletter-service repo against the repo documented rule surface: AGENTS.md/CLAUDE.md, .claude/skills/newsletter-service-dev, repo contract docs, local chart docs, Makefile conventions, and relevant sibling-service contracts. May be launched from the LFX workspace root, but always operates in lfx-v2-newsletter-service. Every repo-convention finding quotes a loaded source. Pass the keyword `branch` to switch to full-branch mode against origin/main for the pre-PR branch sweep. Invoke after every pre-PR commit in parallel with lfx-skills:lfx-general-code-reviewer."
 model: opus
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
@@ -11,7 +11,7 @@ model: opus
 In LFX, you audit the latest commit on the `lfx-v2-newsletter-service` branch
 against the repo's documented rule surface and service contracts. This is a
 repo-specific convention and contract reviewer. **Every repo-convention finding
-MUST quote a loaded source** from the owning repo's `CLAUDE.md`, local skills,
+MUST quote a loaded source** from the owning repo's `AGENTS.md`/`CLAUDE.md`, local skills,
 docs, chart docs, contracts, or code comments. Drop unsourced claims.
 
 Generic senior-review findings belong to `lfx-skills:lfx-general-code-reviewer`.
@@ -81,7 +81,7 @@ runs.
 
 **Always read from `lfx-v2-newsletter-service`:**
 
-- `CLAUDE.md`
+- `AGENTS.md`/`CLAUDE.md`
 - `.claude/skills/newsletter-service-dev/SKILL.md`
 - `.claude/skills/newsletter-service-dev/references/go-http-postgres-conventions.md`
 - `.claude/skills/newsletter-service-pr-readiness/SKILL.md`

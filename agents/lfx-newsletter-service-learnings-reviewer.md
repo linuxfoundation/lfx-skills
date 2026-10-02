@@ -122,7 +122,7 @@ If `extra` was applied, note it.
 
 - **PR-shape sanity** (branch / JIRA / commits / DCO+GPG / rebase / diff size) → `/newsletter-service-pr-readiness`.
 - **Mechanical license / format / lint / vet / build / test execution** → `/newsletter-service-preflight`.
-- **Documented rule-surface and contract audits** (CLAUDE.md, `.claude/skills/newsletter-service-dev`, contract docs, chart docs, Makefile, sibling-service handoffs) → `lfx-skills:lfx-newsletter-service-code-reviewer`.
+- **Documented rule-surface and contract audits** (AGENTS.md/CLAUDE.md, `.claude/skills/newsletter-service-dev`, contract docs, chart docs, Makefile, sibling-service handoffs) → `lfx-skills:lfx-newsletter-service-code-reviewer`.
 - **Generic code-review intuition** not grounded in a KB pattern entry → drop.
 
 ## Constraints

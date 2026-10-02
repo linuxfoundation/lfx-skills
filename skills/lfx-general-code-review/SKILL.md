@@ -150,7 +150,7 @@ local skills, rules and docs.
 **Transition gate — check this first.** Repos that have not yet adopted
 `/lfx-skills:lfx-pre-pr-review` still run the earlier lifecycle, which launches a separate
 repo-owned code-review skill alongside you to audit conventions. Read the
-target repo's root `CLAUDE.md` at `target_sha`. If it carries a
+target repo's root `AGENTS.md`/`CLAUDE.md` at `target_sha`. If it carries a
 `## Review lifecycle configuration` section (which names a `repo code
 reviewer`) **and no** `## Pre-PR review` section, or otherwise instructs the
 caller to launch a repo-specific code-review skill alongside this one, that
@@ -159,7 +159,7 @@ reviewer owns conventions there: **skip this section entirely**, state
 earlier lifecycle` in your report, and review general quality only. If it
 carries **both** headings, the repo has declared two lifecycles: do not skip
 — audit conventions as below and open your report with
-`INCOMPLETE — CLAUDE.md declares both lifecycles; remove one` so the host
+`INCOMPLETE — AGENTS.md/CLAUDE.md declares both lifecycles; remove one` so the host
 fails closed. Otherwise, continue.
 
 The target repo's own rules are part of what you review against, and they win
@@ -176,7 +176,7 @@ advance; you read them, for this repo, at the pinned revision.
   frontmatter, apply it only to changed files matching those globs; a rule
   with no `paths:` applies to everything.
 - Review checklists the repo keeps — typically `docs/reviews/*checklist*.md` —
-  and any path-to-checklist routing the repo documents. If `CLAUDE.md` names a
+  and any path-to-checklist routing the repo documents. If `AGENTS.md`/`CLAUDE.md` names a
   checklist as mandatory for a path, it is mandatory for you.
 - Contract, architecture and convention docs that `CLAUDE.md` or `AGENTS.md`
   name for the touched area. Do not read the whole `docs/` tree; follow the
@@ -450,7 +450,7 @@ quoting the rule.
 ```markdown
 ## Code Review Summary
 
-**Rule sources**: `CLAUDE.md`, `.claude/rules/<file>.md`, `docs/reviews/<checklist>.md`
+**Rule sources**: `AGENTS.md`/`CLAUDE.md`, `.claude/rules/<file>.md`, `docs/reviews/<checklist>.md`
 **Files reviewed**: <list>
 **Overall assessment**: <one or two sentences>
 

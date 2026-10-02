@@ -124,7 +124,7 @@ If `extra` was applied, note it.
 
 - **PR-shape sanity** (branch / JIRA / commits / DCO+GPG / rebase / diff size) → `/committee-service-pr-readiness`.
 - **Mechanical preflight** (license headers, format, lint, build, tests, protected files) → `/committee-service-preflight`.
-- **Documented rule-surface audits** (Goa generated-code boundary, layering, `pkg/errors`/`pkg/log`/`pkg/constants` conventions from CLAUDE.md and the committee-service skills) → `lfx-skills:lfx-committee-service-code-reviewer`.
+- **Documented rule-surface audits** (Goa generated-code boundary, layering, `pkg/errors`/`pkg/log`/`pkg/constants` conventions from AGENTS.md/CLAUDE.md and the committee-service skills) → `lfx-skills:lfx-committee-service-code-reviewer`.
 - **Generic code-review intuition** not grounded in a KB pattern entry → drop.
 
 ## Constraints

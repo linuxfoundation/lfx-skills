@@ -15,7 +15,7 @@ they are reproduced byte for byte from the approved text, and changing them is
 an architecture change that is human-gated.
 
 No repo adopting this central lifecycle may hold a second lifecycle copy. An
-adopting repo carries, in its `CLAUDE.md`, **one sentence that loads this skill
+adopting repo carries, in its `AGENTS.md`/`CLAUDE.md`, **one sentence that loads this skill
 and five configuration values** — the identities of its own two reviewers, its
 two checks, and its Post-PR extension or `none` — and nothing else about how
 review works. Repositories that have not adopted this skill are outside that rule and
@@ -54,7 +54,7 @@ a directory literally called `work`, so the basename says nothing about which
 repository it holds. Not from a repository name asserted in a prompt without
 evidence. Not from a close or fuzzy match against anything.
 
-**Step 2 — read the repo's declaration.** In `<repo-root>/CLAUDE.md`, **from
+**Step 2 — read the repo's declaration.** In `<repo-root>/AGENTS.md`/`CLAUDE.md`, **from
 that verified checkout**, find the single section whose heading is exactly
 `## Review lifecycle configuration`. That block is the declaration. It is one
 trigger sentence followed by five keys, each exactly once, each value in a code
@@ -78,14 +78,14 @@ its instructions.
 `{{READINESS}}` and `{{PREFLIGHT}}` are the two action values.
 
 **The first line is the bootstrap, not a sixth value.** A fresh session reading
-that `CLAUDE.md` has to be *told* to load this skill; a passive
+that `AGENTS.md`/`CLAUDE.md` has to be *told* to load this skill; a passive
 `lifecycle: /lfx-skills:lfx-local-review` key would validate and never launch
 anything. `/lfx-skills:lfx-local-review` is a central constant, so it is not
 configuration a repo supplies — it belongs in the imperative sentence that
 invokes it, and nowhere else in the block.
 
 **Resolve every value from inside that block, and only from there.** A
-`CLAUDE.md` is a long document that may discuss review, name skills, or quote
+`AGENTS.md`/`CLAUDE.md` is a long document that may discuss review, name skills, or quote
 this schema in passing; a key matched anywhere in the file could pick up a
 sentence that was never meant as configuration. Read the block, then read the
 keys within it. The block holds the trigger sentence and the five values and
@@ -164,7 +164,7 @@ both repo reviewers; the central general reviewer has no file fallback to
 validate.
 
 **Fail closed.** Not a git checkout, no `origin`, no URL returned, a URL you cannot parse,
-`origin` URLs whose derived names disagree, no `CLAUDE.md`, no declaration in
+`origin` URLs whose derived names disagree, no `AGENTS.md`/`CLAUDE.md`, no declaration in
 it, or a declaration failing any check above: stop, say exactly what was
 missing, and review nothing. Running two reviewers out of three, promoting the
 general reviewer into a repo reviewer's slot, or guessing a value produces a

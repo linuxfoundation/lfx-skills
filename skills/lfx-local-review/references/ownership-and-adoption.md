@@ -36,7 +36,7 @@ may hold a second lifecycle copy** to diverge from. An adopting repo's surface
 carries only two things:
 
 1. **A declaration.** One `## Review lifecycle configuration` section in
-   `CLAUDE.md`: the sentence that loads this lifecycle, then five keys — the
+   `AGENTS.md`/`CLAUDE.md`: the sentence that loads this lifecycle, then five keys — the
    schema below: the repo's own two reviewers, its two checks, and its Post-PR
    extension or `none`. That sentence and those values, and nothing else: no
    ranges, no batch rules, no modes, no prose about how review works.
@@ -70,7 +70,7 @@ it is human-gated.
 
 ## The declaration
 
-One section in the adopting repo's `CLAUDE.md`, headed exactly
+One section in the adopting repo's `AGENTS.md`/`CLAUDE.md`, headed exactly
 `## Review lifecycle configuration`, appearing exactly once. It opens with the
 trigger sentence and then holds five keys, each exactly once, each value in a
 code span:
@@ -89,7 +89,7 @@ its instructions.
 - post-PR extension: `none` or `/<exact-skill-name>`
 ```
 
-The heading is what makes the block addressable. A `CLAUDE.md` is a long
+The heading is what makes the block addressable. An `AGENTS.md`/`CLAUDE.md` is a long
 document that may discuss review, name skills, or quote this schema in passing,
 and a key matched anywhere in the file could pick up a sentence that was never
 meant as configuration. Values are resolved from inside that block and nowhere
@@ -339,7 +339,7 @@ you.
       `INCOMPLETE — <reason>` as a first line when required evidence is missing
 - [ ] Two deterministic **non-fixing** checks identified for the readiness and
       preflight actions, taken from the repo's own documentation
-- [ ] The declaration added to the repo's `CLAUDE.md` under exactly one
+- [ ] The declaration added to the repo's `AGENTS.md`/`CLAUDE.md` under exactly one
       `## Review lifecycle configuration` heading: the exact trigger sentence,
       then all five keys, exactly once each, and nothing else — reviewed
       against the repo as it actually is

@@ -18,8 +18,8 @@ For Go coding conventions, rely on the owning repo's path-scoped
 | Wrapper | Proxies an external system (ITX, Groups.io, Zoom) and translates | `lfx-v2-voting-service` |
 | Proxy / consumer | Thin HTTP-to-NATS wrapper around platform plumbing | `lfx-v2-access-check`, `lfx-v2-auth-service` |
 
-After classifying, hand off to the owning repo's `CLAUDE.md`, path-scoped
+After classifying, hand off to the owning repo's `AGENTS.md`/`CLAUDE.md`, path-scoped
 `<short-repo-name>-dev` skill, and the top-level `docs/` contract files
-named by that repo's `CLAUDE.md` for concrete contracts and implementation
+named by that repo's `AGENTS.md`/`CLAUDE.md` for concrete contracts and implementation
 rules. Use `docs/agent-guidance/` only where `repo-map.md` explicitly lists it
 as a transitional owner path.

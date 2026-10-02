@@ -54,7 +54,7 @@ Clean split:
 If the task is about coding inside an individual V2 Go service, first route to
 the owning repo. The repo-local path-scoped `<short-repo-name>-dev` skill should
 attach on relevant Go/service paths, alongside the repo-owned top-level `docs/`
-files named by that repo's `CLAUDE.md`.
+files named by that repo's `AGENTS.md`/`CLAUDE.md`.
 
 ## Platform shape
 
@@ -360,7 +360,7 @@ a service's flow:
 
 - Not a V2 Go coding rulebook. Repo-local path-scoped `<short-repo-name>-dev`
   skills control coding conventions when Go or service files are edited.
-- Not a repo-local contract. Read the owning repo's `CLAUDE.md`,
+- Not a repo-local contract. Read the owning repo's `AGENTS.md`/`CLAUDE.md`,
   top-level `docs/` contract files, and only use `docs/agent-guidance/` where
   the `/lfx-skills:lfx` repo map explicitly lists it as a transitional owner
   path.

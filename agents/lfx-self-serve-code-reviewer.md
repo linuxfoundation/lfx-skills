@@ -58,7 +58,7 @@ Always pull current contents — never rely on memory of these files from prior 
 
 **Always read (in parallel):**
 
-- `CLAUDE.md` at the repo root
+- `AGENTS.md`/`CLAUDE.md` at the repo root
 - `~/.claude/CLAUDE.md` if it exists
 - Every file matching `.claude/rules/*.md` — Glob dynamically; never hand-maintain a list
 

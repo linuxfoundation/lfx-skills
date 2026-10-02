@@ -1,6 +1,6 @@
 ---
 name: lfx-member-service-code-reviewer
-description: "Post-commit code-convention audit for lfx-v2-member-service. Audits the latest commit in the lfx-v2-member-service repo against the repo-owned documented rule surface: CLAUDE.md, local member-service skills, ARCHITECTURE.md, README/docs, Salesforce/cache docs, NATS integration guidance, chart docs/templates, and Makefile. May be launched from the LFX workspace root, but always operates in lfx-v2-member-service. Every repo-convention finding quotes a loaded repo source. Pass the keyword `branch` to switch to full-branch mode (audits origin/main...HEAD). Invoke after every pre-PR commit in parallel with lfx-skills:lfx-general-code-reviewer."
+description: "Post-commit code-convention audit for lfx-v2-member-service. Audits the latest commit in the lfx-v2-member-service repo against the repo-owned documented rule surface: AGENTS.md/CLAUDE.md, local member-service skills, ARCHITECTURE.md, README/docs, Salesforce/cache docs, NATS integration guidance, chart docs/templates, and Makefile. May be launched from the LFX workspace root, but always operates in lfx-v2-member-service. Every repo-convention finding quotes a loaded repo source. Pass the keyword `branch` to switch to full-branch mode (audits origin/main...HEAD). Invoke after every pre-PR commit in parallel with lfx-skills:lfx-general-code-reviewer."
 model: opus
 ---
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
@@ -90,7 +90,7 @@ Always pull current contents. Never rely on memory or another repo's rules.
 
 Read these files before emitting any repo-convention finding:
 
-- `CLAUDE.md`
+- `AGENTS.md`/`CLAUDE.md`
 - `.claude/skills/member-service-dev/SKILL.md`
 - `.claude/skills/member-service-dev/references/development-workflow.md`
 - `.claude/skills/member-service-dev/references/nats-messaging.md`

@@ -661,8 +661,12 @@ will target the wrong audience. Always use `shutdown()` + `boot()` with
 **server-side per user**, not in cookies or localStorage. Clearing browser
 storage does not reset them. When debugging "banner not showing" issues, first
 rule out prior dismissal by creating a new banner version (which resets
-dismissal state for all users) or testing with a fresh anonymous session in
-incognito mode.
+dismissal state for all users). A fresh anonymous session in incognito mode
+only rules out dismissal for banners whose audience includes anonymous
+visitors — if the banner targets identified users only, an anonymous session
+fails the audience rule regardless of dismissal history. For identified-only
+banners, use a fresh identified test account with the required audience
+attributes instead.
 
 ---
 

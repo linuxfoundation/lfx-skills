@@ -84,7 +84,7 @@ Check all of the following and produce a gap report:
 | **Anonymous boot** | Is `bootIntercomAnonymous()` called in `ngOnInit()` before user auth check? | ✅ Required if app has public pages; skip if auth-only app |
 | **Anonymous→identified upgrade** | Does `boot()` detect anonymous session and upgrade to identified via `shutdownForReboot()`? | ✅ Required if anonymous boot is used — must use `shutdown()+boot()`, NOT `update()`. `Intercom('update')` with `user_id` does NOT promote an anonymous session to identified — the server still treats the visitor as anonymous, causing wrong audience targeting for posts/banners. |
 | **Identified boot** | Is identified `boot()` called inside `userProfile$` subscription with `intercomBootAttempted` guard? | ✅ Required |
-| **Shutdown on logout** | Is `Intercom('shutdown')` called, JWT cleared, and anonymous session re-booted on logout — **before** the logout navigation leaves the page? | ✅ Required — a `userProfile$ == null` branch alone is not enough when logout is a full-page redirect (`<lfx-header-v2>`, `href="/logout"`, auth0 `logout()`); see 5b |
+| **Shutdown on logout** | Are `Intercom('shutdown')` called and the JWT cleared **before** the logout navigation leaves the page, and the anonymous session re-booted afterwards (right away if the app stays loaded, otherwise on the next page load)? | ✅ Required — a `userProfile$ == null` branch alone is not enough when logout is a full-page redirect (`<lfx-header-v2>`, `href="/logout"`, auth0 `logout()`); see 5b |
 | **App IDs** | Dev: `mxl90k6y`, Prod: `w29sqomy` | ✅ Shared across all LFX apps |
 | **Auth0 claim** | Is `http://lfx.dev/claims/intercom` used (not the deprecated HMAC)? | ✅ JWT claim only |
 | **CSP** | Are ALL Intercom domains in the Content Security Policy, including WebSocket entries? | ✅ Required if CSP exists |
@@ -538,10 +538,11 @@ User Logs In (userProfile$ emits user)
   → shutdownForReboot()                    // clears anonymous session
   → Intercom re-boots with identity        // bootedWithIdentity = true
 
-User Logs Out (before the logout navigation — see 5b)
+User Logs Out (shutdown before the logout navigation — see 5b)
   → shutdown()                             // clears identified session + JWT
   → intercomBootAttempted = false
-  → bootIntercomAnonymous()                // banners visible again
+  → bootIntercomAnonymous()                // banners visible again; after a full-page
+                                           // logout, the next page load does this
 ```
 
 **Auth-only apps** (PCC, Org Dashboard, Individual Dashboard, Security):
@@ -644,7 +645,8 @@ contains a valid JWT with `user_id`, `email` fields.
 5. Open browser console and run: `window.Intercom('getVisitorId')` — should
    return a string, not an error
 6. Log out from **every** logout entry point (header, menus, links), then
-   reload any `*.linuxfoundation.org` app that loads Intercom. The messenger
+   reload the same app (or another app on the same parent domain that uses the
+   same Intercom app ID — the session cookie is keyed by it). The messenger
    must be anonymous and must not show the previous user's conversations. Don't
    rely on console output here: logout usually navigates away, which clears the
    console, so a shutdown that never ran looks the same as one that did.

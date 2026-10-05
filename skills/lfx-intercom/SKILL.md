@@ -648,7 +648,10 @@ contains a valid JWT with `user_id`, `email` fields.
    reload the same app (or another app on the same parent domain that uses the
    same Intercom app ID — the session cookie is keyed by it). The messenger
    must be anonymous (public-page apps) or absent (auth-only apps), and must not
-   show the previous user's conversations. Don't
+   show the previous user's conversations. In DevTools (Application → Cookies),
+   `intercom-session-<app_id>` must be gone. For auth-only apps this is the only
+   real check: they never boot Intercom while logged out, so an absent messenger
+   looks the same whether the session cookie was cleared or not. Don't
    rely on console output here: logout usually navigates away, which clears the
    console, so a shutdown that never ran looks the same as one that did.
 7. Decode the Auth0 ID token and confirm `http://lfx.dev/claims/intercom` is

@@ -84,7 +84,7 @@ Check all of the following and produce a gap report:
 | **Anonymous boot** | Is `bootIntercomAnonymous()` called in `ngOnInit()` before user auth check? | ✅ Required if app has public pages; skip if auth-only app |
 | **Anonymous→identified upgrade** | Does `boot()` detect anonymous session and upgrade to identified via `shutdownForReboot()`? | ✅ Required if anonymous boot is used — must use `shutdown()+boot()`, NOT `update()`. `Intercom('update')` with `user_id` does NOT promote an anonymous session to identified — the server still treats the visitor as anonymous, causing wrong audience targeting for posts/banners. |
 | **Identified boot** | Is identified `boot()` called inside `userProfile$` subscription with `intercomBootAttempted` guard? | ✅ Required |
-| **Shutdown on logout** | Is `Intercom('shutdown')` called, JWT cleared, and anonymous session re-booted on logout? | ✅ Required |
+| **Shutdown on logout** | Are `Intercom('shutdown')` called and the JWT cleared **before** the logout navigation leaves the page, and, in public-page apps, the anonymous session re-booted afterwards (right away if the app stays loaded, otherwise on the next page load)? | ✅ Required — a `userProfile$ == null` branch alone is not enough when a logout path navigates away before `null` is emitted (by default `<lfx-header-v2>`, `href="/logout"`, auth0 `logout()`); see 5b |
 | **App IDs** | Dev: `mxl90k6y`, Prod: `w29sqomy` | ✅ Shared across all LFX apps |
 | **Auth0 claim** | Is `http://lfx.dev/claims/intercom` used (not the deprecated HMAC)? | ✅ JWT claim only |
 | **CSP** | Are ALL Intercom domains in the Content Security Policy, including WebSocket entries? | ✅ Required if CSP exists |
@@ -485,6 +485,20 @@ if (userProfile) {
 ⚠️ **Use `== null`** (loose equality) for the logout check — this catches both
 `null` and `undefined`, which different auth services may emit.
 
+⚠️ **The `== null` branch only runs if `userProfile$` emits `null` before the
+page navigates away.** Intercom keeps the visitor's identity in its own
+first-party cookie (`intercom-session-<app_id>`), and only `Intercom('shutdown')`
+clears it. If logout redirects first, the cookie survives and the next visitor
+on the same browser inherits the messenger session. Check every logout entry
+point in the app:
+
+| Logout path | Emits `null` before navigating? | Where to call `intercomService.shutdown()` |
+| --- | --- | --- |
+| App's own `AuthService.logout()` calls `userProfileSubject$.next(null)` before `client.logout()` (Mentorship) | Yes | Nothing extra — the 5b branch handles it |
+| `<lfx-header-v2>` Logout button | No — the header redirects to Auth0 itself | `lfxHeader.beforeLogout = () => this.intercomService.shutdown()`, set **before** `lfxHeader.authuser` (the header passes `beforeLogout` into its auth init when `authuser` is set; it awaits the hook before redirecting). If the app already sets `beforeLogout`, call `shutdown()` at the start of that hook instead of replacing it |
+| auth0-angular `AuthService.logout()` with the default redirect | No — auth0-angular 2.x refreshes auth state only when `openUrl` is set | Right before calling `logout()` |
+| `<a href="/logout">`, `window.location.href = '/logout'`, PrimeNG `MenuItem` with `url: '/logout'` (server-side logout) | No | In the click handler or the menu item's `command` (PrimeNG runs `command` and still follows `url`) |
+
 ### 5c — Anonymous boot helper method (public-page apps only)
 
 **Include this method only if the app has public pages** (Step 1, question 3 = Yes).
@@ -524,10 +538,11 @@ User Logs In (userProfile$ emits user)
   → shutdownForReboot()                    // clears anonymous session
   → Intercom re-boots with identity        // bootedWithIdentity = true
 
-User Logs Out (userProfile$ emits null)
+User Logs Out (shutdown before the logout navigation — see 5b)
   → shutdown()                             // clears identified session + JWT
   → intercomBootAttempted = false
-  → bootIntercomAnonymous()                // banners visible again
+  → bootIntercomAnonymous()                // banners visible again; after a full-page
+                                           // logout, the next page load does this
 ```
 
 **Auth-only apps** (PCC, Org Dashboard, Individual Dashboard, Security):
@@ -539,7 +554,7 @@ User Logs In (userProfile$ emits user)
   → boot({ user_id, intercom_user_jwt, ... })
   → Intercom boots with identity           // bootedWithIdentity = true
 
-User Logs Out (userProfile$ emits null)
+User Logs Out (before the logout navigation — see 5b)
   → shutdown()                             // clears identified session + JWT
   → intercomBootAttempted = false
 ```
@@ -629,8 +644,24 @@ contains a valid JWT with `user_id`, `email` fields.
 4. Verify the Intercom chat bubble appears with your identity
 5. Open browser console and run: `window.Intercom('getVisitorId')` — should
    return a string, not an error
-6. Log out and confirm the console shows `Intercom('shutdown')` followed by a
-   fresh anonymous boot — banners should remain visible
+6. Log out from **every** logout entry point (header, menus, links), then
+   reload the same app (or another app on the same parent domain that uses the
+   same Intercom app ID — the session cookie is keyed by it). The messenger
+   must not show the previous user's identity or conversations:
+
+   - Public-page apps: the messenger must be anonymous. A new
+     `intercom-session-<app_id>` cookie is expected, because the anonymous
+     boot (5c) creates one for the new session.
+   - Auth-only apps: the messenger is absent whether or not shutdown ran, since
+     they never boot Intercom while logged out, so check the cookie instead.
+     With Preserve log on in the Network tab, the reload request to the app's
+     own origin must not send `intercom-session-<app_id>` (Application →
+     Cookies shows only the open page's origin, which may be the Auth0 login
+     page by then).
+
+   Don't rely on console output here: logout usually navigates away, which
+   clears the console, so a shutdown that never ran looks the same as one
+   that did.
 7. Decode the Auth0 ID token and confirm `http://lfx.dev/claims/intercom` is
    present (if Auth0 change is deployed)
 8. In Intercom dashboard, confirm the user appears with correct name/email
@@ -649,7 +680,15 @@ you fix the app. Do not defer it. The skill is wrong for everyone until it's
 fixed.
 
 **Last validated**: 2026-03-31 against LFX Mentorship (PRs #147, #148),
-Crowdfunding (PRs #31-#38), and PCC.
+Crowdfunding (PRs #31-#38), and PCC. Logout paths re-validated 2026-10-02.
+
+**Lesson learned (2026-10-02)**: Wiring `shutdown()` only to the
+`userProfile$ == null` branch is not enough when a logout path navigates away
+before `null` is emitted (by default `<lfx-header-v2>`, `href="/logout"`,
+auth0-angular `logout()`). The page unloads first, so shutdown never runs
+and Intercom's first-party session cookie survives logout. Shut down
+synchronously on the logout path itself (see 5b), and verify by reloading after
+logout, not by watching the console.
 
 **Lesson learned (2026-03-31)**: `Intercom('update', { user_id })` on an
 anonymous session does NOT promote it to identified. The Intercom server still

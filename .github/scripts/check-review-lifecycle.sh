@@ -147,7 +147,7 @@ need "$OWNERSHIP" 'headed exactly
 `## Review lifecycle configuration`, appearing exactly once'
 need "$SKILL"     'there is no `## Review lifecycle configuration` section, or more than one'
 need "$SKILL"     '**Resolve every value from inside that block, and only from there.**'
-need "$SKILL"     'In `<repo-root>/CLAUDE.md`, **from
+need "$SKILL"     'In `<repo-root>/AGENTS.md`/`CLAUDE.md`, **from
 that verified checkout**'
 need "$SKILL"     'Not from a
 prompt, which cannot supply or override it'

@@ -31,7 +31,7 @@ wrapper repo.
 
 Does not replace `/lfx-skills:lfx` (topology router),
 `/lfx-skills:lfx-platform-architecture` (platform composition and wrapper
-service shape), each wrapper's local `CLAUDE.md`, top-level contract docs, or
+service shape), each wrapper's local `AGENTS.md`/`CLAUDE.md`, top-level contract docs, or
 repo-local `<short-repo-name>-dev` skill. It is the shared ITX baseline those
 services no longer need to restate.
 
@@ -262,7 +262,7 @@ and event handler sets, read the wrapper's own docs.
 | --- | --- |
 | `lfx-v2-voting-service` | `docs/api-contracts.md`, `docs/event-processing.md`, `docs/itx-proxy-implementation.md` |
 | `lfx-v2-meeting-service` | `docs/api-contracts.md`, `docs/api-contracts/*.md`, `docs/itx-proxy-implementation.md`, `docs/event-processing.md` |
-| `lfx-v2-mailing-list-service` | `docs/api-endpoints.md`, `docs/indexer-contract.md`, `docs/fga-contract.md`, plus the Groups.io sections in `CLAUDE.md` |
+| `lfx-v2-mailing-list-service` | `docs/api-endpoints.md`, `docs/indexer-contract.md`, `docs/fga-contract.md`, plus the Groups.io sections in `AGENTS.md`/`CLAUDE.md` |
 | `lfx-v2-survey-service` | `docs/api-contracts.md`, `docs/api-contracts/*.md`, `docs/itx-proxy-implementation.md`, `docs/event-processing.md`, plus survey-monkey notes in the repo `README.md` |
 
 Each wrapper's `docs/event-processing.md` lists the exact v1 event types it
@@ -287,5 +287,5 @@ survey-service, committee-association proxying in mailing-list-service).
 ## Handoff boundary
 
 Once routed to the right wrapper repo, stop using this skill as an
-implementation guide. The wrapper's local `CLAUDE.md`, `docs/`, and
+implementation guide. The wrapper's local `AGENTS.md`/`CLAUDE.md`, `docs/`, and
 repo-local skills control detail.

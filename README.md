@@ -4,7 +4,7 @@
 # LFX Skills
 
 Central Claude Code plugin for LFX development. Bundles the canonical LFX architecture knowledge, cross-repo workflow
-skills, and post-commit reviewer agents that every LFX contributor needs. Each LFX repo's local setup (`CLAUDE.md`,
+skills, and post-commit reviewer agents that every LFX contributor needs. Each LFX repo's local setup (`AGENTS.md`/`CLAUDE.md`,
 `.claude/rules/`, `.claude/skills/`, and repo-owned `docs/`) calls out to this plugin for cross-repo topology, platform
 conventions, and review automation.
 
@@ -120,7 +120,7 @@ for who owns what, the declaration such a repo carries, and how its two
 repo-owned reviewer skills are written.
 
 A repo on the earlier lifecycle declares it with one
-`## Review lifecycle configuration` section in its own `CLAUDE.md`: a sentence
+`## Review lifecycle configuration` section in its own `AGENTS.md`/`CLAUDE.md`: a sentence
 loading `/lfx-skills:lfx-local-review`, then five values — its two reviewer
 skills, its two non-fixing checks, and its Post-PR extension or `none`.
 This plugin holds no per-repo mapping; a repo without a valid declaration is
@@ -138,7 +138,7 @@ off it means replacing the declaration with the pre-PR review block above.
 
 Post-commit code reviewers launched in parallel as subagents via the `Agent` tool. The general reviewer is
 repo-agnostic; repo-specific reviewers are packaged centrally for runtime availability but read their owning repo's
-`CLAUDE.md`, local skills, docs, contracts, and code.
+`AGENTS.md`/`CLAUDE.md`, local skills, docs, contracts, and code.
 
 These named agents are **compatibility tooling for repos that have not adopted the central review lifecycle**, and for
 callers that still invoke them directly. `/lfx-skills:lfx-local-review` does not use them for a repo with a
@@ -211,8 +211,7 @@ prompt under `agents/` for the exact invocation contract.
 ├── install.sh                   # Agent Skills installer (Codex etc. → ~/.agents/skills)
 ├── update.sh                    # re-sync Agent Skills symlinks after a pull
 ├── uninstall.sh                 # remove LFX Agent Skills symlinks
-├── AGENTS.md -> CLAUDE.md       # same guide, for Codex and other Agent Skills tools
-├── CLAUDE.md                    # contributor guide: skill authoring, boundaries, testing
+├── AGENTS.md                    # contributor guide: skill authoring, boundaries, testing
 ├── LICENSE
 ├── LICENSE-docs
 ├── README.md

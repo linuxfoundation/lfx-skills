@@ -18,7 +18,7 @@ For each unresolved thread and each collected general PR review comment:
    grep -r "signal(" src/app/modules/ --include="*.ts" -l | head -10
    grep -r "BehaviorSubject" src/app/modules/ --include="*.ts" -l | head -10
    ```
-3. **Cross-reference with project conventions**, check CLAUDE.md, eslint configs, or other style guides in the repo. The reviewer's suggestion may conflict with established conventions.
+3. **Cross-reference with project conventions**, check AGENTS.md/CLAUDE.md, eslint configs, or other style guides in the repo. The reviewer's suggestion may conflict with established conventions.
 4. **Assess the comment's validity:**
 
 | Assessment | Meaning | Action |

@@ -58,7 +58,7 @@ If the diff is too big for context, save to `/tmp/email-learnings-reviewer-diff.
 | `nats-handler-contract.md`    | any file under `internal/service/**` or `pkg/api/**` changed, or the diff touches a `Handle` / `HandleData` / `respond` / `Respond` / `replyError` path, a caller-facing error string, or an exported `pkg/api` type/field |
 | `tracking-kv-engagement.md`   | any file under `internal/service/engagement_event_handler*.go`, `internal/service/send_email_handler*.go` (KV write path), `internal/infrastructure/sqs/**`, or a diff touching `email-recipients` / `email-group-index`, `X-LFX-TRACKING-ID`, or SES event handling |
 | `smtp-security-startup.md`    | any file under `internal/infrastructure/smtp/**`, `pkg/redaction/**`, or `cmd/email-service/**` changed, or the diff touches MIME header construction, SMTP send, shutdown/drain wiring, the NATS message context, or a health probe |
-| `docs-and-chart.md`           | `README.md`, `CLAUDE.md`, any file under `docs/**`, or any file under `charts/lfx-v2-email-service/**` changed — especially alongside a change to an error string, env-var default, subject, KV bucket, or handler behavior the doc/chart describes |
+| `docs-and-chart.md`           | `README.md`, `AGENTS.md`/`CLAUDE.md`, any file under `docs/**`, or any file under `charts/lfx-v2-email-service/**` changed — especially alongside a change to an error string, env-var default, subject, KV bucket, or handler behavior the doc/chart describes |
 
 Read ONLY the rows whose condition matches. Do NOT blanket-read — wasted context with no audit value. When borderline, lean toward reading.
 
@@ -121,7 +121,7 @@ If `extra` was applied, note it.
 
 - **PR-shape sanity** (branch / JIRA / commits / DCO+GPG / rebase / diff size) → `/email-service-pr-readiness`.
 - **Mechanical Go validation** (license headers, format, lint, build, tests, PR summary) → `/email-service-preflight`.
-- **Documented rule-surface audits** (CLAUDE.md, the `email-service-dev` skill, contract docs, chart docs, public `pkg/api` contract from documented rules) → `lfx-skills:lfx-email-service-code-reviewer`.
+- **Documented rule-surface audits** (AGENTS.md/CLAUDE.md, the `email-service-dev` skill, contract docs, chart docs, public `pkg/api` contract from documented rules) → `lfx-skills:lfx-email-service-code-reviewer`.
 - **Generic code-review intuition** not grounded in a KB pattern entry → drop.
 
 ## Constraints

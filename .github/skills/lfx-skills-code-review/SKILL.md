@@ -101,7 +101,7 @@ Two refinements to that rule:
 - **Reviewer agents are the deliberate exception** to repo-local packaging:
   they live centrally under `agents/` even when repo-specific, because they
   are named workers repos launch explicitly. But they must direct the agent
-  to read the owning repo's own docs (`CLAUDE.md`, rules, checklists,
+  to read the owning repo's own docs (`AGENTS.md`/`CLAUDE.md`, rules, checklists,
   knowledge base) as the source of truth at runtime. A reviewer agent that
   inlines a copy of a repo's rulebook centrally is drift — flag it.
 - **`repo-map.md` is the primary repo classifier.** The map is an index, not a

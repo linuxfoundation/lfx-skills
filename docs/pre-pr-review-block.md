@@ -4,7 +4,7 @@
 # Pre-PR review block
 
 The review round lives in one place, `/lfx-skills:lfx-pre-pr-review`. A repo
-adopts it by pasting this short block into its own `CLAUDE.md`, in the section
+adopts it by pasting this short block into its own `AGENTS.md`/`CLAUDE.md`, in the section
 that describes the local work cycle. The block states the three steps between
 "implementation committed" and "PR open" — the review round, the repo's own
 checks, the PR — with the rules that must not be forgotten, and carries the
@@ -53,7 +53,7 @@ values, and only then:
 
 ## Adopting
 
-1. Paste the block into `CLAUDE.md` where the work cycle is described (and
+1. Paste the block into `AGENTS.md`/`CLAUDE.md` where the work cycle is described (and
    into `AGENTS.md` only if that is a separate real file the repo keeps in
    sync). Fill the two values.
 2. Remove every other local-review instruction in the repo: earlier lifecycle
@@ -63,11 +63,11 @@ values, and only then:
 3. Keep the repo's knowledge-base review skill and `docs/reviews/knowledge-base/`;
    they are unchanged by adoption. Retire the repo's conventions-review skill:
    the general skill now reads the repo's written conventions itself, from
-   `CLAUDE.md`, `.claude/rules/`, checklists and the docs they name. Before
+   `AGENTS.md`/`CLAUDE.md`, `.claude/rules/`, checklists and the docs they name. Before
    deleting it, salvage only what is expertise rather than a restatement of the
    repo's docs or code, and put each item where the reviewer that will meet it
    reads: a convention false positive or "never a finding" item goes **next to
-   the rule it concerns** — a dated exception or status note in `CLAUDE.md`,
+   the rule it concerns** — a dated exception or status note in `AGENTS.md`/`CLAUDE.md`,
    the rule's own `.claude/rules/` file or the skill that states it — because
    the general reviewer reads the rule surface and never
    `docs/reviews/knowledge-base/`; only a false positive about an empirical KB

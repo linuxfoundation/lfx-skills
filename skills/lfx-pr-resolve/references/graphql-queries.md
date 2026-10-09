@@ -8,8 +8,8 @@ GraphQL operations used by the PR-resolve workflow.
 ## Fetch PR review threads (Step 2)
 
 ```bash
-gh api graphql -F query=@- -f owner="$OWNER" -f repo="$REPO" -F number=$NUMBER <<'GRAPHQL'
-query($owner: String!, $repo: String!, $number: Int!) {
+THREAD_QUERY=$(cat <<'GRAPHQL'
+query($owner: String!, $repo: String!, $number: Int!, $threadsCursor: String) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       number
@@ -18,7 +18,8 @@ query($owner: String!, $repo: String!, $number: Int!) {
       baseRefName
       headRefName
       body
-      reviewThreads(first: 100) {
+      reviewThreads(first: 100, after: $threadsCursor) {
+        pageInfo { hasNextPage endCursor }
         nodes {
           id
           isResolved
@@ -28,11 +29,13 @@ query($owner: String!, $repo: String!, $number: Int!) {
           startLine
           diffSide
           comments(first: 20) {
+            pageInfo { hasNextPage endCursor }
             nodes {
               id
               author { login }
               body
               createdAt
+              updatedAt
               path
               line
               startLine
@@ -52,9 +55,59 @@ query($owner: String!, $repo: String!, $number: Int!) {
   }
 }
 GRAPHQL
+)
+gh api graphql -f query="$THREAD_QUERY" \
+  -f owner="$OWNER" -f repo="$REPO" -F number="$NUMBER"
 ```
 
-**Pagination note:** The query caps at 100 review threads and 20 comments per thread. This covers the vast majority of PRs. If a PR exceeds these limits, fetch additional pages using `pageInfo { hasNextPage endCursor }` and the `after` parameter.
+Keep `THREAD_QUERY` for subsequent pages. Start without a cursor. While
+`reviewThreads.pageInfo.hasNextPage` is true, set `THREADS_CURSOR` to that
+page's `endCursor` and run:
+
+```bash
+gh api graphql -f query="$THREAD_QUERY" \
+  -f owner="$OWNER" -f repo="$REPO" -F number="$NUMBER" \
+  -f threadsCursor="$THREADS_CURSOR"
+```
+
+Accumulate threads from every page by thread ID. For **each** thread whose
+`comments.pageInfo.hasNextPage` is true, set `THREAD_ID` to its ID and
+`COMMENTS_CURSOR` to its comment connection's `endCursor`, then run:
+
+```bash
+COMMENT_QUERY=$(cat <<'GRAPHQL'
+query($threadId: ID!, $commentsCursor: String!) {
+  node(id: $threadId) {
+    ... on PullRequestReviewThread {
+      id
+      comments(first: 100, after: $commentsCursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          id
+          author { login }
+          body
+          createdAt
+          updatedAt
+          path
+          line
+          startLine
+        }
+      }
+    }
+  }
+}
+GRAPHQL
+)
+gh api graphql -f query="$COMMENT_QUERY" \
+  -f threadId="$THREAD_ID" -f commentsCursor="$COMMENTS_CURSOR"
+```
+
+Append these comments to that thread's initial comments, deduplicating by
+comment ID. While `node.comments.pageInfo.hasNextPage` is true, replace
+`COMMENTS_CURSOR` with its `endCursor` and repeat the last command. Drain every
+thread's comment pages on every thread page before assessing feedback; a reply
+beyond either initial limit is still part of the conversation. Treat a failed
+page fetch or a missing thread node as an incomplete fetch, not empty feedback.
 
 ## Fetch general PR feedback (Steps 2 and 14)
 

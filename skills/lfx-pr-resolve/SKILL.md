@@ -145,10 +145,14 @@ For each unresolved thread, extract:
 
 ### Edge Cases
 
-- **No unaddressed feedback**: If there are no unresolved threads or unaddressed general review/PR comments, tell the user there is nothing to address and go to Step 14. During an active monitoring loop, count this as a completed check and continue within its existing limit instead of prompting again.
+- **No unaddressed feedback**: If there are no unresolved threads or unaddressed general review/PR comments,
+  tell the user there is nothing to address and go to Step 14. During an active monitoring loop, count this
+  as a completed check and continue within its existing limit instead of prompting again.
 - **Outdated threads**: Include them but flag them, the code may have shifted since the comment was made. Read the current file to determine if the feedback still applies.
 - **General PR review comments** (not attached to a specific line): These appear as reviews with a `body` but no associated thread path. Collect these separately, they need responses but may not require code changes. You will respond to each of these later via a PR-level comment that references the reviewer and the commit that addresses their feedback (if any). When referencing reviewers, `@mention` human reviewers but use plain names (no `@` prefix) for bot reviewers to avoid re-triggering them.
-- **PR conversation comments**: Assess feedback posted directly on the PR like general review comments. Reply at PR level; these comments have no review thread to resolve. Skip acknowledgments, status messages, and this workflow's own replies and summaries.
+- **PR conversation comments**: Assess feedback posted directly on the PR like general review comments.
+  Reply at PR level; these comments have no review thread to resolve. Skip acknowledgments, status messages,
+  and this workflow's own replies and summaries.
 
 ## Step 3: Validate Each Comment Against Repo Patterns
 
@@ -538,7 +542,6 @@ When Step 13 completes inside this loop, return to the next numbered round,
 the counter after a push, or automatically extend/restart monitoring. After
 round 3, stop and report any remaining unresolved feedback and that the
 monitoring limit was reached; do not claim that future comments are covered.
-
 
 ## Idempotency, Safe to Re-run
 

@@ -75,7 +75,6 @@ Before each monitoring fetch, check that the PR is still open:
 gh pr view "$NUMBER" --repo "$OWNER/$REPO" --json state --jq '.state'
 ```
 
-
 ## Reply to a review thread (Step 9)
 
 ```bash

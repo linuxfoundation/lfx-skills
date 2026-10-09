@@ -56,6 +56,25 @@ GRAPHQL
 
 **Pagination note:** The query caps at 100 review threads and 20 comments per thread. This covers the vast majority of PRs. If a PR exceeds these limits, fetch additional pages using `pageInfo { hasNextPage endCursor }` and the `after` parameter.
 
+## Fetch general PR feedback (Steps 2 and 14)
+
+Fetch all pages of general review bodies and PR conversation comments, rather
+than relying on the thread query's last 20 reviews. Keep IDs and bodies to
+recognize already-handled feedback; conversation comments also have `updated_at`
+for detecting edits. Assess each review body only once even if it appears in
+both the GraphQL and REST responses.
+
+```bash
+gh api --paginate "repos/$OWNER/$REPO/pulls/$NUMBER/reviews?per_page=100"
+gh api --paginate "repos/$OWNER/$REPO/issues/$NUMBER/comments?per_page=100"
+```
+
+Before each monitoring fetch, check that the PR is still open:
+
+```bash
+gh pr view "$NUMBER" --repo "$OWNER/$REPO" --json state --jq '.state'
+```
+
 ## Reply to a review thread (Step 9)
 
 ```bash

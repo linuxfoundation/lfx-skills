@@ -117,6 +117,8 @@ Also fetch general review bodies and PR conversation comments using
 [`references/graphql-queries.md`](references/graphql-queries.md), "Fetch general
 PR feedback". Read these alongside unresolved threads; actionable feedback is
 not limited to inline comments.
+Keep each non-thread item's source (general review or PR conversation comment),
+ID, author, body, link, and available update timestamp for approval and replies.
 
 ### Identify AI Bot Reviewers
 
@@ -180,7 +182,8 @@ Lean toward implementing when in doubt, but always surface your assessment to th
 
 ## Step 4: Categorize Comments
 
-After validation, categorize each thread:
+After validation, categorize every eligible feedback item: review threads,
+general review bodies, and PR conversation comments.
 
 | Category | Description | Action |
 |----------|-------------|--------|
@@ -193,45 +196,16 @@ After validation, categorize each thread:
 
 ### Present the Plan
 
-Before making any changes, present the categorized comments to the user. Include your validation assessment for each item so the user can make an informed decision:
+Before making changes or posting responses, present every eligible feedback
+item with its assessment and proposed action. Identify inline feedback by
+file/line and thread link; identify non-thread feedback by source, author, and
+ID/link. Count feedback items separately from review threads. Use the approval
+plan in [`references/feedback-templates.md`](references/feedback-templates.md),
+"Approval plan", omitting empty categories.
 
-```
-═══════════════════════════════════════════
-PR #[number], REVIEW COMMENTS TO ADDRESS
-═══════════════════════════════════════════
-
-[N] eligible review threads from [reviewers]
-
-CODE CHANGES NEEDED
-───────────────────
-1. ✓ @[reviewer] on [file]:[line], "[summary of what they want]"
-     Validated: [brief reason, e.g., "matches pattern in other components"]
-2. ✓ @[reviewer] on [file]:[line], "[summary of what they want]"
-     Validated: [brief reason]
-
-QUESTIONS TO ANSWER
-───────────────────
-3. @[reviewer] on [file]:[line], "[the question]"
-
-LIKELY FALSE POSITIVES
-──────────────────────
-4. ⚠ @[reviewer] on [file]:[line], "[what they suggested]"
-     Assessment: [why this appears incorrect, e.g., "Reviewer suggests
-     BehaviorSubject but this repo uses signals for component-local state.
-     Found 12 components using signal() vs 3 legacy BehaviorSubjects."]
-     Recommendation: Respond explaining the repo convention. No code change.
-
-NEEDS YOUR INPUT
-────────────────
-5. @[reviewer] on [file]:[line], "[the discussion point]"
-   → What would you like me to do here?
-
-═══════════════════════════════════════════
-Shall I proceed with items 1-2? Items 4-5 need your direction.
-═══════════════════════════════════════════
-```
-
-**Wait for user approval before making changes.** The user has final say on whether to implement, push back, or discuss further, especially for items flagged as potential false positives.
+**Wait for user approval before making changes or posting responses.** The user
+decides whether to implement, push back, or discuss further, especially for
+potential false positives. Monitoring consent does not supply this approval.
 
 ### Responding to False Positives
 
@@ -365,52 +339,21 @@ git push
 After pushing changes, or selecting the response-only path in Step 5, respond to
 each eligible conversation on GitHub. Reviewers need to know what was addressed.
 
-### Response Format by Category
+### Choose the response route
 
-Post each reply with the `addPullRequestReviewThreadReply` mutation in [`references/graphql-queries.md`](references/graphql-queries.md) (section "Reply to a review thread"), bound to `$THREAD_ID` and `$RESPONSE_BODY`.
+- **Review threads:** Use `addPullRequestReviewThreadReply` in
+  [`references/graphql-queries.md`](references/graphql-queries.md), "Reply to a
+  review thread", bound to `$THREAD_ID` and `$RESPONSE_BODY`.
+- **General review bodies and PR conversation comments:** Use the executable
+  PR-level command in that reference, "Reply to non-thread feedback". Identify
+  the source and ID/link, credit the reviewer, and reference the fix commit when
+  files changed. These sources have no thread ID or resolution mutation.
 
-**For code changes made:**
-
-Response body:
-
-```
-Done, [specific description of the change made].
-
-See commit [short SHA]: [one-line summary of what changed in this file].
-```
-
-**For questions answered (no code change):**
-
-```
-[Clear, specific answer to the question with code references where helpful].
-
-No code change needed, [brief explanation of why the current approach is correct].
-```
-
-**For nitpicks fixed:**
-
-```
-Fixed, [what was changed]. Good catch!
-```
-
-**For discussion items where user provided direction:**
-
-```
-[Explanation of the decision and reasoning].
-
-[Description of what was changed, or why no change was made].
-```
-
-**For false positives (user confirmed no change needed):**
-
-```
-Thanks for flagging this, I can see why it looks [wrong/inconsistent/off].
-
-[Explanation with evidence: "This repo uses [pattern X] for [reason]. You can see
-the same approach in [file1], [file2], etc."]
-
-[If applicable: "Happy to discuss further if you think we should reconsider."]
-```
+Draft the category-specific response using
+[`references/feedback-templates.md`](references/feedback-templates.md), "Response
+bodies". Respond to independent non-thread feedback; when a review overview
+only repeats inline findings, cover it in the iteration summary without a
+duplicate per-finding response.
 
 ### Response Rules
 
@@ -439,40 +382,15 @@ when it is deferred, undecided, or not fully addressed.
 
 ## Step 11: Post Summary Comment
 
-After all threads are responded to and resolved, post a single summary comment on the PR. This gives reviewers a one-stop overview of everything that was addressed in this iteration:
-
-```bash
-gh pr comment $NUMBER --repo $OWNER/$REPO --body "$(cat <<'EOF'
-## Review Feedback Addressed
-
-[If files changed:]
-Commit: [full SHA]
-[Otherwise: No code changes.]
-
-### Changes Made
-- **[file]**: [what changed] (per @[human-reviewer])
-- **[file]**: [what changed] (per botname[bot])
-
-### Questions Answered
-- **[file]:[line]**: [brief answer] (asked by @[human-reviewer])
-
-[If any comments were identified as false positives:]
-### No Change Needed
-- **[file]:[line]**: [brief explanation of why the current code is correct and what repo pattern it follows] (flagged by botname[bot])
-
-### Threads Resolved
-[N] of [M] eligible review threads addressed; [R] unresolved threads resolved.
-
-[If any threads were left unresolved:]
-### Still Open
-- **[file]:[line]**: [why it was left open, e.g., "deferred to follow-up PR", "awaiting reviewer confirmation"]
-EOF
-)"
-```
+After posting the approved responses and resolving fully addressed threads,
+post one iteration summary using
+[`references/feedback-templates.md`](references/feedback-templates.md), "Summary
+comment". Include non-thread feedback as well as review threads.
 
 ### Summary Rules
 
-- **List every thread** that was addressed, not just code changes
+- **List every feedback item** addressed, not just code changes or review threads;
+  identify non-thread items by source and ID/link, and count them separately.
 - **Group by action type**, changes made, questions answered, deferred
 - **Include the commit SHA only when files changed** so reviewers can see the
   diff; otherwise omit it and state "No code changes".
@@ -488,38 +406,9 @@ See [`references/dismiss-rerequest.md`](references/dismiss-rerequest.md) for the
 
 ## Step 13: Report to User
 
-Present the final status:
-
-```
-═══════════════════════════════════════════
-PR #[number], REVIEW FEEDBACK ADDRESSED
-═══════════════════════════════════════════
-
-[If files changed:]
-Commit: [SHA], [commit subject]
-Pushed to: [branch]
-[Otherwise: No code changes; no commit or push.]
-
-Threads addressed: [N] of [M]
-  ✓ [N] code changes made
-  ✓ [N] questions answered
-  ✓ [N] threads resolved on GitHub
-  [- [N] left open (needs reviewer input)]
-
-[If reviews were dismissed:]
-Reviews refreshed:
-  ✓ Dismissed "changes requested" from @[reviewer1], @[reviewer2]
-  ✓ Re-requested review from @[reviewer1], @[reviewer2]
-
-Summary comment posted: [PR URL]
-
-What's next:
-  [If reviews were re-requested:]
-  - Reviewers have been re-requested and will be notified
-  - Optionally monitor this PR for feedback in up to 3 follow-up rounds
-  [- [N] threads still need discussion, follow up with the reviewer]
-═══════════════════════════════════════════
-```
+Present the final status using
+[`references/feedback-templates.md`](references/feedback-templates.md), "User
+report". Include every feedback source, verification, and anything left open.
 
 ## Step 14: Offer Bounded PR Monitoring
 
@@ -534,64 +423,24 @@ After the final report (or Step 2 finds nothing to address), use
 Offer **Monitor (up to 3 rounds)** and **Finish now**. Do not start monitoring
 without an explicit opt-in. If the user declines, finish without further checks.
 
-### Monitoring Loop
-
-The initial resolution pass does **not** count toward the limit. Maintain one
-session-local counter for this PR, initially `0`, and a record of feedback
-already assessed or answered (source, comment/review ID, body, and available
-update timestamp). Separately keep the last fetched comment versions for every
-thread, including initially resolved ones, so later replies and edits can be
-detected. A baseline snapshot is not a handling record: unassessed feedback stays
-eligible. Record replies and summaries posted by this workflow so they never
-become new work.
-
-For each of **at most 3 follow-up rounds**:
-
-1. **Wait and count.** Wait 60 seconds (`sleep 60`), then increment the counter
-   before fetching. Every check consumes a round, even if no new or valid
-   feedback appears. Honor a user's request to stop immediately.
-2. **Re-fetch the same PR.** Check its state; stop if it is merged or closed.
-   Repeat Step 2, including paginated review threads, their full conversations,
-   general review bodies, and PR conversation comments. Do not reuse a stale
-   snapshot. If a fetch fails, report the failure and stop rather than claiming
-   the PR has no feedback.
-3. **Identify eligible feedback.** Read new or edited reviewer comments in any
-   thread, **including resolved threads**, and all remaining unresolved threads,
-   including outdated ones against current code. Compare comment IDs, bodies,
-   and `updatedAt` with the previous fetched snapshot; new replies or edits
-   reopen assessment regardless of resolution status. Skip this workflow's own
-   replies and unchanged feedback already answered, rejected with user approval,
-   deferred, or awaiting input. An unchanged open thread alone does not justify
-   repeating a reply or asking the same question again. Update the fetched
-   snapshot after identifying changes, without marking unassessed feedback
-   handled.
-4. **Validate and resolve.** For eligible feedback, follow Steps 3–13 again:
-   validate against current code and repo patterns, present the categorized
-   plan, obtain Step 4 approval, and make only approved fixes. Monitoring consent
-   does not approve code changes or false-positive dismissals. Preserve the same
-   response, resolution, summary, and re-request rules. Use Step 5's response-only
-   path when no files change: skip Steps 6–8 and 12 and omit commit/push fields.
-   Do not post duplicate replies or summaries when no action is taken.
-5. **Report the round.** Show `Monitoring round [N]/3`, feedback assessed,
-   actions taken, and anything still unresolved. If there is no eligible
-   feedback, say so and continue to the next check within the limit.
-
-When Step 13 completes inside this loop, return to the next numbered round,
-**not** to a fresh Step 14 prompt. Never recursively invoke this skill, reset
-the counter after a push, or automatically extend/restart monitoring. After
-round 3, stop and report any remaining unresolved feedback and that the
-monitoring limit was reached; do not claim that future comments are covered.
+After explicit opt-in, read and follow
+[`references/monitoring.md`](references/monitoring.md) for the session-local
+records, all-source eligibility checks, and bounded loop. Within an active loop,
+return to its next numbered round instead of offering monitoring again.
 
 ## Idempotency, Safe to Re-run
 
-If the user runs this skill again on the same PR:
+A fresh invocation has no prior session-local handling record:
 
-1. **Re-fetch complete conversations**, collect unresolved feedback for the
-   initial pass and baseline resolved threads without re-addressing old comments.
-2. **Skip unchanged handled feedback**; during monitoring, new or edited reviewer
-   comments are eligible even in resolved threads.
-3. **New comments since last run**, treat them as fresh feedback.
-4. Tell the user: "Found [N] new/remaining eligible review threads since the last iteration."
+1. **Re-fetch complete conversations.** Collect unresolved threads and substantive
+   general review/PR comments; baseline resolved threads without re-addressing
+   old inline comments. Read visible replies/summaries to avoid duplicate answers.
+2. **Do not assume prior dispositions.** Reassess unresolved feedback whose prior
+   deferred or awaiting-input state cannot be established from the conversation.
+3. **Within the same monitoring session only**, skip unchanged handled feedback;
+   new or edited feedback from any source is eligible, including resolved threads.
+4. Tell the user: "Found [N] remaining eligible feedback items, including [T]
+   review threads." Do not claim to detect changes since a lost snapshot.
 
 ## Scope Boundaries
 

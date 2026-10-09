@@ -114,8 +114,10 @@ page fetch or a missing thread node as an incomplete fetch, not empty feedback.
 Fetch all pages of general review bodies and PR conversation comments, rather
 than relying on the thread query's last 20 reviews. Keep IDs and bodies to
 recognize already-handled feedback; conversation comments also have `updated_at`
-for detecting edits. Assess each review body only once even if it appears in
-both the GraphQL and REST responses.
+for detecting edits. Use REST review records as the authoritative general-review
+feedback items, keyed by review ID; do not separately assess the same review
+bodies from the GraphQL summary. This avoids duplicate plans and replies without
+matching an ID-less GraphQL review to a REST record.
 
 ```bash
 gh api --paginate "repos/$OWNER/$REPO/pulls/$NUMBER/reviews?per_page=100"
@@ -142,6 +144,20 @@ mutation($threadId: ID!, $body: String!) {
 }
 GRAPHQL
 ```
+
+## Reply to non-thread feedback (Step 9)
+
+General review bodies and PR conversation comments have no review thread ID.
+Set `RESPONSE_BODY` to the approved reply, identifying the source and ID/link
+(`html_url` from the REST record), and the reviewer: `@mention` humans but use
+plain bot names without `@`. Include the fix commit only when files changed.
+
+```bash
+gh pr comment "$NUMBER" --repo "$OWNER/$REPO" --body "$RESPONSE_BODY"
+```
+
+Record the posted reply as workflow-authored feedback for monitoring. Do not
+call `addPullRequestReviewThreadReply` or `resolveReviewThread` for these sources.
 
 ## Resolve a review thread (Step 10)
 

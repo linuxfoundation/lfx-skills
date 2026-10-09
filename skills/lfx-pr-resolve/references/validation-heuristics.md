@@ -9,9 +9,14 @@ How to assess whether a reviewer's comment is actually correct before implementi
 
 Reviewers can make mistakes, they may misread the code, apply conventions from a different repo, or flag something that is already handled elsewhere. Blindly implementing every comment can introduce regressions.
 
-For each unresolved thread and each collected general PR review comment:
+For every eligible feedback item: review threads (including new or edited
+reviewer comments in resolved conversations), general review bodies, and PR
+conversation comments:
 
-1. **Read the actual code** at the referenced file and line, not just the diff snippet the reviewer saw. Read enough surrounding context (20-30 lines) to understand what the code is doing.
+1. **Read the actual code**, not just the diff snippet the reviewer saw. For inline
+   feedback, read the referenced file and line with enough surrounding context
+   (20-30 lines). For general review bodies and PR conversation comments, inspect
+   the code and behavior they reference rather than assuming an inline location.
 2. **Check the repo's existing patterns**, search for how similar code is written elsewhere in the codebase. If the reviewer says "use X pattern" but the rest of the repo uses Y pattern, that's a red flag.
    ```bash
    # Example: reviewer says "use BehaviorSubject" but check what the repo actually does

@@ -32,6 +32,7 @@ query($owner: String!, $repo: String!, $number: Int!, $threadsCursor: String) {
             pageInfo { hasNextPage endCursor }
             nodes {
               id
+              url
               author { login }
               body
               createdAt
@@ -84,6 +85,7 @@ query($threadId: ID!, $commentsCursor: String!) {
         pageInfo { hasNextPage endCursor }
         nodes {
           id
+          url
           author { login }
           body
           createdAt
@@ -108,6 +110,9 @@ comment ID. While `node.comments.pageInfo.hasNextPage` is true, replace
 thread's comment pages on every thread page before assessing feedback; a reply
 beyond either initial limit is still part of the conversation. Treat a failed
 page fetch or a missing thread node as an incomplete fetch, not empty feedback.
+
+Retain each comment's `url` from both queries as its permalink for approval plans
+and replies; the PR URL alone does not identify an inline conversation.
 
 ## Fetch general PR feedback (Steps 2 and 14)
 

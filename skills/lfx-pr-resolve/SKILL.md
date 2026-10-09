@@ -111,7 +111,8 @@ Fetch PR metadata and the first review-thread page with the query in
 [`references/graphql-queries.md`](references/graphql-queries.md), "Fetch PR
 review threads". Bind `$OWNER`, `$REPO`, and `$NUMBER`, then follow its executable
 cursor queries to drain all thread pages and every thread's comment pages before
-filtering feedback. Keep comment IDs, bodies, and `updatedAt` for detecting edits.
+filtering feedback. Keep comment IDs, bodies, and `updatedAt` for detecting edits,
+and each comment's `url` for inline links in approval plans and replies.
 
 Also fetch general review bodies and PR conversation comments using
 [`references/graphql-queries.md`](references/graphql-queries.md), "Fetch general

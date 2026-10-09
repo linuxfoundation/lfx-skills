@@ -10,11 +10,11 @@ Monitoring consent does not approve changes, responses, or false-positive dismis
 ## Session-local records
 
 Maintain one counter for this PR, initially `0`, and a handling record of feedback
-already assessed or answered: source, comment/review ID, body, available update
+already assessed or answered: source, comment/review ID, author, body, available update
 timestamp, and disposition (answered, rejected with approval, deferred, or awaiting
-input). Separately retain the last fetched versions for every thread comment,
-general review body, and PR conversation comment, including initially resolved
-threads. Use the complete Step 2 fetch as the first baseline.
+input). Separately retain the last fetched versions and authors for every thread
+comment, general review body, and PR conversation comment, including initially
+resolved threads. Use the complete Step 2 fetch as the first baseline.
 
 A fetched baseline is not a handling record: unresolved or non-thread feedback
 that has not been assessed remains eligible even when its version is unchanged.
@@ -53,6 +53,10 @@ evidence; a fresh invocation follows the main skill's initial-pass rules.
    Read complete conversations for context; overviews repeating inline findings need no duplicate
    response beyond the iteration summary covering those findings. Include outdated
    eligible threads and validate against current code.
+   Attribute each eligible item to its own comment or review author, including
+   new or edited replies by someone other than a thread's original commenter.
+   Carry that attribution into the plan, response, summary, bot-mention rules,
+   and reviewer-refresh eligibility; do not inherit it from the thread opener.
 
    New IDs, changed bodies, or changed available update timestamps reopen
    assessment regardless of resolution or prior disposition. Skip unchanged

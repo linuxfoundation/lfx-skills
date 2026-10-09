@@ -111,8 +111,8 @@ Fetch PR metadata and the first review-thread page with the query in
 [`references/graphql-queries.md`](references/graphql-queries.md), "Fetch PR
 review threads". Bind `$OWNER`, `$REPO`, and `$NUMBER`, then follow its executable
 cursor queries to drain all thread pages and every thread's comment pages before
-filtering feedback. Keep comment IDs, bodies, and `updatedAt` for detecting edits,
-and each comment's `url` for inline links in approval plans and replies.
+filtering feedback. Keep each comment's ID, author, body, and `updatedAt` for
+attribution and edit detection, and its `url` for approval plans and replies.
 
 Also fetch general review bodies and PR conversation comments using
 [`references/graphql-queries.md`](references/graphql-queries.md), "Fetch general
@@ -142,17 +142,23 @@ threads containing new or edited reviewer comments since the previous snapshot;
 resolution status does not suppress fresh feedback. Ignore this workflow's own
 replies and skip unchanged handled feedback as described in Step 14.
 
-For each eligible thread, extract:
+For each eligible comment, extract its feedback item with the thread context:
 
 | Field | Source |
 |-------|--------|
 | Thread ID | `id` (needed for resolving later) |
 | File path | `path` |
 | Line(s) | `line`, `startLine` |
-| Reviewer | First comment's `author.login` |
-| Comment body | All comments in the thread (the conversation) |
-| Comment identity/version | Each comment's `id`, `body`, and `updatedAt` |
+| Reviewer | That eligible comment's `author.login`, not the first comment's author |
+| Comment body | That eligible comment's `body`; retain the full conversation as context |
+| Comment identity/version | That eligible comment's `id`, `body`, and `updatedAt` |
 | Outdated? | `isOutdated` (file has changed since the comment was made) |
+
+Keep each eligible comment's author attached to its feedback through validation,
+plans, replies, summaries, and reviewer refresh. Apply bot-mention rules to that
+author; a thread's original commenter does not determine later replies' identity.
+When several authors contribute eligible feedback in one thread, track their
+items separately while sharing the thread ID for replies and resolution.
 
 ### Edge Cases
 

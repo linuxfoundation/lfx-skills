@@ -12,6 +12,9 @@ List every eligible feedback item, not only review threads. Identify inline
 feedback by file/line and thread or comment link; identify general review bodies
 and PR conversation comments by source, author, and ID/link. Use plain bot names
 and `@mention` only human reviewers. Count feedback items separately from threads.
+For inline feedback, use the eligible comment's author, not the thread opener.
+Keep items from different authors distinct even when they share a thread, and
+carry each item's author into replies, summary credit, and bot-mention decisions.
 
 ```text
 PR #[number] — REVIEW FEEDBACK TO ADDRESS

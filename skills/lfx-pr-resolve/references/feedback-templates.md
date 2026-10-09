@@ -136,6 +136,7 @@ and [C] PR conversation comments; [R] unresolved review threads resolved.
 
 ```text
 PR #[number] — REVIEW FEEDBACK ADDRESSED
+[During monitoring: Monitoring round [N]/3; [3 minus N] checks remaining.]
 
 [If files changed:]
 Commit: [SHA], [commit subject]
@@ -158,9 +159,13 @@ Summary comment posted: [comment URL]
 
 What's next:
   [If re-requested: Reviewers will be notified.]
-  Optionally monitor this PR in up to 3 follow-up rounds.
+  [Initial pass only: Optionally monitor this PR in up to 3 follow-up rounds.]
+  [Monitoring rounds 1–2: Continue the existing loop; [3 minus N] checks remain.]
+  [After round 3: Monitoring stopped — the 3-round limit was reached.]
   [Any feedback still needing discussion.]
 ```
 
-During monitoring, include the round number and return to the existing loop,
-not a new opt-in prompt. Do not claim reviewers were re-requested when they were not.
+During monitoring, report the current round and remaining checks from the same
+session counter, including checks with no eligible feedback. Return to the existing
+loop while checks remain; after round 3, report the limit and stop without offering
+a new allowance. Do not claim reviewers were re-requested when they were not.

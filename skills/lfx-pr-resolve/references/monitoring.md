@@ -47,8 +47,9 @@ evidence; a fresh invocation follows the main skill's initial-pass rules.
    | General review bodies (REST) | Review ID and body; update timestamp when available | New non-empty reviewer bodies, edited bodies, and unchanged bodies not yet assessed |
    | PR conversation comments (REST) | Comment ID, body, `updated_at` | New or edited reviewer comments and unchanged comments not yet assessed |
 
-   Apply Step 2's substantive-feedback filter: skip acknowledgments, status
-   messages, and this workflow's own replies/summaries. Assess general review
+   Apply Step 2's substantive-feedback filter to every source: skip content that
+   is only acknowledgment, approval, or status, and this workflow's own replies
+   and summaries. Retain mixed approval/feedback comments. Assess general review
    bodies only from authoritative REST records, not the GraphQL review summary.
    Read complete conversations for context; overviews repeating inline findings need no duplicate
    response beyond the iteration summary covering those findings. Include outdated

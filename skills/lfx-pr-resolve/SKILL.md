@@ -133,6 +133,17 @@ Maintain a list of bot reviewer logins for this PR. These reviewers must **never
 
 **Bot comments are still actionable**, address their feedback like any other reviewer. The restriction is only on `@mentioning` them in GitHub-posted content.
 
+### Filter to Substantive Feedback Across All Sources
+
+Apply this filter to review-thread comments, general review bodies, and PR
+conversation comments before extracting feedback items, on both the initial pass
+and monitoring rounds. Skip acknowledgment-only, approval-only, and status-only
+content, plus this workflow's own replies and summaries; these need no separate
+plan item or response. Retain substantive requests, questions, and concerns even
+when accompanied by acknowledgment or approval (for example, "Looks good, but
+add a null check"). Keep skipped comments in the full conversation context and
+fetched baseline so later substantive edits remain detectable.
+
 ### Filter to Actionable Threads
 
 On the initial pass, collect **unresolved** threads (`isResolved == false`).
@@ -167,10 +178,14 @@ items separately while sharing the thread ID for replies and resolution.
   Step 14. During active monitoring, count this as a completed check and continue
   within its existing limit instead of prompting again.
 - **Outdated threads**: Include them but flag them, the code may have shifted since the comment was made. Read the current file to determine if the feedback still applies.
-- **General PR review comments** (not attached to a specific line): These appear as reviews with a `body` but no associated thread path. Collect these separately, they need responses but may not require code changes. You will respond to each of these later via a PR-level comment that references the reviewer and the commit that addresses their feedback (if any). When referencing reviewers, `@mention` human reviewers but use plain names (no `@` prefix) for bot reviewers to avoid re-triggering them.
-- **PR conversation comments**: Assess feedback posted directly on the PR like general review comments.
-  Reply at PR level; these comments have no review thread to resolve. Skip acknowledgments, status messages,
-  and this workflow's own replies and summaries.
+- **General PR review comments** (not attached to a specific line): These appear
+  as reviews with a `body` but no associated thread path. Collect eligible
+  substantive feedback separately; it needs a response but may not require code
+  changes. Reply via a PR-level comment referencing the reviewer and the fix
+  commit, if any. `@mention` human reviewers but use plain bot names without `@`.
+- **PR conversation comments**: Assess eligible substantive feedback posted
+  directly on the PR like general review comments. Reply at PR level; these
+  comments have no review thread to resolve.
 
 ## Step 3: Validate Each Comment Against Repo Patterns
 

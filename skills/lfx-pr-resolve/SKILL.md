@@ -4,7 +4,8 @@ description: >
   Address PR review comments, fetches unresolved threads, makes code changes,
   commits with a summary, responds to each comment, resolves threads, posts
   a follow-up summary, dismisses stale "changes requested" reviews, and
-  re-requests review. Use whenever someone wants to address PR feedback, fix
+  re-requests review, and offers up to three opt-in monitoring rounds. Use
+  whenever someone wants to address PR feedback, fix
   review comments, resolve PR threads, or iterate on a pull request after review
   — unless the PR's repo carries a `## Review lifecycle configuration` section
   in its root CLAUDE.md, in which case `/lfx-skills:lfx-local-review` owns its
@@ -110,6 +111,11 @@ Fetch the PR metadata and all review threads in a single GraphQL call. The query
 
 The query caps at 100 review threads and 20 comments per thread. If a PR exceeds these limits, paginate via `pageInfo { hasNextPage endCursor }` and the `after` parameter.
 
+Also fetch general review bodies and PR conversation comments using
+[`references/graphql-queries.md`](references/graphql-queries.md), "Fetch general
+PR feedback". Read these alongside unresolved threads; actionable feedback is
+not limited to inline comments.
+
 ### Identify AI Bot Reviewers
 
 Before processing threads, identify which reviewers are AI bots. Common bot indicators:
@@ -139,15 +145,16 @@ For each unresolved thread, extract:
 
 ### Edge Cases
 
-- **No unresolved threads**: Tell the user, "All review threads are already resolved! Nothing to address." Stop here.
+- **No unaddressed feedback**: If there are no unresolved threads or unaddressed general review/PR comments, tell the user there is nothing to address and go to Step 14. During an active monitoring loop, count this as a completed check and continue within its existing limit instead of prompting again.
 - **Outdated threads**: Include them but flag them, the code may have shifted since the comment was made. Read the current file to determine if the feedback still applies.
 - **General PR review comments** (not attached to a specific line): These appear as reviews with a `body` but no associated thread path. Collect these separately, they need responses but may not require code changes. You will respond to each of these later via a PR-level comment that references the reviewer and the commit that addresses their feedback (if any). When referencing reviewers, `@mention` human reviewers but use plain names (no `@` prefix) for bot reviewers to avoid re-triggering them.
+- **PR conversation comments**: Assess feedback posted directly on the PR like general review comments. Reply at PR level; these comments have no review thread to resolve. Skip acknowledgments, status messages, and this workflow's own replies and summaries.
 
 ## Step 3: Validate Each Comment Against Repo Patterns
 
 Before categorizing or acting on any comment, validate whether the reviewer's feedback is actually correct. Reviewers can make mistakes; blindly implementing every comment can introduce regressions.
 
-For each unresolved thread, follow the four-step validation flow in [`references/validation-heuristics.md`](references/validation-heuristics.md):
+For each unresolved thread and unaddressed general review/PR comment, follow the four-step validation flow in [`references/validation-heuristics.md`](references/validation-heuristics.md):
 
 1. Read the actual code at the referenced location (with 20-30 lines of surrounding context).
 2. Check the repo's existing patterns via `grep`.
@@ -472,10 +479,66 @@ Summary comment posted: [PR URL]
 
 What's next:
   - Reviewers have been re-requested and will be notified
-  - Check back with /lfx-pr-catchup to monitor the PR
+  - Optionally monitor this PR for feedback in up to 3 follow-up rounds
   [- [N] threads still need discussion, follow up with the reviewer]
 ═══════════════════════════════════════════
 ```
+
+## Step 14: Offer Bounded PR Monitoring
+
+After the final report (or Step 2 finds nothing to address), use
+`AskUserQuestion` to ask:
+
+> "Would you like me to monitor this PR for new comments and remaining
+> unresolved feedback, validate what needs fixing, and run this same resolution
+> workflow for up to 3 follow-up rounds? I'll wait 60 seconds before each check
+> and still ask for approval before making changes."
+
+Offer **Monitor (up to 3 rounds)** and **Finish now**. Do not start monitoring
+without an explicit opt-in. If the user declines, finish without further checks.
+
+### Monitoring Loop
+
+The initial resolution pass does **not** count toward the limit. Maintain one
+session-local counter for this PR, initially `0`, and a record of feedback
+already assessed or answered (source, comment/review ID, body, and available
+update timestamp). Do not treat every comment in the initial fetch as handled:
+unassessed feedback is still eligible. Record replies and summaries posted by
+this workflow so they never become new work.
+
+For each of **at most 3 follow-up rounds**:
+
+1. **Wait and count.** Wait 60 seconds (`sleep 60`), then increment the counter
+   before fetching. Every check consumes a round, even if no new or valid
+   feedback appears. Honor a user's request to stop immediately.
+2. **Re-fetch the same PR.** Check its state; stop if it is merged or closed.
+   Repeat Step 2, including paginated review threads, their full conversations,
+   general review bodies, and PR conversation comments. Do not reuse a stale
+   snapshot. If a fetch fails, report the failure and stop rather than claiming
+   the PR has no feedback.
+3. **Identify eligible feedback.** Read new or edited comments and all remaining
+   unresolved threads, including outdated ones against the current code. Skip
+   resolved threads and unchanged feedback already answered, rejected with user
+   approval, deferred, or awaiting user/reviewer input. A new reply or edited
+   body reopens assessment; an unchanged open thread alone does not justify
+   repeating a reply or asking the same question again.
+4. **Validate and resolve.** For eligible feedback, follow Steps 3–13 again:
+   validate against current code and repo patterns, present the categorized
+   plan, obtain Step 4 approval, and make only approved fixes. Monitoring consent
+   does not approve code changes or false-positive dismissals. Preserve the same
+   validation, commit/push, per-comment response, resolution, summary, and
+   re-request rules; do not create empty commits or post duplicate replies or
+   summaries when no action is taken.
+5. **Report the round.** Show `Monitoring round [N]/3`, feedback assessed,
+   actions taken, and anything still unresolved. If there is no eligible
+   feedback, say so and continue to the next check within the limit.
+
+When Step 13 completes inside this loop, return to the next numbered round,
+**not** to a fresh Step 14 prompt. Never recursively invoke this skill, reset
+the counter after a push, or automatically extend/restart monitoring. After
+round 3, stop and report any remaining unresolved feedback and that the
+monitoring limit was reached; do not claim that future comments are covered.
+
 
 ## Idempotency, Safe to Re-run
 
@@ -500,6 +563,7 @@ If the user runs this skill again on the same PR:
 - Dismiss stale "changes requested" reviews after addressing feedback
 - Re-request review from reviewers whose feedback was addressed
 - Route complex changes to the owning repo's local skills and `CLAUDE.md`
+- Offer opt-in monitoring for new comments and remaining unresolved feedback, capped at 3 follow-up rounds
 
 **This skill does NOT:**
 - Create new PRs (use the owning repo's local preflight/readiness flow first)

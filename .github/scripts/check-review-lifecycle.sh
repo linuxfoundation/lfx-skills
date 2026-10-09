@@ -211,7 +211,7 @@ need "$SKILL"     '**Fail closed.**'
 need "$SKILL" '**Which skill owns a repo'"'"'s PR iteration.**'
 need "$SKILL" 'A broken adoption is
   not an absent one, so it must never fall through to `lfx-pr-resolve`'
-need skills/lfx/SKILL.md '**PR review threads are routed by the repo, not by this table.**'
+need skills/lfx/SKILL.md '**PR feedback is routed by the repo, not by this table.**'
 # both lifecycle headings = broken migration: the guard under the heading, on
 # the router and on lfx-pr-resolve, must survive — not just the heading itself
 need skills/lfx/SKILL.md 'carrying both

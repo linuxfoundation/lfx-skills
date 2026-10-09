@@ -98,7 +98,7 @@ run_case "pr-resolve loses its adoption gate" bad \
 
 run_case "router loses its two-routes rule" bad \
   "skills/lfx/SKILL.md: missing" \
-  "sed -i.bak 's/\*\*PR review threads are routed by the repo, not by this table\.\*\*/PR review threads./' skills/lfx/SKILL.md"
+  "sed -i.bak 's/\*\*PR feedback is routed by the repo, not by this table\.\*\*/PR feedback./' skills/lfx/SKILL.md"
 
 run_case "router keeps its heading but loses the both-headings guard" bad \
   "skills/lfx/SKILL.md: missing" \

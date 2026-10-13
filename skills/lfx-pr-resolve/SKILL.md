@@ -145,13 +145,17 @@ For each unresolved thread, extract:
 | Comment body | All comments in the thread (the conversation) |
 | Outdated? | `isOutdated` (file has changed since the comment was made) |
 
-### Track General Feedback from the Initial Pass
+### Track All Feedback from the Initial Pass
 
 Initialize the assessed-feedback record in this step, before deciding whether
-there is anything to address. For each general review body or PR conversation
-comment, retain its source type, ID, full body, available update timestamp,
-disposition, and the permalink of any response that addresses it. Use this same
-record during monitoring; merely fetching a source does not mark it handled.
+there is anything to address. For each review thread, retain its thread ID,
+disposition, and response permalink; snapshot every comment's ID, full body,
+available update timestamp, and disposition so new replies and edits can be
+distinguished from unchanged open conversations. For each general review body or
+PR conversation comment, retain its source type, ID, full body, available update
+timestamp, disposition, and the permalink of any response that addresses it.
+Use this same record during monitoring; merely fetching a source or snapshotting
+a conversation does not mark its feedback handled.
 
 On a fresh invocation, inspect existing workflow replies and summaries for a
 specific answer to the source's current actionable feedback. Count a source as
@@ -183,8 +187,10 @@ Before categorizing or acting on any comment, validate whether the reviewer's fe
 
 For each unresolved thread and unaddressed general review/PR comment, follow the four-step validation flow in [`references/validation-heuristics.md`](references/validation-heuristics.md):
 
-1. Read the actual code at the referenced location (with 20-30 lines of surrounding context).
-2. Check the repo's existing patterns via `grep`.
+1. Read the current code/docs at the referenced location with surrounding context.
+   If no file/line is given, use the reference's locationless branch: map concrete
+   claims to current code/docs, or validate pure discussion against PR context.
+2. For code/doc claims, check the repo's relevant existing patterns via `grep`.
 3. Cross-reference with project conventions (CLAUDE.md, eslint, style guides).
 4. Assign one of four assessments: **Valid**, **Likely false positive**, **Partially valid**, or **Outdated**, and act accordingly.
 
@@ -302,7 +308,9 @@ If validation fails, fix the issues before proceeding. Do not commit broken code
 
 ## Step 7: Commit with Detailed Summary
 
-Create a single commit that summarizes all changes made to address the review feedback.
+If there are no approved code changes, skip Steps 7 and 8 and continue to Step 9
+with the approved responses. Do not create an empty commit for a response-only
+iteration. Otherwise, create one commit summarizing the approved changes.
 
 ### Commit Message Format
 
@@ -348,7 +356,9 @@ EOF
 
 ## Step 8: Push Changes
 
-Push the commit to the remote branch **before** posting any comments, resolving threads, or posting summaries. This ensures that when bots and reviewers are notified of your responses, the code changes are already available for them to validate.
+Skip this step for a response-only iteration. When code changes were made, publish
+the fixing commit before posting fix replies, resolving those threads, or posting
+the summary, so reviewers can inspect the changes being claimed.
 
 ```bash
 git push
@@ -365,8 +375,10 @@ git push
 
 ## Step 9: Respond to Each Feedback Source
 
-After pushing, respond to each addressed thread and general feedback source on
-GitHub. Reviewers need to know their comments were heard and addressed.
+After any fixing commit is confirmed published, respond to each addressed thread
+and general feedback source on GitHub. If no approved code change was made, proceed
+directly with the approved responses without a commit or push. Reviewers need to
+know what was answered and whether anything changed.
 
 ### Response Format by Category
 
@@ -447,12 +459,18 @@ After responding to each thread, resolve it with the `resolveReviewThread` mutat
 
 After all threads are responded to and resolved, post a single summary comment on the PR. This gives reviewers a one-stop overview of everything that was addressed in this iteration:
 
+Response-only iterations still post the applicable summary. Omit the commit field
+and empty changes section when no code change was made; report the answers,
+explanations, resolutions, and anything left open instead.
+
 ```bash
 gh pr comment $NUMBER --repo $OWNER/$REPO --body "$(cat <<'EOF'
 ## Review Feedback Addressed
 
+[If this iteration published a fixing commit:]
 Commit: [full SHA]
 
+[If code changes were made:]
 ### Changes Made
 - **[file]**: [what changed] (per @[human-reviewer])
 - **[file]**: [what changed] (per botname[bot])
@@ -478,7 +496,8 @@ EOF
 
 - **List every thread** that was addressed, not just code changes
 - **Group by action type**, changes made, questions answered, deferred
-- **Include the commit SHA** so reviewers can see the full diff
+- **Include the commit SHA when a fixing commit exists** so reviewers can inspect
+  the diff; omit this field for response-only iterations
 - **Call out anything left open**, don't hide unresolved items
 - **Credit human reviewers** by `@mentioning` them next to their feedback (e.g., write `(per @alice)` or `(asked by @bob)`)
 - **Never `@mention` bot reviewers** in the summary, use their plain name without the `@` prefix (e.g., write `(per copilot[bot])` not `(per @copilot[bot])`). Tagging bots in the summary causes them to re-trigger and attempt to act on already-resolved feedback.
@@ -494,12 +513,15 @@ See [`references/dismiss-rerequest.md`](references/dismiss-rerequest.md) for the
 Outside monitoring, present the final status using the template below. During a
 monitoring round, the loop's round report replaces this template; do not include
 the "Optionally monitor" bullet or offer another monitoring cycle.
+For a response-only iteration, omit the commit and pushed-branch fields; report
+the approved replies and applicable resolutions without implying publication.
 
 ```
 ═══════════════════════════════════════════
 PR #[number], REVIEW FEEDBACK ADDRESSED
 ═══════════════════════════════════════════
 
+[If this iteration published a fixing commit:]
 Commit: [SHA], [commit subject]
 Pushed to: [branch]
 
@@ -517,7 +539,7 @@ Reviews refreshed:
 Summary comment posted: [PR URL]
 
 What's next:
-  - Reviewers have been re-requested and will be notified
+  [- Reviewers have been re-requested and will be notified (only if refreshed)]
   - Optionally monitor this PR for feedback in up to 3 follow-up rounds
   [- [N] threads still need discussion, follow up with the reviewer]
 ═══════════════════════════════════════════

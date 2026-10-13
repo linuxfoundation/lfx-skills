@@ -11,7 +11,10 @@ After pushing changes and posting the summary, dismiss any "changes requested" r
 
 Use the REST API to list pull request reviews and identify those where:
 - `state` is `CHANGES_REQUESTED`
-- The reviewer had unresolved threads that were addressed in this iteration
+- The reviewer had actionable thread comments or general review-body feedback
+  addressed in this iteration, with any fixing commit confirmed published
+- All of that reviewer's feedback is addressed; an unanswered or deferred general
+  review-body finding blocks eligibility just as an open thread does
 
 ```bash
 # Get the most recent CHANGES_REQUESTED review per reviewer
@@ -47,5 +50,7 @@ gh pr edit $NUMBER --repo $OWNER/$REPO --add-reviewer "reviewer1,reviewer2"
 
 - **Reviewer is not a collaborator**: `--add-reviewer` may fail for external contributors. If it fails, note it in the report but don't block.
 - **Multiple reviews from the same reviewer**: A reviewer may have submitted multiple reviews. Only dismiss the most recent `CHANGES_REQUESTED` review, GitHub uses the latest review state per reviewer.
-- **Mixed reviewers**: Some reviewers may have had all their threads addressed while others still have open threads. Only dismiss and re-request for reviewers whose feedback was fully addressed.
+- **Mixed reviewers**: Some reviewers may have had all their thread comments and
+  general review-body feedback addressed while others still have open findings.
+  Only dismiss and re-request for reviewers whose feedback was fully addressed.
 - **No `CHANGES_REQUESTED` reviews**: Skip this step entirely, nothing to dismiss.

@@ -35,6 +35,7 @@ query($owner: String!, $repo: String!, $number: Int!, $after: String) {
               author { login }
               body
               createdAt
+              updatedAt
               path
               line
               startLine
@@ -80,6 +81,7 @@ query($threadId: ID!, $after: String!) {
           author { login }
           body
           createdAt
+          updatedAt
           path
           line
           startLine

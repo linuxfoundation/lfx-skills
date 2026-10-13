@@ -32,6 +32,7 @@ query($owner: String!, $repo: String!, $number: Int!, $after: String) {
             pageInfo { hasNextPage endCursor }
             nodes {
               id
+              url
               author { login }
               body
               createdAt
@@ -78,6 +79,7 @@ query($threadId: ID!, $after: String!) {
         pageInfo { hasNextPage endCursor }
         nodes {
           id
+          url
           author { login }
           body
           createdAt
@@ -126,7 +128,7 @@ mutation($threadId: ID!, $body: String!) {
     pullRequestReviewThreadId: $threadId
     body: $body
   }) {
-    comment { id }
+    comment { id url }
   }
 }
 GRAPHQL

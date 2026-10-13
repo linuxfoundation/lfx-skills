@@ -198,7 +198,11 @@ Lean toward implementing when in doubt, but always surface your assessment to th
 
 ## Step 4: Categorize Comments
 
-After validation, categorize each thread:
+After validation, categorize each feedback item from an unresolved thread,
+general review body, or PR conversation comment. Keep a stable item number, source
+type and ID, reviewer, source permalink, and optional code location. A general
+source may contain several actionable items; track each separately without
+duplicating findings already represented by a thread.
 
 | Category | Description | Action |
 |----------|-------------|--------|
@@ -211,29 +215,33 @@ After validation, categorize each thread:
 
 ### Present the Plan
 
-Before making any changes, present the categorized comments to the user. Include your validation assessment for each item so the user can make an informed decision:
+Before making any changes, present every categorized feedback item to the user,
+including general sources without a file/line. Use the source permalink to identify
+the conversation; include a code location only when one is available. Show the
+validation assessment for each item so the user can make an informed decision:
 
 ```
 ═══════════════════════════════════════════
 PR #[number], REVIEW COMMENTS TO ADDRESS
 ═══════════════════════════════════════════
 
-[N] unresolved threads from [reviewers]
+[N] actionable feedback items from [reviewers]: [T] unresolved threads and
+[G] general review/PR comment items
 
 CODE CHANGES NEEDED
 ───────────────────
-1. ✓ @[reviewer] on [file]:[line], "[summary of what they want]"
+1. ✓ [reviewer] — [source permalink] ([optional file:line]), "[summary of what they want]"
      Validated: [brief reason, e.g., "matches pattern in other components"]
-2. ✓ @[reviewer] on [file]:[line], "[summary of what they want]"
+2. ✓ [reviewer] — [source permalink] ([optional file:line]), "[summary of what they want]"
      Validated: [brief reason]
 
 QUESTIONS TO ANSWER
 ───────────────────
-3. @[reviewer] on [file]:[line], "[the question]"
+3. [reviewer] — [source permalink] ([optional file:line]), "[the question]"
 
 LIKELY FALSE POSITIVES
 ──────────────────────
-4. ⚠ @[reviewer] on [file]:[line], "[what they suggested]"
+4. ⚠ [reviewer] — [source permalink] ([optional file:line]), "[what they suggested]"
      Assessment: [why this appears incorrect, e.g., "Reviewer suggests
      BehaviorSubject but this repo uses signals for component-local state.
      Found 12 components using signal() vs 3 legacy BehaviorSubjects."]
@@ -241,7 +249,7 @@ LIKELY FALSE POSITIVES
 
 NEEDS YOUR INPUT
 ────────────────
-5. @[reviewer] on [file]:[line], "[the discussion point]"
+5. [reviewer] — [source permalink] ([optional file:line]), "[the discussion point]"
    → What would you like me to do here?
 
 ═══════════════════════════════════════════
@@ -457,7 +465,10 @@ After responding to each thread, resolve it with the `resolveReviewThread` mutat
 
 ## Step 11: Post Summary Comment
 
-After all threads are responded to and resolved, post a single summary comment on the PR. This gives reviewers a one-stop overview of everything that was addressed in this iteration:
+After responding to the addressed feedback items and resolving eligible threads,
+post a single summary comment on the PR. Include thread findings, general
+review-body findings, and PR conversation comments, even when they have no code
+location, so reviewers can see everything addressed in this iteration:
 
 Response-only iterations still post the applicable summary. Omit the commit field
 and empty changes section when no code change was made; report the answers,
@@ -472,29 +483,35 @@ Commit: [full SHA]
 
 [If code changes were made:]
 ### Changes Made
-- **[file]**: [what changed] (per @[human-reviewer])
-- **[file]**: [what changed] (per botname[bot])
+- **[file]**: [what changed] ([source permalink]; per @[human-reviewer])
+- **[file]**: [what changed] ([source permalink]; per botname[bot])
 
 ### Questions Answered
-- **[file]:[line]**: [brief answer] (asked by @[human-reviewer])
+- **[source permalink]** ([optional file:line]): [brief answer] (asked by @[human-reviewer])
 
 [If any comments were identified as false positives:]
 ### No Change Needed
-- **[file]:[line]**: [brief explanation of why the current code is correct and what repo pattern it follows] (flagged by botname[bot])
+- **[source permalink]** ([optional file:line]): [brief explanation of why the current code is correct and what repo pattern it follows] (flagged by botname[bot])
+
+### Feedback Items Addressed
+[N] of [M] actionable feedback items addressed in this iteration, including
+[G] general review/PR comment items. Count items separately from thread resolutions.
 
 ### Threads Resolved
-[N] of [M] unresolved threads addressed in this iteration.
+[T] of [U] initially unresolved threads resolved in this iteration. General review
+bodies and PR conversation comments have no thread to resolve.
 
-[If any threads were left unresolved:]
+[If any feedback items were left unaddressed or threads remain open:]
 ### Still Open
-- **[file]:[line]**: [why it was left open, e.g., "deferred to follow-up PR", "awaiting reviewer confirmation"]
+- **[source permalink]** ([optional file:line]): [why it was left open, e.g., "deferred to follow-up PR", "awaiting reviewer confirmation"]
 EOF
 )"
 ```
 
 ### Summary Rules
 
-- **List every thread** that was addressed, not just code changes
+- **List every feedback item** that was addressed, not just code changes or threads;
+  identify its source permalink and include the code location only when available
 - **Group by action type**, changes made, questions answered, deferred
 - **Include the commit SHA when a fixing commit exists** so reviewers can inspect
   the diff; omit this field for response-only iterations
@@ -525,11 +542,13 @@ PR #[number], REVIEW FEEDBACK ADDRESSED
 Commit: [SHA], [commit subject]
 Pushed to: [branch]
 
-Threads addressed: [N] of [M]
-  ✓ [N] code changes made
+Feedback items addressed: [N] of [M]
+  ✓ [N] code-change items addressed
   ✓ [N] questions answered
-  ✓ [N] threads resolved on GitHub
-  [- [N] left open (needs reviewer input)]
+  ✓ [N] general review/PR comment items addressed (included above)
+Threads resolved on GitHub: [T] of [U] initially unresolved threads
+  [- [N] feedback items left unaddressed; [N] threads still open]
+Sources: [item numbers and source permalinks, with code locations when available]
 
 [If reviews were dismissed:]
 Reviews refreshed:
@@ -541,7 +560,7 @@ Summary comment posted: [PR URL]
 What's next:
   [- Reviewers have been re-requested and will be notified (only if refreshed)]
   - Optionally monitor this PR for feedback in up to 3 follow-up rounds
-  [- [N] threads still need discussion, follow up with the reviewer]
+  [- [N] feedback items still need discussion, follow up at their source permalinks]
 ═══════════════════════════════════════════
 ```
 

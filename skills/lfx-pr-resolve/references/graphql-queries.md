@@ -33,7 +33,7 @@ query($owner: String!, $repo: String!, $number: Int!, $after: String) {
             nodes {
               id
               url
-              author { login }
+              author { login __typename }
               body
               createdAt
               updatedAt
@@ -80,7 +80,7 @@ query($threadId: ID!, $after: String!) {
         nodes {
           id
           url
-          author { login }
+          author { login __typename }
           body
           createdAt
           updatedAt

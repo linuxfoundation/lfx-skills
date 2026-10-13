@@ -6,9 +6,12 @@ description: >
   commits with a summary, responds to each comment, resolves threads, posts
   a follow-up summary, dismisses stale "changes requested" reviews, and
   re-requests review, and offers up to three opt-in monitoring rounds. Use
-  whenever someone wants to address PR feedback, fix
-  review comments, resolve PR threads, or iterate on a pull request after review
-  — unless the PR's repo carries a `## Review lifecycle configuration` section
+  whenever someone wants to address PR feedback, fix review comments, resolve
+  PR threads, iterate on a pull request after review, or "monitor this PR for
+  new comments." Works on one PR; monitoring follows its feedback-resolution
+  pass. Do not use for a read-only dashboard across all open PRs; use
+  lfx-pr-catchup instead. Route to the repo-owned lifecycle instead when
+  the PR's repo carries a `## Review lifecycle configuration` section
   in its root CLAUDE.md, in which case `/lfx-skills:lfx-local-review` owns its
   PR iteration (and validates that section) instead, or a `PR driver:` value in
   its `## Pre-PR review` section, in which case that repo skill owns it; both
@@ -141,7 +144,7 @@ For each unresolved thread, extract:
 | Thread ID | `id` (needed for resolving later) |
 | File path | `path` |
 | Line(s) | `line`, `startLine` |
-| Reviewer | First comment's `author.login` |
+| Reviewer | Author of the comment being assessed; retain the first comment's author as thread-opener context |
 | Comment body | All comments in the thread (the conversation) |
 | Outdated? | `isOutdated` (file has changed since the comment was made) |
 
@@ -149,11 +152,14 @@ For each unresolved thread, extract:
 
 Initialize the assessed-feedback record in this step, before deciding whether
 there is anything to address. For each review thread, retain its thread ID,
-disposition, and response permalink; snapshot every comment's ID, full body,
-available update timestamp, and disposition so new replies and edits can be
-distinguished from unchanged open conversations. For each general review body or
-PR conversation comment, retain its source type, ID, full body, available update
-timestamp, disposition, and the permalink of any response that addresses it.
+disposition, and response permalink; snapshot every comment's ID, author login,
+bot classification, full body, available update timestamp, and disposition so
+new replies and edits can be distinguished from unchanged open conversations.
+For each general review body or PR conversation comment, retain its source type,
+ID, author login, bot classification, full body, available update timestamp,
+disposition, and the permalink of any response that addresses it. Classify each
+author using the API type (`__typename` in GraphQL, `user.type` in REST) and the
+bot indicators above; retain that classification for attribution and replies.
 Use this same record during monitoring; merely fetching a source or snapshotting
 a conversation does not mark its feedback handled.
 
@@ -186,6 +192,10 @@ mistaken for new reviewer feedback.
 Before categorizing or acting on any comment, validate whether the reviewer's feedback is actually correct. Reviewers can make mistakes; blindly implementing every comment can introduce regressions.
 
 For each unresolved thread and unaddressed general review/PR comment, follow the four-step validation flow in [`references/validation-heuristics.md`](references/validation-heuristics.md):
+
+Attribute each item to the author of the comment or general source being assessed,
+not automatically to the thread opener. Use that author's bot classification
+when drafting replies and summaries; a later bot reply must not be `@mentioned`.
 
 1. Read the current code/docs at the referenced location with surrounding context.
    If no file/line is given, use the reference's locationless branch: map concrete

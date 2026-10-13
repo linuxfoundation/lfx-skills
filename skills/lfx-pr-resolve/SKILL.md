@@ -1,7 +1,8 @@
 ---
 name: lfx-pr-resolve
 description: >
-  Address PR review comments, fetches unresolved threads, makes code changes,
+  Address PR review comments, fetches unresolved threads, general review bodies,
+  and PR conversation comments, makes code changes,
   commits with a summary, responds to each comment, resolves threads, posts
   a follow-up summary, dismisses stale "changes requested" reviews, and
   re-requests review, and offers up to three opt-in monitoring rounds. Use
@@ -107,9 +108,10 @@ REPO=$(gh repo view --json name -q '.name')
 
 ### Fetch Review Threads
 
-Fetch the PR metadata and all review threads in a single GraphQL call. The query body lives in [`references/graphql-queries.md`](references/graphql-queries.md) (section "Fetch PR review threads"). Run it with `$OWNER`, `$REPO`, and `$NUMBER` bound.
-
-The query caps at 100 review threads and 20 comments per thread. If a PR exceeds these limits, paginate via `pageInfo { hasNextPage endCursor }` and the `after` parameter.
+Fetch the PR metadata, all review-thread pages, and each thread's full conversation
+using [`references/graphql-queries.md`](references/graphql-queries.md), "Fetch PR
+review threads". Bind `$OWNER`, `$REPO`, and `$NUMBER`; follow its separate thread
+and per-thread comment continuation queries until every `hasNextPage` is false.
 
 Also fetch general review bodies and PR conversation comments using
 [`references/graphql-queries.md`](references/graphql-queries.md), "Fetch general
@@ -143,15 +145,36 @@ For each unresolved thread, extract:
 | Comment body | All comments in the thread (the conversation) |
 | Outdated? | `isOutdated` (file has changed since the comment was made) |
 
+### Track General Feedback from the Initial Pass
+
+Initialize the assessed-feedback record in this step, before deciding whether
+there is anything to address. For each general review body or PR conversation
+comment, retain its source type, ID, full body, available update timestamp,
+disposition, and the permalink of any response that addresses it. Use this same
+record during monitoring; merely fetching a source does not mark it handled.
+
+On a fresh invocation, inspect existing workflow replies and summaries for a
+specific answer to the source's current actionable feedback. Count a source as
+handled only when all its actionable items are addressed and any claimed fix is
+confirmed published on the PR. A human reply, acknowledgment, or status message
+alone is not evidence of handling. If the evidence is unclear, keep it unaddressed.
+New or edited feedback needs assessment; compare the body as well as any available
+timestamp. Record this workflow's own replies and summaries so they are not
+mistaken for new reviewer feedback.
+
 ### Edge Cases
 
 - **No unaddressed feedback**: If there are no unresolved threads or unaddressed general review/PR comments,
   tell the user there is nothing to address and go to Step 14. During an active monitoring loop, count this
   as a completed check and continue within its existing limit instead of prompting again.
 - **Outdated threads**: Include them but flag them, the code may have shifted since the comment was made. Read the current file to determine if the feedback still applies.
-- **General PR review comments** (not attached to a specific line): These appear as reviews with a `body` but no associated thread path. Collect these separately, they need responses but may not require code changes. You will respond to each of these later via a PR-level comment that references the reviewer and the commit that addresses their feedback (if any). When referencing reviewers, `@mention` human reviewers but use plain names (no `@` prefix) for bot reviewers to avoid re-triggering them.
-- **PR conversation comments**: Assess feedback posted directly on the PR like general review comments.
-  Reply at PR level; these comments have no review thread to resolve. Skip acknowledgments, status messages,
+- **General PR review comments** (not attached to a specific line): Collect review
+  bodies separately and respond through Step 9's PR-level reply mechanics. Reference
+  the source permalink, reviewer, and published fixing commit (if any). Mention human
+  reviewers with `@`; use plain bot names to avoid re-triggering them.
+- **PR conversation comments**: Assess feedback posted directly on the PR like
+  general review comments and use the same Step 9 PR-level reply mechanics. These
+  comments have no review thread to resolve. Skip acknowledgments, status messages,
   and this workflow's own replies and summaries.
 
 ## Step 3: Validate Each Comment Against Repo Patterns
@@ -340,13 +363,23 @@ yarn lint && yarn build
 git push
 ```
 
-## Step 9: Respond to Each Comment Thread
+## Step 9: Respond to Each Feedback Source
 
-After pushing, respond to each review thread on GitHub. This is the critical feedback loop, reviewers need to know their comments were heard and addressed.
+After pushing, respond to each addressed thread and general feedback source on
+GitHub. Reviewers need to know their comments were heard and addressed.
 
 ### Response Format by Category
 
-Post each reply with the `addPullRequestReviewThreadReply` mutation in [`references/graphql-queries.md`](references/graphql-queries.md) (section "Reply to a review thread"), bound to `$THREAD_ID` and `$RESPONSE_BODY`.
+For review threads, post each reply with the `addPullRequestReviewThreadReply`
+mutation in [`references/graphql-queries.md`](references/graphql-queries.md),
+"Reply to a review thread", bound to `$THREAD_ID` and `$RESPONSE_BODY`.
+
+For general review bodies and PR conversation comments, use the PR-comment POST
+command in the same reference, "Reply to general PR feedback". Include the source
+permalink, the specific answer or change, and the published commit SHA when a fix
+was made. Record the returned reply permalink in the Step 2 record; do not mark a
+source handled until all its actionable items are addressed. These sources have
+no thread ID, so Step 10's resolution mutation does not apply.
 
 **For code changes made:**
 
@@ -458,7 +491,9 @@ See [`references/dismiss-rerequest.md`](references/dismiss-rerequest.md) for the
 
 ## Step 13: Report to User
 
-Present the final status:
+Outside monitoring, present the final status using the template below. During a
+monitoring round, the loop's round report replaces this template; do not include
+the "Optionally monitor" bullet or offer another monitoring cycle.
 
 ```
 ═══════════════════════════════════════════
@@ -504,11 +539,8 @@ without an explicit opt-in. If the user declines, finish without further checks.
 ### Monitoring Loop
 
 The initial resolution pass does **not** count toward the limit. Maintain one
-session-local counter for this PR, initially `0`, and a record of feedback
-already assessed or answered (source, comment/review ID, body, and available
-update timestamp). Do not treat every comment in the initial fetch as handled:
-unassessed feedback is still eligible. Record replies and summaries posted by
-this workflow so they never become new work.
+session-local counter for this PR, initially `0`, and reuse the assessed-feedback
+record initialized in Step 2. Unassessed feedback remains eligible.
 
 For each of **at most 3 follow-up rounds**:
 
@@ -533,9 +565,11 @@ For each of **at most 3 follow-up rounds**:
    validation, commit/push, per-comment response, resolution, summary, and
    re-request rules; do not create empty commits or post duplicate replies or
    summaries when no action is taken.
-5. **Report the round.** Show `Monitoring round [N]/3`, feedback assessed,
-   actions taken, and anything still unresolved. If there is no eligible
-   feedback, say so and continue to the next check within the limit.
+5. **Report the round.** Replace Step 13's terminal report with
+   `Monitoring round [N]/3`, feedback assessed, actions taken, commit/publication
+   state (if any), and anything still unresolved. Do not repeat the monitoring
+   offer. If there is no eligible feedback, say so and continue to the next check
+   within the limit.
 
 When Step 13 completes inside this loop, return to the next numbered round,
 **not** to a fresh Step 14 prompt. Never recursively invoke this skill, reset
@@ -547,15 +581,24 @@ monitoring limit was reached; do not claim that future comments are covered.
 
 If the user runs this skill again on the same PR:
 
-1. **Re-fetch threads**, only pick up threads that are still unresolved
-2. **Skip already-resolved threads**, don't re-address or re-respond
-3. **New comments since last run**, treat them as fresh feedback
-4. Tell the user: "Found [N] new/remaining unresolved threads since the last iteration."
+1. **Re-fetch all feedback**, including every thread conversation, general review
+   body, and PR conversation comment. Skip already-resolved threads.
+2. **Reconstruct the Step 2 record** from specific existing replies and summaries.
+   Match source IDs, full bodies, and available update timestamps; do not repeat
+   answers to unchanged, addressed feedback. Keep deferred or uncertain sources
+   unaddressed, and require publication evidence for claimed fixes.
+3. **Assess new or edited feedback** even when its source ID was seen before.
+4. **Keep monitoring state invocation-local.** Consent and the round counter belong
+   to the active invocation only. A fresh invocation requires a new Step 14 opt-in
+   and starts its follow-up counter at `0`; it does not silently inherit consent.
+   Within an active loop, retain the existing counter and consent after a push.
+5. Tell the user: "Found [N] new/remaining unresolved threads and [M] unaddressed
+   general feedback sources since the last iteration."
 
 ## Scope Boundaries
 
 **This skill DOES:**
-- Fetch and analyze PR review threads
+- Fetch and analyze PR review threads, general review bodies, and PR conversation comments
 - Categorize comments by type (code change, question, discussion)
 - Make targeted code changes to address review feedback
 - Commit with a detailed summary of what was addressed

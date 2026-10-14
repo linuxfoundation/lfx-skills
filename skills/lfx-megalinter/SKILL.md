@@ -145,11 +145,13 @@ linter name across:
 
 - `.mega-linter.yml` (`DISABLE_LINTERS`, `DISABLE_ERRORS_LINTERS`, `<LINTER>_*` keys);
 - the workflow's `env:` block;
-- orphaned linter dotfiles (e.g. `.gitleaks.toml` after `REPOSITORY_GITLEAKS`
-  was replaced by `REPOSITORY_BETTERLEAKS`);
+- the removed linter's dotfiles;
 - inline annotations in source referencing the old linter name.
 
-Remove matches along with their rationale comments. Example: v10 removed
+Remove matches along with their rationale comments, unless the removed
+linter has a named replacement that reads them: then migrate them to the
+replacement's names instead (e.g. gitleaks → betterleaks, see
+[references/linter-fixes.md](references/linter-fixes.md)). Example: v10 removed
 `REPOSITORY_KICS` (Checkov, enabled by default, covers it), so a
 `REPOSITORY_KICS` entry in `DISABLE_ERRORS_LINTERS` is dead config.
 

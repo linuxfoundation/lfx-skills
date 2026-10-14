@@ -109,12 +109,33 @@ Why each piece matters (keep them all when copying):
 ## gitleaks / betterleaks
 
 MegaLinter v10 replaced `REPOSITORY_GITLEAKS` with `REPOSITORY_BETTERLEAKS`,
-so any gitleaks finding or config means the repo is on an older MegaLinter.
-Resolve every gitleaks issue by moving the repo to the skill's pinned
-release (v10.1.0) — don't tune or suppress gitleaks. Then clean up its
-leftovers as part of the removed-linters sweep: `REPOSITORY_GITLEAKS_*` keys,
-`.gitleaks.toml`, and `gitleaks:allow` comments (convert any still-needed
-ones to `betterleaks:allow`).
+so a gitleaks finding means the repo is on an older MegaLinter. Resolve
+every gitleaks issue by moving the repo to the skill's pinned release
+(v10.1.0) — don't tune or suppress gitleaks.
+
+Then explicitly migrate gitleaks configuration to betterleaks names.
+betterleaks still reads the gitleaks names for backward compatibility, but
+keeping them leaves the repo's config pointing at a removed tool. Carry the
+contents over unchanged (the formats are the same); don't delete them, since
+they hold active rules and allowlists:
+
+| gitleaks                         | betterleaks                              |
+|----------------------------------|------------------------------------------|
+| `.gitleaks.toml`                 | `.betterleaks.toml`                      |
+| `.gitleaksignore`                | `.betterleaksignore`                     |
+| `gitleaks:allow` inline comments | `betterleaks:allow`                      |
+| `REPOSITORY_GITLEAKS_*` settings | `REPOSITORY_BETTERLEAKS_*` (same suffix) |
+
+```bash
+git mv .gitleaks.toml .betterleaks.toml
+git mv .gitleaksignore .betterleaksignore
+files=$(git grep -l 'gitleaks:allow') && gsed -i 's/gitleaks:allow/betterleaks:allow/g' $files
+```
+
+Check each `REPOSITORY_GITLEAKS_*` key against the betterleaks variable list
+in MegaLinter's
+[betterleaks docs](https://megalinter.io/10.1.0/descriptors/repository_betterleaks/)
+before renaming it.
 
 For a small, localized betterleaks false positive, add a trailing
 `betterleaks:allow` comment on the flagged line:
@@ -143,17 +164,14 @@ gh api repos/<owner>/<repo> --jq '.visibility'
   ACTION_ZIZMOR_UNSECURED_ENV_VARIABLES: GITHUB_TOKEN
   ```
 
-- **A target is a private cross-org repo**: the workflow token can't read it,
-  so zizmor reports impostor-commit/unreachable findings. Use
-  `ACTION_ZIZMOR_ARGUMENTS: "--offline"` and remove
+- **Any target is a private repo other than the workflow's own** (a private
+  shared workflow or action, in this org or another): the workflow token can
+  only read its own repository, so zizmor reports impostor-commit/unreachable
+  findings. Use `ACTION_ZIZMOR_ARGUMENTS: "--offline"` and remove
   `ACTION_ZIZMOR_UNSECURED_ENV_VARIABLES`.
 
-- **Exception**: if the MegaLinter workflow runs on `pull_request` including
-  Dependabot PRs, those runs get a restricted `GITHUB_TOKEN` (401 on API
-  calls) regardless of visibility, which can also justify `--offline`.
-
-Don't blanket-copy `--offline` from another repo without checking which case
-applies.
+Don't blanket-copy `--offline` from another repo without checking its
+`uses:` targets.
 
 ### `github-app` false positive
 
@@ -181,7 +199,9 @@ Install the repo's dependencies and use its own ESLint:
 
 ```yaml
 JAVASCRIPT_ES_PRE_COMMANDS:
-  - command: npm ci  # Or the repo's package manager equivalent.
+  # The JavaScript image sets NODE_ENV=production, which skips
+  # devDependencies (where ESLint and its plugins live) unless included.
+  - command: npm ci --include=dev  # Or the package manager's equivalent.
     cwd: workspace
 JAVASCRIPT_ES_CLI_EXECUTABLE: node_modules/.bin/eslint
 ```

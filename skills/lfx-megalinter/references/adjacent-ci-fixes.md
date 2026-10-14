@@ -13,12 +13,13 @@ Check for each when the repo has the matching file.
 If the Makefile installs a pinned `goa.design/goa/v3/cmd/goa@vX.Y.Z` that
 differs from `go.mod`'s `goa.design/goa/v3`, `make apigen` regenerates
 `gen/` with a stale generator against a newer runtime. Derive it from
-`go.mod` and always (re)install it in the deps target:
+`go.mod` via `go list` (which handles both single-line and block `require`
+forms) and always (re)install it in the deps target:
 
 <!-- markdownlint-disable MD010 -->
 
 ```makefile
-GOA_VERSION := $(shell awk '/goa.design\/goa\/v3 /{print $$2}' go.mod)
+GOA_VERSION := $(shell go list -m -f '{{.Version}}' goa.design/goa/v3)
 
 deps:
 	go install goa.design/goa/v3/cmd/goa@$(GOA_VERSION)

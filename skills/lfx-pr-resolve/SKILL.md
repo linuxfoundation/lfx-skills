@@ -163,6 +163,10 @@ bot indicators above; retain that classification for attribution and replies.
 Use this same record during monitoring; merely fetching a source or snapshotting
 a conversation does not mark its feedback handled.
 
+Split multi-point feedback into one checkable item per distinct actionable claim,
+requested change, or question. Match each item to a specific existing response;
+do not treat a reply covering only some items as handling the whole source.
+
 On a fresh invocation, inspect existing workflow replies and summaries for a
 specific answer to the source's current actionable feedback. Count a source as
 handled only when all its actionable items are addressed and any claimed fix is
@@ -198,8 +202,8 @@ not automatically to the thread opener. Use that author's bot classification
 when drafting replies and summaries; a later bot reply must not be `@mentioned`.
 
 1. Read the current code/docs at the referenced location with surrounding context.
-   If no file/line is given, use the reference's locationless branch: map concrete
-   claims to current code/docs, or validate pure discussion against PR context.
+   If no file/line is given, use step 1's no-location guidance in the reference:
+   map concrete claims to current code/docs, or validate pure discussion against PR context.
 2. For code/doc claims, check the repo's relevant existing patterns via `grep`.
 3. Cross-reference with project conventions (CLAUDE.md, eslint, style guides).
 4. Assign one of four assessments: **Valid**, **Likely false positive**, **Partially valid**, or **Outdated**, and act accordingly.
@@ -312,6 +316,9 @@ Skill(skill: "<repo-local-skill>", args: "FIX PR REVIEW: [description of the cha
 For simple, targeted fixes (rename a variable, add a null check, fix an import), make the change directly, no need to delegate.
 
 ## Step 6: Validate Changes
+
+If there are no approved code changes in this round, skip Steps 6–8 and continue
+to Step 9 with the approved responses.
 
 After all code changes are made, run validation. Delegate to preflight with `--skip-review` since this is an iteration, not a fresh PR:
 
@@ -457,7 +464,9 @@ the same approach in [file1], [file2], etc."]
 ### Response Rules
 
 - **Be specific**, don't say "Fixed." Say what was fixed and how.
-- **Reference the commit**, include the short SHA so reviewers can jump to the exact change.
+- **Reference the published fixing commit when a fix was made**, including its
+  short SHA. For response-only outcomes, explain the answer or decision without
+  requiring a commit reference.
 - **Keep it concise**, one or two sentences for simple fixes, a short paragraph for questions or discussions.
 - **Be professional and appreciative**, reviewers spent time reading the code. Acknowledge good catches.
 - **Never `@mention` bot reviewers**, when replying to a bot's thread, do not include `@botname` in the response body. Tagging bots causes them to re-trigger and attempt to re-review or act on already-resolved feedback.
@@ -653,7 +662,8 @@ If the user runs this skill again on the same PR:
 - Categorize comments by type (code change, question, discussion)
 - Make targeted code changes to address review feedback
 - Commit with a detailed summary of what was addressed
-- Respond to each review thread on GitHub
+- Respond to each feedback source through thread replies or PR-level comments for
+  general review and PR conversation feedback
 - Resolve addressed threads
 - Post a summary comment on the PR
 - Push changes to the remote branch

@@ -3,25 +3,31 @@
 
 # Dismiss Stale Reviews and Re-request
 
-After pushing changes and posting the summary, dismiss any "changes requested" reviews from reviewers whose feedback was addressed, then re-request their review so they're prompted to look at the updated code.
+After pushing changes and posting the summary, dismiss stale request-changes
+reviews only when the reviewer still needs a fresh look at newly published
+code.
 
-**Only do this if changes were pushed.** If no code changes were made (e.g., only questions were answered), skip the entire flow.
+**Only do this if changes were pushed.** If the round was response-only (for
+example, questions answered without code changes), skip this entire flow.
 
-## Identify reviews to dismiss
+## Identify eligible reviewers
 
-Fetch every REST review page and ignore pending drafts. Select each reviewer's
-latest submitted review across all states, then identify candidates where:
+> Determine each reviewer's current submitted review state before considering dismissal.
 
-- The latest review's `state` is `CHANGES_REQUESTED`
-- The reviewer had actionable thread comments, general review-body feedback, or PR
-  conversation comments addressed in this iteration, with any fixing commit
-  confirmed published
-- All of that reviewer's feedback is addressed; an unanswered or deferred general
-  review-body finding or actionable PR conversation comment blocks eligibility
-  just as an open thread does
+Fetch every review page, ignore pending drafts, and collapse each reviewer to
+their latest submitted review across all states. Only reviewers whose current
+latest review is `CHANGES_REQUESTED` are even candidates for dismissal and
+re-request.
+
+A candidate reviewer is eligible only when all of that reviewer's actionable
+feedback addressed in this iteration is fully handled, including inline thread
+feedback, general review-body findings, and actionable PR conversation
+comments. Unanswered, deferred, or still-open feedback blocks eligibility, even
+if some threads were resolved.
 
 ```bash
-# Fetch every page, select each reviewer's latest submitted state, then filter
+# Fetch every page, ignore pending drafts, determine each reviewer's current
+# latest submitted state, then keep only current CHANGES_REQUESTED reviews.
 gh api "repos/$OWNER/$REPO/pulls/$NUMBER/reviews" --paginate --slurp |
   jq '[add | map(select(.state != "PENDING")) | group_by(.user.login)[]
     | max_by([.submitted_at, .id]) | select(.state == "CHANGES_REQUESTED")
@@ -30,7 +36,10 @@ gh api "repos/$OWNER/$REPO/pulls/$NUMBER/reviews" --paginate --slurp |
 
 ## Dismiss each stale review
 
-For each reviewer whose "changes requested" review was addressed:
+> Dismiss only when the current latest review is still
+`CHANGES_REQUESTED` and this iteration published the fixes being claimed.
+
+For each eligible reviewer, dismiss that latest `CHANGES_REQUESTED` review:
 
 ```bash
 gh api repos/$OWNER/$REPO/pulls/$NUMBER/reviews/$REVIEW_ID/dismissals \
@@ -40,27 +49,34 @@ gh api repos/$OWNER/$REPO/pulls/$NUMBER/reviews/$REVIEW_ID/dismissals \
 
 ## Re-request review
 
-After dismissing, re-request a review from those same reviewers so they receive a notification:
+> Re-request review only from the reviewers whose current stale
+request-changes reviews you just dismissed.
+
+After dismissing, re-request review from those same reviewers so they receive a
+notification:
 
 ```bash
 gh pr edit $NUMBER --repo $OWNER/$REPO --add-reviewer "$REVIEWER_LOGIN"
 ```
 
-If multiple reviewers had changes requested, add all of them:
+If several reviewers are eligible, add them together.
 
 ```bash
-# All reviewers whose changes_requested was dismissed (comma-separated)
+# All reviewers whose current CHANGES_REQUESTED review was dismissed
 gh pr edit $NUMBER --repo $OWNER/$REPO --add-reviewer "reviewer1,reviewer2"
 ```
 
 ## Edge cases
 
-- **Reviewer is not a collaborator**: `--add-reviewer` may fail for external contributors. If it fails, note it in the report but don't block.
-- **Multiple reviews from the same reviewer**: Use the latest submitted review
-  across all pages and states, ignoring pending drafts. Dismiss only if that latest
-  review is `CHANGES_REQUESTED`; a newer review in another state blocks dismissal.
-- **Mixed reviewers**: Some reviewers may have had all their thread comments,
-  general review-body feedback, and actionable PR conversation comments addressed
-  while others still have open findings. Only dismiss and re-request for reviewers
-  whose feedback was fully addressed.
-- **No latest `CHANGES_REQUESTED` reviews**: Skip this step; no reviewer is eligible.
+> Newer non-blocking reviews win over older request-changes reviews.
+
+- **Reviewer is not a collaborator**: `--add-reviewer` may fail for external
+  contributors. Note it in the report, but do not block the rest of the flow.
+- **Multiple reviews from the same reviewer**: Always use the latest submitted
+  review across all pages and states, ignoring pending drafts. If that latest
+  review is not `CHANGES_REQUESTED`, do not dismiss anything for that reviewer.
+- **Mixed feedback status**: Some reviewers may have all actionable feedback
+  handled while others still have open findings. Only dismiss and re-request for
+  reviewers whose feedback is fully handled in this iteration.
+- **No current `CHANGES_REQUESTED` reviews**: Skip this step; no reviewer is
+  eligible.

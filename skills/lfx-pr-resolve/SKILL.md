@@ -5,7 +5,7 @@ description: >
   and PR conversation comments, makes code changes,
   commits with a summary, responds to each comment, resolves threads, posts
   a follow-up summary, dismisses stale "changes requested" reviews, and
-  re-requests review, and offers up to three opt-in monitoring rounds. Use
+  re-requests review, and offers up to two opt-in monitoring rounds. Use
   whenever someone wants to address PR feedback, fix review comments, resolve
   PR threads, iterate on a pull request after review, or "monitor this PR for
   new comments." Works on one PR; monitoring follows its feedback-resolution
@@ -109,17 +109,25 @@ REPO=$(gh repo view --json name -q '.name')
 # NUMBER comes from Step 1 (user input or auto-detection)
 ```
 
-### Fetch Review Threads
+### Fetch PR Feedback
 
-Fetch the PR metadata, all review-thread pages, and each thread's full conversation
-using [`references/graphql-queries.md`](references/graphql-queries.md), "Fetch PR
-review threads". Bind `$OWNER`, `$REPO`, and `$NUMBER`; follow its separate thread
-and per-thread comment continuation queries until every `hasNextPage` is false.
+> Use a hybrid intake: complete coverage of feedback sources, targeted deep reads of thread conversations.
 
-Also fetch general review bodies and PR conversation comments using
-[`references/graphql-queries.md`](references/graphql-queries.md), "Fetch general
-PR feedback". Read these alongside unresolved threads; actionable feedback is
-not limited to inline comments.
+1. **Run a completeness scan.** Fetch the PR metadata, every page of review-thread
+   metadata, all general review bodies, and all PR conversation comments using
+   [`references/graphql-queries.md`](references/graphql-queries.md), "Scan PR
+   review threads" and "Fetch general PR feedback". This scan establishes the
+   full set of potential feedback sources; do not stop at inline threads alone.
+2. **Hydrate only candidate thread conversations.** After the scan, fetch the
+   full conversation only for unresolved threads you may need to act on. On the
+   initial pass, hydrate every unresolved thread. During monitoring or a fresh
+   rerun, hydrate unresolved threads whose handling is unclear, whose prior
+   disposition was not final, or whose state must be re-checked before acting.
+   Use the PR head SHA as supporting context only; do not limit the review
+   solely to comments made after the latest push.
+3. **Fail closed on partial data.** If the scan or any required conversation
+   fetch fails, stop and report the failure rather than treating partial results
+   as "no feedback."
 
 ### Identify AI Bot Reviewers
 
@@ -148,38 +156,34 @@ For each unresolved thread, extract:
 | Comment body | All comments in the thread (the conversation) |
 | Outdated? | `isOutdated` (file has changed since the comment was made) |
 
-### Track All Feedback from the Initial Pass
+### Track Feedback State for This PR
+
+> Track enough source state to avoid duplicate handling while keeping the workflow readable.
 
 Initialize the assessed-feedback record in this step, before deciding whether
-there is anything to address. For each review thread, retain its thread ID,
-disposition, and response permalink; snapshot every comment's ID, author login,
-bot classification, full body, available update timestamp, and disposition so
-new replies and edits can be distinguished from unchanged open conversations.
-For each general review body or PR conversation comment, retain its source type,
-ID, author login, bot classification, full body, available update timestamp,
-disposition, and the permalink of any response that addresses it. Classify each
-author using the API type (`__typename` in GraphQL, `user.type` in REST) and the
-bot indicators above; retain that classification for attribution and replies.
-Use this same record during monitoring; merely fetching a source or snapshotting
-a conversation does not mark its feedback handled.
+there is anything to address. Treat each distinct actionable claim, requested
+change, or question as a separate feedback item, even when several appear in
+the same thread or general comment.
 
-Split multi-point feedback into one checkable item per distinct actionable claim,
-requested change, or question. Match each item to a specific existing response;
-do not treat a reply covering only some items as handling the whole source.
+For each review thread, general review body, or PR conversation comment, retain
+enough state to recognize it later: source identity, author, bot
+classification, current body or last-updated signal, latest disposition, and
+any response permalink. For hydrated thread conversations, keep enough comment
+detail to detect new replies or edited feedback. Classify authors using the API
+type (`__typename` in GraphQL, `user.type` in REST) together with the bot
+indicators above so attribution and reply rules stay correct.
 
-On a fresh invocation, inspect existing workflow replies and summaries for a
-specific answer to the source's current actionable feedback. Count a source as
-handled only when all its actionable items are addressed and any claimed fix is
-confirmed published on the PR. A human reply, acknowledgment, or status message
-alone is not evidence of handling. If the evidence is unclear, keep it unaddressed.
-New or edited feedback needs assessment; compare the body as well as any available
-timestamp. Record this workflow's own replies and summaries so they are not
-mistaken for new reviewer feedback.
+Count a source as handled only when all of its actionable items have been
+specifically addressed and any claimed code fix is confirmed published on the
+PR. Acknowledgments, status updates, or a reply that covers only some items do
+not count as full handling. If the evidence is unclear, keep the item
+unaddressed.
 
-Use the reconstructed record to identify eligible unaddressed items, not merely
-unresolved threads. Skip unchanged items already answered, rejected with user
-approval, deferred, or awaiting input. New or edited feedback remains eligible
-for assessment; a claimed fix is not handled until publication is confirmed.
+On reruns, use this record plus existing workflow replies and summaries to
+avoid duplicate work. Do not reprocess unchanged items already answered,
+rejected with user approval, deferred, or awaiting input. New replies or edited
+feedback reopen assessment. Record this workflow's own replies and summaries so
+they are not mistaken for new reviewer feedback.
 
 ### Edge Cases
 
@@ -199,32 +203,43 @@ for assessment; a claimed fix is not handled until publication is confirmed.
 
 ## Step 3: Validate Each Comment Against Repo Patterns
 
-Before categorizing or acting on any comment, validate whether the reviewer's feedback is actually correct. Reviewers can make mistakes; blindly implementing every comment can introduce regressions.
+> Validate only the feedback items that are still eligible and unaddressed.
 
-For each eligible unaddressed item within an unresolved thread or general review/PR
-comment, follow the four-step validation flow in
-[`references/validation-heuristics.md`](references/validation-heuristics.md):
+Before categorizing or acting on any comment, validate whether the reviewer's
+feedback is actually correct. Reviewers can make mistakes; blindly implementing
+every comment can introduce regressions.
 
-Attribute each item to the author of the comment or general source being assessed,
-not automatically to the thread opener. Use that author's bot classification
-when drafting replies and summaries; a later bot reply must not be `@mentioned`.
+For each eligible unaddressed item from an unresolved thread, general review
+body, or PR conversation comment, follow the four-step validation flow in
+[`references/validation-heuristics.md`](references/validation-heuristics.md).
+Attribute each item to the author of the specific comment or source being
+assessed, not automatically to the thread opener. Use that author's bot
+classification when drafting replies and summaries; a later bot reply must not
+be `@mentioned`.
 
-1. Read the current code/docs at the referenced location with surrounding context.
-   If no file/line is given, use step 1's no-location guidance in the reference:
-   map concrete claims to current code/docs, or validate pure discussion against PR context.
+> If a claim has no file or line, map it to current code/docs when possible; otherwise keep it as a discussion item instead of inventing a defect.
+
+1. Read the current code/docs at the referenced location with surrounding
+   context. If no file/line is given, map concrete code/doc claims to current
+   code/docs, or validate pure questions/discussion against PR context.
 2. For code/doc claims, check the repo's relevant existing patterns via `grep`.
 3. Cross-reference with project conventions (CLAUDE.md, eslint, style guides).
-4. Assign one of four assessments: **Valid**, **Likely false positive**, **Partially valid**, or **Outdated**, and act accordingly.
+4. Assign one of four assessments: **Valid**, **Likely false positive**,
+   **Partially valid**, or **Outdated**, and act accordingly.
 
-Lean toward implementing when in doubt, but always surface your assessment to the user.
+Lean toward implementing when in doubt, but always surface your assessment to
+the user.
 
 ## Step 4: Categorize Comments
 
+> Plan by feedback item, not by thread; use source permalinks and include code locations only when available.
+
 After validation, categorize each feedback item from an unresolved thread,
-general review body, or PR conversation comment. Keep a stable item number, source
-type and ID, reviewer, source permalink, and optional code location. A general
-source may contain several actionable items; track each separately without
-duplicating findings already represented by a thread.
+general review body, or PR conversation comment. Keep a stable item number,
+reviewer, source permalink, and optional code location. Attribute each item to
+the actual comment author being assessed so bot-mention rules remain correct. A
+general source may contain several actionable items; track each separately
+without duplicating findings already represented by a thread.
 
 | Category | Description | Action |
 |----------|-------------|--------|
@@ -235,12 +250,7 @@ duplicating findings already represented by a thread.
 | **False positive** | Reviewer's suggestion conflicts with repo patterns or is based on a misread | Flag for user, recommend a polite response explaining why |
 | **Discussion** | Architectural debate, trade-off, or open-ended feedback | Flag for user decision |
 
-### Present the Plan
-
-Before making any changes, present every categorized feedback item to the user,
-including general sources without a file/line. Use the source permalink to identify
-the conversation; include a code location only when one is available. Show the
-validation assessment for each item so the user can make an informed decision:
+> Before making changes, present the categorized item plan to the user with validation notes and source permalinks.
 
 ```
 ═══════════════════════════════════════════
@@ -325,25 +335,26 @@ For simple, targeted fixes (rename a variable, add a null check, fix an import),
 
 ## Step 6: Validate Changes
 
-If there are no approved code changes in this round, skip Steps 6–8 and continue
-to Step 9 with the approved responses.
+> Skip this step for a response-only round.
 
-After all code changes are made, run validation. Delegate to preflight with `--skip-review` since this is an iteration, not a fresh PR:
+If this round includes approved code changes, run validation before replying.
+Use the repo's normal quick validation path for an iteration, for example:
 
-```bash
-# Quick validation, format, lint, build
-yarn format && yarn lint && yarn build
-# Or for Go repos:
-go vet ./... && go build ./...
-```
+> ```bash
+> # Quick validation, format, lint, build
+> yarn format && yarn lint && yarn build
+> # Or for Go repos:
+> go vet ./... && go build ./...
+> ```
 
-If validation fails, fix the issues before proceeding. Do not commit broken code.
+> If validation fails, fix the issues before proceeding. Do not commit broken code.
 
 ## Step 7: Commit with Detailed Summary
 
-If there are no approved code changes, skip Steps 7 and 8 and continue to Step 9
-with the approved responses. Do not create an empty commit for a response-only
-iteration. Otherwise, create one commit summarizing the approved changes.
+> Skip this step for a response-only round. Do not create an empty commit.
+
+When code changes were approved and validation passed, create one commit that
+summarizes the approved changes for this review iteration.
 
 ### Commit Message Format
 
@@ -389,15 +400,17 @@ EOF
 
 ## Step 8: Push Changes
 
-Skip this step for a response-only iteration. When code changes were made, publish
-the fixing commit before posting fix replies, resolving those threads, or posting
-the summary, so reviewers can inspect the changes being claimed.
+> Skip this step for a response-only round.
+
+When code changes were made, push the fixing commit before posting replies,
+resolving threads, or posting the summary so reviewers can inspect the published
+changes being claimed.
 
 ```bash
 git push
 ```
 
-If the push fails due to remote changes, pull and rebase first:
+> If the push fails because the branch moved, rebase, re-run quick validation, and push again.
 
 ```bash
 git pull --rebase origin $(git branch --show-current)
@@ -408,98 +421,98 @@ git push
 
 ## Step 9: Respond to Each Feedback Source
 
-After any fixing commit is confirmed published, respond to each addressed thread
-and general feedback source on GitHub. If no approved code change was made, proceed
-directly with the approved responses without a commit or push. Reviewers need to
-know what was answered and whether anything changed.
+> Reply after any fixing commit is published, or immediately in a response-only round.
+
+Respond on GitHub to each addressed feedback source so reviewers can see what was
+answered and whether code changed.
+
+### Reply by Source Type
+
+> Use the thread reply mutation for inline review threads and PR-level comments for general feedback.
+
+- **Inline review thread**: reply with `addPullRequestReviewThreadReply` from
+  [`references/graphql-queries.md`](references/graphql-queries.md), "Reply to a
+  review thread", bound to `$THREAD_ID` and `$RESPONSE_BODY`.
+- **General review body or PR conversation comment**: use the PR-comment POST
+  command in the same reference, "Reply to general PR feedback". Include the
+  source permalink, the specific answer or change, and the published commit SHA
+  when a fix was made. Record the returned reply permalink in the Step 2 record.
+
+Do not mark a source handled until all of its actionable items are addressed.
+General review bodies and PR conversation comments have no thread ID, so Step
+10's resolution mutation does not apply.
 
 ### Response Format by Category
 
-For review threads, post each reply with the `addPullRequestReviewThreadReply`
-mutation in [`references/graphql-queries.md`](references/graphql-queries.md),
-"Reply to a review thread", bound to `$THREAD_ID` and `$RESPONSE_BODY`.
-
-For general review bodies and PR conversation comments, use the PR-comment POST
-command in the same reference, "Reply to general PR feedback". Include the source
-permalink, the specific answer or change, and the published commit SHA when a fix
-was made. Record the returned reply permalink in the Step 2 record; do not mark a
-source handled until all its actionable items are addressed. These sources have
-no thread ID, so Step 10's resolution mutation does not apply.
+> Use the same content either in a thread reply or a PR-level reply, depending on the source type.
 
 **For code changes made:**
 
-Response body:
+> ```
+> Done, [specific description of the change made].
+>
+> See commit [short SHA]: [one-line summary of what changed in this file].
+> ```
 
-```
-Done, [specific description of the change made].
+> **For questions answered (no code change):**
 
-See commit [short SHA]: [one-line summary of what changed in this file].
-```
+> ```
+> [Clear, specific answer to the question with code references where helpful].
+>
+> No code change needed, [brief explanation of why the current approach is correct].
+> ```
 
-**For questions answered (no code change):**
+> **For nitpicks fixed:**
 
-```
-[Clear, specific answer to the question with code references where helpful].
+> ```
+> Fixed, [what was changed]. Good catch!
+> ```
 
-No code change needed, [brief explanation of why the current approach is correct].
-```
+> **For discussion items where user provided direction:**
 
-**For nitpicks fixed:**
+> ```
+> [Explanation of the decision and reasoning].
+>
+> [Description of what was changed, or why no change was made].
+> ```
 
-```
-Fixed, [what was changed]. Good catch!
-```
+> **For false positives (user confirmed no change needed):**
 
-**For discussion items where user provided direction:**
+> ```
+> Thanks for flagging this, I can see why it looks [wrong/inconsistent/off].
+>
+> [Explanation with evidence: "This repo uses [pattern X] for [reason]. You can see
+> the same approach in [file1], [file2], etc."]
+>
+> [If applicable: "Happy to discuss further if you think we should reconsider."]
+> ```
 
-```
-[Explanation of the decision and reasoning].
-
-[Description of what was changed, or why no change was made].
-```
-
-**For false positives (user confirmed no change needed):**
-
-```
-Thanks for flagging this, I can see why it looks [wrong/inconsistent/off].
-
-[Explanation with evidence: "This repo uses [pattern X] for [reason]. You can see
-the same approach in [file1], [file2], etc."]
-
-[If applicable: "Happy to discuss further if you think we should reconsider."]
-```
-
-### Response Rules
-
-- **Be specific**, don't say "Fixed." Say what was fixed and how.
-- **Reference the published fixing commit when a fix was made**, including its
-  short SHA. For response-only outcomes, explain the answer or decision without
-  requiring a commit reference.
-- **Keep it concise**, one or two sentences for simple fixes, a short paragraph for questions or discussions.
-- **Be professional and appreciative**, reviewers spent time reading the code. Acknowledge good catches.
-- **Never `@mention` bot reviewers**, when replying to a bot's thread, do not include `@botname` in the response body. Tagging bots causes them to re-trigger and attempt to re-review or act on already-resolved feedback.
+> Response rules: be specific, reference the published fixing commit when a fix
+  was made, omit commit references for response-only outcomes, keep replies
+  concise, and never `@mention` bot reviewers.
 
 ## Step 10: Resolve Review Threads
 
-After responding to each thread, resolve it with the `resolveReviewThread` mutation in [`references/graphql-queries.md`](references/graphql-queries.md) (section "Resolve a review thread"), bound to `$THREAD_ID`. Only resolve threads where the feedback has been fully addressed, if a thread required user input and the user chose not to address it, leave it unresolved.
+> Resolve only actual review threads, and only when their feedback is fully handled.
 
-### Do NOT Resolve If
+After replying, resolve an inline review thread with the `resolveReviewThread`
+mutation in [`references/graphql-queries.md`](references/graphql-queries.md),
+"Resolve a review thread", bound to `$THREAD_ID`. General review bodies and PR
+conversation comments cannot be resolved this way because they have no thread.
 
-- The comment was a discussion point and no conclusion was reached
-- The user explicitly said to skip or defer a comment
-- The change couldn't be made due to a technical constraint (explain why in the response, leave unresolved)
-- You're unsure whether your change fully addresses the feedback, leave unresolved and let the reviewer confirm
-
+Leave a thread open if it still needs discussion, was deferred or skipped by the
+user, could not be completed, or you are unsure whether the reviewer will
+consider it addressed.
 ## Step 11: Post Summary Comment
 
-After responding to the addressed feedback items and resolving eligible threads,
-post a single summary comment on the PR. Include thread findings, general
-review-body findings, and PR conversation comments, even when they have no code
-location, so reviewers can see everything addressed in this iteration:
+> Post one PR summary for the iteration, including response-only rounds.
 
-Response-only iterations still post the applicable summary. Omit the commit field
-and empty changes section when no code change was made; report the answers,
-explanations, resolutions, and anything left open instead.
+After replying to addressed feedback and resolving any eligible review threads,
+post a single PR summary covering inline threads, general review bodies, and PR
+conversation comments. Include locationless sources too.
+
+For a response-only round, omit commit fields and any empty "Changes Made"
+section. Report the answers, explanations, resolutions, and anything still open.
 
 ```bash
 gh pr comment $NUMBER --repo $OWNER/$REPO --body "$(cat <<'EOF'
@@ -537,14 +550,15 @@ EOF
 
 ### Summary Rules
 
-- **List every feedback item** that was addressed, not just code changes or threads;
-  identify its source permalink and include the code location only when available
-- **Group by action type**, changes made, questions answered, deferred
+- **List every addressed feedback item**, not just code changes or resolved
+  threads; identify its source permalink and include a code location only when
+  available
+- **Group by action type**, for example changes made, questions answered, and
+  no-change-needed outcomes
 - **Include the commit SHA when a fixing commit exists** so reviewers can inspect
-  the diff; omit this field for response-only iterations
-- **Call out anything left open**, don't hide unresolved items
-- **Credit human reviewers** by `@mentioning` them next to their feedback (e.g., write `(per @alice)` or `(asked by @bob)`)
-- **Never `@mention` bot reviewers** in the summary, use their plain name without the `@` prefix (e.g., write `(per copilot[bot])` not `(per @copilot[bot])`). Tagging bots in the summary causes them to re-trigger and attempt to act on already-resolved feedback.
+  the published diff; omit it for response-only rounds
+- **Call out anything still open**
+- **`@mention` human reviewers only**; never `@mention` bots in the summary
 
 ## Step 12: Dismiss Stale Reviews and Re-request
 
@@ -554,11 +568,16 @@ See [`references/dismiss-rerequest.md`](references/dismiss-rerequest.md) for the
 
 ## Step 13: Report to User
 
-Outside monitoring, present the final status using the template below. During a
-monitoring round, the loop's round report replaces this template; do not include
-the "Optionally monitor" bullet or offer another monitoring cycle.
-For a response-only iteration, omit the commit and pushed-branch fields; report
-the approved replies and applicable resolutions without implying publication.
+> Use one final report outside monitoring, and a shorter round-status report during monitoring.
+
+Outside monitoring, present the final status with the template below. During a
+monitoring round, report `Monitoring round [N]/2` plus what was assessed, what
+action was taken, whether a commit was published, what threads were resolved,
+and what remains open. Do not repeat the monitoring offer inside the loop.
+
+For a response-only round, omit commit and pushed-branch fields and report the
+approved replies and any applicable thread resolutions without implying that code
+was published.
 
 ```
 ═══════════════════════════════════════════
@@ -586,7 +605,7 @@ Summary comment posted: [PR URL]
 
 What's next:
   [- Reviewers have been re-requested and will be notified (only if refreshed)]
-  - Optionally monitor this PR for feedback in up to 3 follow-up rounds
+  - Optionally monitor this PR for feedback in up to 2 follow-up rounds
   [- [N] feedback items still need discussion, follow up at their source permalinks]
 ═══════════════════════════════════════════
 ```
@@ -598,10 +617,10 @@ After the final report (or Step 2 finds nothing to address), use
 
 > "Would you like me to monitor this PR for new comments and remaining
 > unresolved feedback, validate what needs fixing, and run this same resolution
-> workflow for up to 3 follow-up rounds? I'll wait 60 seconds before each check
+> workflow for up to 2 follow-up rounds? I'll wait 60 seconds before each check
 > and still ask for approval before making changes."
 
-Offer **Monitor (up to 3 rounds)** and **Finish now**. Do not start monitoring
+Offer **Monitor (up to 2 rounds)** and **Finish now**. Do not start monitoring
 without an explicit opt-in. If the user declines, finish without further checks.
 
 ### Monitoring Loop
@@ -610,16 +629,18 @@ The initial resolution pass does **not** count toward the limit. Maintain one
 session-local counter for this PR, initially `0`, and reuse the assessed-feedback
 record initialized in Step 2. Unassessed feedback remains eligible.
 
-For each of **at most 3 follow-up rounds**:
+For each of **at most 2 follow-up rounds**:
 
 1. **Wait and count.** Wait 60 seconds (`sleep 60`), then increment the counter
    before fetching. Every check consumes a round, even if no new or valid
    feedback appears. Honor a user's request to stop immediately.
 2. **Re-fetch the same PR.** Check its state; stop if it is merged or closed.
-   Repeat Step 2, including paginated review threads, their full conversations,
-   general review bodies, and PR conversation comments. Do not reuse a stale
-   snapshot. If a fetch fails, report the failure and stop rather than claiming
-   the PR has no feedback.
+   Repeat Step 2's completeness scan across review-thread metadata, general
+   review bodies, and PR conversation comments. Then re-hydrate only the
+   unresolved thread conversations that remain candidates for action in this
+   round. Do not reuse a stale snapshot. If the scan or a required hydration
+   fetch fails, report the failure and stop rather than claiming the PR has no
+   feedback.
 3. **Identify eligible feedback.** Read new or edited comments and all remaining
    unresolved threads, including outdated ones against the current code. Skip
    resolved threads and unchanged feedback already answered, rejected with user
@@ -634,7 +655,7 @@ For each of **at most 3 follow-up rounds**:
    re-request rules; do not create empty commits or post duplicate replies or
    summaries when no action is taken.
 5. **Report the round.** Replace Step 13's terminal report with
-   `Monitoring round [N]/3`, feedback assessed, actions taken, commit/publication
+   `Monitoring round [N]/2`, feedback assessed, actions taken, commit/publication
    state (if any), and anything still unresolved. Do not repeat the monitoring
    offer. If there is no eligible feedback, say so and continue to the next check
    within the limit.
@@ -642,15 +663,17 @@ For each of **at most 3 follow-up rounds**:
 When Step 13 completes inside this loop, return to the next numbered round,
 **not** to a fresh Step 14 prompt. Never recursively invoke this skill, reset
 the counter after a push, or automatically extend/restart monitoring. After
-round 3, stop and report any remaining unresolved feedback and that the
+round 2, stop and report any remaining unresolved feedback and that the
 monitoring limit was reached; do not claim that future comments are covered.
 
 ## Idempotency, Safe to Re-run
 
 If the user runs this skill again on the same PR:
 
-1. **Re-fetch all feedback**, including every thread conversation, general review
-   body, and PR conversation comment. Skip already-resolved threads.
+1. **Re-run the Step 2 scan**, covering all review-thread metadata, general
+   review bodies, and PR conversation comments. Re-hydrate unresolved thread
+   conversations whose handling is unclear or still eligible; skip resolved
+   threads unless some repo-specific rule requires reopening them.
 2. **Reconstruct the Step 2 record** from specific existing replies and summaries.
    Match source IDs, full bodies, and available update timestamps; do not repeat
    answers to unchanged, addressed feedback. Keep deferred or uncertain sources
@@ -678,7 +701,7 @@ If the user runs this skill again on the same PR:
 - Dismiss stale "changes requested" reviews after addressing feedback
 - Re-request review from reviewers whose feedback was addressed
 - Route complex changes to the owning repo's local skills and `CLAUDE.md`
-- Offer opt-in monitoring for new comments and remaining unresolved feedback, capped at 3 follow-up rounds
+- Offer opt-in monitoring for new comments and remaining unresolved feedback, capped at 2 follow-up rounds
 
 **This skill does NOT:**
 - Create new PRs (use the owning repo's local preflight/readiness flow first)

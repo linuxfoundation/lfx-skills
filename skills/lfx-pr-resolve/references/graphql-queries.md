@@ -5,7 +5,9 @@
 
 GraphQL operations used by the PR-resolve workflow.
 
-## Fetch PR review threads (Step 2)
+## Scan PR review threads (Step 2)
+
+> Use this scan to discover all thread IDs and unresolved candidates before reading full conversations.
 
 ```bash
 gh api graphql -F query=@- -f owner="$OWNER" -f repo="$REPO" -F number=$NUMBER <<'GRAPHQL'
@@ -17,6 +19,7 @@ query($owner: String!, $repo: String!, $number: Int!, $after: String) {
       url
       baseRefName
       headRefName
+      headRefOid
       body
       reviewThreads(first: 100, after: $after) {
         pageInfo { hasNextPage endCursor }
@@ -28,28 +31,6 @@ query($owner: String!, $repo: String!, $number: Int!, $after: String) {
           line
           startLine
           diffSide
-          comments(first: 20) {
-            pageInfo { hasNextPage endCursor }
-            nodes {
-              id
-              url
-              author { login __typename }
-              body
-              createdAt
-              updatedAt
-              path
-              line
-              startLine
-            }
-          }
-        }
-      }
-      reviews(last: 20) {
-        nodes {
-          state
-          author { login }
-          body
-          submittedAt
         }
       }
     }
@@ -58,24 +39,45 @@ query($owner: String!, $repo: String!, $number: Int!, $after: String) {
 GRAPHQL
 ```
 
-The first call omits `after` and returns up to 100 threads plus the first 20
-comments of each thread. Preserve every page's nodes and inspect both connections'
-`pageInfo`; a successful first call does not establish that the fetch is complete.
+> This is the completeness pass, not the full-conversation pass.
 
-For thread pages, while `reviewThreads.pageInfo.hasNextPage` is true, set
-`THREAD_CURSOR` to that connection's `endCursor` and repeat the command above with
-`-f after="$THREAD_CURSOR"` added before the heredoc. Continue until it is false.
+The first call omits `after` and returns up to 100 thread metadata records.
+Preserve every page's nodes and inspect `reviewThreads.pageInfo`; a successful
+first call does not establish that the scan is complete.
 
-For **each thread on every page**, while its `comments.pageInfo.hasNextPage` is
-true, set `THREAD_ID` to that thread's `id` and `COMMENT_CURSOR` to its comments'
-`endCursor`, then run:
+While `reviewThreads.pageInfo.hasNextPage` is true, set `THREAD_CURSOR` to that
+connection's `endCursor` and repeat the command above with
+`-f after="$THREAD_CURSOR"` added before the heredoc. Continue until it is
+false.
+
+Do not stop at "no unresolved threads" until you have also fetched general
+review bodies and PR conversation comments; inline threads are not the only
+feedback source.
+
+Treat the scan as candidate selection only. After it completes, hydrate full
+thread conversations only for unresolved threads you may need to act on: every
+unresolved thread on the initial pass, and on monitoring/reruns the unresolved
+threads whose handling is unclear or still eligible. The current `headRefOid` is
+a helpful watermark, but never the sole filter for what counts as actionable
+feedback.
+
+## Hydrate a candidate thread conversation (Step 2)
+
+> Read the whole thread only after the scan says this unresolved thread is a candidate.
 
 ```bash
-gh api graphql -F query=@- -f threadId="$THREAD_ID" -f after="$COMMENT_CURSOR" <<'GRAPHQL'
-query($threadId: ID!, $after: String!) {
+gh api graphql -F query=@- -f threadId="$THREAD_ID" <<'GRAPHQL'
+query($threadId: ID!) {
   node(id: $threadId) {
     ... on PullRequestReviewThread {
-      comments(first: 20, after: $after) {
+      id
+      isResolved
+      isOutdated
+      path
+      line
+      startLine
+      diffSide
+      comments(first: 100) {
         pageInfo { hasNextPage endCursor }
         nodes {
           id
@@ -95,25 +97,55 @@ query($threadId: ID!, $after: String!) {
 GRAPHQL
 ```
 
-Append these comments to that thread's conversation, update `COMMENT_CURSOR` from
-the returned `comments.pageInfo.endCursor`, and repeat until `hasNextPage` is false.
-Keep thread and comment cursors separate; reset the comment cursor for each thread.
-Do not validate or act on a truncated conversation if any page fetch fails.
+Keep thread-page cursors and comment cursors separate.
+
+If `comments.pageInfo.hasNextPage` is true, set `COMMENT_CURSOR` to that
+connection's `endCursor`, keep `THREAD_ID` fixed, and continue with:
+
+```bash
+gh api graphql -F query=@- -f threadId="$THREAD_ID" -f after="$COMMENT_CURSOR" <<'GRAPHQL'
+query($threadId: ID!, $after: String!) {
+  node(id: $threadId) {
+    ... on PullRequestReviewThread {
+      comments(first: 100, after: $after) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          id
+          url
+          author { login __typename }
+          body
+          createdAt
+          updatedAt
+          path
+          line
+          startLine
+        }
+      }
+    }
+  }
+}
+GRAPHQL
+```
+
+Append returned comments to that thread's conversation and repeat until
+`hasNextPage` is false. Do not validate or act on a truncated conversation if
+any required page fetch fails.
 
 ## Fetch general PR feedback (Steps 2 and 14)
 
+> Fetch these sources on every pass; they are not covered by thread hydration.
+
 Fetch all pages of general review bodies and PR conversation comments, rather
-than relying on the thread query's last 20 reviews. Keep IDs and bodies to
-recognize already-handled feedback; conversation comments also have `updated_at`
-for detecting edits. Assess each review body only once even if it appears in
-both the GraphQL and REST responses.
+than relying on thread data or recent commits alone. Keep IDs, bodies, and
+available timestamps to recognize already-handled feedback and detect edits.
+Assess each review body only once even if it appears in multiple API responses.
 
 ```bash
 gh api --paginate "repos/$OWNER/$REPO/pulls/$NUMBER/reviews?per_page=100"
 gh api --paginate "repos/$OWNER/$REPO/issues/$NUMBER/comments?per_page=100"
 ```
 
-Before each monitoring fetch, check that the PR is still open:
+> Before each monitoring fetch, confirm the PR is still open.
 
 ```bash
 gh pr view "$NUMBER" --repo "$OWNER/$REPO" --json state --jq '.state'

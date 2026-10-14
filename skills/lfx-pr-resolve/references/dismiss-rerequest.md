@@ -12,12 +12,13 @@ example, questions answered without code changes), skip this entire flow.
 
 ## Identify eligible reviewers
 
-> Determine each reviewer's current submitted review state before considering dismissal.
+> Determine each reviewer's effective submitted decision before considering dismissal.
 
-Fetch every review page, ignore pending drafts, and collapse each reviewer to
-their latest submitted review across all states. Only reviewers whose current
-latest review is `CHANGES_REQUESTED` are even candidates for dismissal and
-re-request.
+Fetch every review page and collapse each reviewer to their latest
+decision-bearing review (`APPROVED`, `CHANGES_REQUESTED`, or `DISMISSED`).
+Ignore `PENDING` drafts and `COMMENTED` reviews: a comment-only review does not
+supersede an earlier approval or change request. Only reviewers whose effective
+decision is `CHANGES_REQUESTED` are candidates for dismissal and re-request.
 
 A candidate reviewer is eligible only when all of that reviewer's actionable
 feedback addressed in this iteration is fully handled, including inline thread
@@ -26,20 +27,21 @@ comments. Unanswered, deferred, or still-open feedback blocks eligibility, even
 if some threads were resolved.
 
 ```bash
-# Fetch every page, ignore pending drafts, determine each reviewer's current
-# latest submitted state, then keep only current CHANGES_REQUESTED reviews.
+# Fetch every page, ignore drafts and comment-only reviews, determine each
+# reviewer's latest decision, then keep only effective CHANGES_REQUESTED reviews.
 gh api "repos/$OWNER/$REPO/pulls/$NUMBER/reviews" --paginate --slurp |
-  jq '[add | map(select(.state != "PENDING")) | group_by(.user.login)[]
+  jq '[add | map(select(.state == "APPROVED" or .state == "CHANGES_REQUESTED"
+      or .state == "DISMISSED")) | group_by(.user.login)[]
     | max_by([.submitted_at, .id]) | select(.state == "CHANGES_REQUESTED")
     | {id: .id, user: .user.login}]'
 ```
 
 ## Dismiss each stale review
 
-> Dismiss only when the current latest review is still
-`CHANGES_REQUESTED` and this iteration published the fixes being claimed.
+> Dismiss only when the effective decision is still `CHANGES_REQUESTED` and
+this iteration published the fixes being claimed.
 
-For each eligible reviewer, dismiss that latest `CHANGES_REQUESTED` review:
+For each eligible reviewer, dismiss that effective `CHANGES_REQUESTED` review:
 
 ```bash
 gh api repos/$OWNER/$REPO/pulls/$NUMBER/reviews/$REVIEW_ID/dismissals \
@@ -68,13 +70,13 @@ gh pr edit $NUMBER --repo $OWNER/$REPO --add-reviewer "reviewer1,reviewer2"
 
 ## Edge cases
 
-> Newer non-blocking reviews win over older request-changes reviews.
+> Later approvals or dismissals supersede older change requests; comment-only reviews do not.
 
 - **Reviewer is not a collaborator**: `--add-reviewer` may fail for external
   contributors. Note it in the report, but do not block the rest of the flow.
-- **Multiple reviews from the same reviewer**: Always use the latest submitted
-  review across all pages and states, ignoring pending drafts. If that latest
-  review is not `CHANGES_REQUESTED`, do not dismiss anything for that reviewer.
+- **Multiple reviews from the same reviewer**: Use the latest decision-bearing
+  review across all pages, ignoring `PENDING` and `COMMENTED`. A later approval
+  or dismissal excludes the reviewer; a later comment alone does not.
 - **Mixed feedback status**: Some reviewers may have all actionable feedback
   handled while others still have open findings. Only dismiss and re-request for
   reviewers whose feedback is fully handled in this iteration.

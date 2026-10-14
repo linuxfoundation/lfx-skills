@@ -7,7 +7,7 @@ GraphQL operations used by the PR-resolve workflow.
 
 ## Scan PR review threads (Step 2)
 
-> Use this scan to discover all thread IDs and unresolved candidates before reading full conversations.
+> Use this scan to enumerate all thread IDs; metadata alone cannot detect comment changes.
 
 ```bash
 gh api graphql -F query=@- -f owner="$OWNER" -f repo="$REPO" -F number=$NUMBER <<'GRAPHQL'
@@ -54,16 +54,17 @@ Do not stop at "no unresolved threads" until you have also fetched general
 review bodies and PR conversation comments; inline threads are not the only
 feedback source.
 
-Treat the scan as candidate selection only. After it completes, hydrate full
-thread conversations only for unresolved threads you may need to act on: every
-unresolved thread on the initial pass, and on monitoring/reruns the unresolved
-threads whose handling is unclear or still eligible. The current `headRefOid` is
-a helpful watermark, but never the sole filter for what counts as actionable
-feedback.
+Treat the scan as source enumeration, not an eligibility filter. After it
+completes, hydrate every unresolved thread's full conversation on every pass,
+including monitoring and fresh reruns. Only then compare comment IDs, bodies,
+and update timestamps with the assessed-feedback record and select eligible
+items. A previously handled or deferred thread can receive a new reply or edit
+without changing its metadata or `headRefOid`; neither is a safe reason to skip
+reading it. Unchanged handled items remain excluded from action after comparison.
 
-## Hydrate a candidate thread conversation (Step 2)
+## Hydrate an unresolved thread conversation (Step 2)
 
-> Read the whole thread only after the scan says this unresolved thread is a candidate.
+> Read every unresolved conversation completely before comparing or filtering feedback.
 
 ```bash
 gh api graphql -F query=@- -f threadId="$THREAD_ID" <<'GRAPHQL'

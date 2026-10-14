@@ -5,7 +5,7 @@ description: >
   and PR conversation comments, makes code changes,
   commits with a summary, responds to each comment, resolves threads, posts
   a follow-up summary, dismisses stale "changes requested" reviews, and
-  re-requests review, and offers up to two opt-in monitoring rounds. Use
+  re-requests review, and offers up to three opt-in monitoring rounds. Use
   whenever someone wants to address PR feedback, fix review comments, resolve
   PR threads, iterate on a pull request after review, or "monitor this PR for
   new comments." Works on one PR; monitoring follows its feedback-resolution
@@ -111,20 +111,20 @@ REPO=$(gh repo view --json name -q '.name')
 
 ### Fetch PR Feedback
 
-> Use a hybrid intake: complete coverage of feedback sources, targeted deep reads of thread conversations.
+> Read complete unresolved conversations before deciding which feedback needs action.
 
 1. **Run a completeness scan.** Fetch the PR metadata, every page of review-thread
    metadata, all general review bodies, and all PR conversation comments using
    [`references/graphql-queries.md`](references/graphql-queries.md), "Scan PR
-   review threads" and "Fetch general PR feedback". This scan establishes the
-   full set of potential feedback sources; do not stop at inline threads alone.
-2. **Hydrate only candidate thread conversations.** After the scan, fetch the
-   full conversation only for unresolved threads you may need to act on. On the
-   initial pass, hydrate every unresolved thread. During monitoring or a fresh
-   rerun, hydrate unresolved threads whose handling is unclear, whose prior
-   disposition was not final, or whose state must be re-checked before acting.
-   Use the PR head SHA as supporting context only; do not limit the review
-   solely to comments made after the latest push.
+   review threads" and "Fetch general PR feedback". This scan enumerates sources;
+   thread metadata alone cannot reveal new replies or edited comments.
+2. **Hydrate every unresolved conversation.** On the initial pass, during
+   monitoring, and on fresh reruns, fetch every unresolved thread's complete
+   conversation before comparing it with the assessed-feedback record or
+   filtering items by prior disposition. Use the paginated conversation queries
+   in the same reference. Then select new, edited, or still-unaddressed items;
+   unchanged handled items remain skipped. Use the PR head SHA as supporting
+   context only, never as the boundary for which feedback to read.
 3. **Fail closed on partial data.** If the scan or any required conversation
    fetch fails, stop and report the failure rather than treating partial results
    as "no feedback."
@@ -217,7 +217,8 @@ assessed, not automatically to the thread opener. Use that author's bot
 classification when drafting replies and summaries; a later bot reply must not
 be `@mentioned`.
 
-> If a claim has no file or line, map it to current code/docs when possible; otherwise keep it as a discussion item instead of inventing a defect.
+> If a claim has no file or line, map it to current code/docs when possible;
+> otherwise keep it as a discussion item instead of inventing a defect.
 
 1. Read the current code/docs at the referenced location with surrounding
    context. If no file/line is given, map concrete code/doc claims to current
@@ -346,7 +347,7 @@ Use the repo's normal quick validation path for an iteration, for example:
 > # Or for Go repos:
 > go vet ./... && go build ./...
 > ```
-
+>
 > If validation fails, fix the issues before proceeding. Do not commit broken code.
 
 ## Step 7: Commit with Detailed Summary
@@ -453,31 +454,31 @@ General review bodies and PR conversation comments have no thread ID, so Step
 >
 > See commit [short SHA]: [one-line summary of what changed in this file].
 > ```
-
+>
 > **For questions answered (no code change):**
-
+>
 > ```
 > [Clear, specific answer to the question with code references where helpful].
 >
 > No code change needed, [brief explanation of why the current approach is correct].
 > ```
-
+>
 > **For nitpicks fixed:**
-
+>
 > ```
 > Fixed, [what was changed]. Good catch!
 > ```
-
+>
 > **For discussion items where user provided direction:**
-
+>
 > ```
 > [Explanation of the decision and reasoning].
 >
 > [Description of what was changed, or why no change was made].
 > ```
-
+>
 > **For false positives (user confirmed no change needed):**
-
+>
 > ```
 > Thanks for flagging this, I can see why it looks [wrong/inconsistent/off].
 >
@@ -486,7 +487,7 @@ General review bodies and PR conversation comments have no thread ID, so Step
 >
 > [If applicable: "Happy to discuss further if you think we should reconsider."]
 > ```
-
+>
 > Response rules: be specific, reference the published fixing commit when a fix
   was made, omit commit references for response-only outcomes, keep replies
   concise, and never `@mention` bot reviewers.
@@ -503,6 +504,7 @@ conversation comments cannot be resolved this way because they have no thread.
 Leave a thread open if it still needs discussion, was deferred or skipped by the
 user, could not be completed, or you are unsure whether the reviewer will
 consider it addressed.
+
 ## Step 11: Post Summary Comment
 
 > Post one PR summary for the iteration, including response-only rounds.
@@ -571,7 +573,7 @@ See [`references/dismiss-rerequest.md`](references/dismiss-rerequest.md) for the
 > Use one final report outside monitoring, and a shorter round-status report during monitoring.
 
 Outside monitoring, present the final status with the template below. During a
-monitoring round, report `Monitoring round [N]/2` plus what was assessed, what
+monitoring round, report `Monitoring round [N]/3` plus what was assessed, what
 action was taken, whether a commit was published, what threads were resolved,
 and what remains open. Do not repeat the monitoring offer inside the loop.
 
@@ -605,7 +607,7 @@ Summary comment posted: [PR URL]
 
 What's next:
   [- Reviewers have been re-requested and will be notified (only if refreshed)]
-  - Optionally monitor this PR for feedback in up to 2 follow-up rounds
+  - Optionally monitor this PR for feedback in up to 3 follow-up rounds
   [- [N] feedback items still need discussion, follow up at their source permalinks]
 ═══════════════════════════════════════════
 ```
@@ -617,10 +619,10 @@ After the final report (or Step 2 finds nothing to address), use
 
 > "Would you like me to monitor this PR for new comments and remaining
 > unresolved feedback, validate what needs fixing, and run this same resolution
-> workflow for up to 2 follow-up rounds? I'll wait 60 seconds before each check
+> workflow for up to 3 follow-up rounds? I'll wait 60 seconds before each check
 > and still ask for approval before making changes."
 
-Offer **Monitor (up to 2 rounds)** and **Finish now**. Do not start monitoring
+Offer **Monitor (up to 3 rounds)** and **Finish now**. Do not start monitoring
 without an explicit opt-in. If the user declines, finish without further checks.
 
 ### Monitoring Loop
@@ -629,18 +631,18 @@ The initial resolution pass does **not** count toward the limit. Maintain one
 session-local counter for this PR, initially `0`, and reuse the assessed-feedback
 record initialized in Step 2. Unassessed feedback remains eligible.
 
-For each of **at most 2 follow-up rounds**:
+For each of **at most 3 follow-up rounds**:
 
 1. **Wait and count.** Wait 60 seconds (`sleep 60`), then increment the counter
    before fetching. Every check consumes a round, even if no new or valid
    feedback appears. Honor a user's request to stop immediately.
 2. **Re-fetch the same PR.** Check its state; stop if it is merged or closed.
    Repeat Step 2's completeness scan across review-thread metadata, general
-   review bodies, and PR conversation comments. Then re-hydrate only the
-   unresolved thread conversations that remain candidates for action in this
-   round. Do not reuse a stale snapshot. If the scan or a required hydration
-   fetch fails, report the failure and stop rather than claiming the PR has no
-   feedback.
+   review bodies, and PR conversation comments. Hydrate every unresolved thread's
+   complete conversation before comparing snapshots and selecting eligible items.
+   Do not reuse a stale snapshot or filter threads by prior disposition before
+   reading their comments. If the scan or any required conversation page fails,
+   report the failure and stop rather than claiming the PR has no feedback.
 3. **Identify eligible feedback.** Read new or edited comments and all remaining
    unresolved threads, including outdated ones against the current code. Skip
    resolved threads and unchanged feedback already answered, rejected with user
@@ -655,7 +657,7 @@ For each of **at most 2 follow-up rounds**:
    re-request rules; do not create empty commits or post duplicate replies or
    summaries when no action is taken.
 5. **Report the round.** Replace Step 13's terminal report with
-   `Monitoring round [N]/2`, feedback assessed, actions taken, commit/publication
+   `Monitoring round [N]/3`, feedback assessed, actions taken, commit/publication
    state (if any), and anything still unresolved. Do not repeat the monitoring
    offer. If there is no eligible feedback, say so and continue to the next check
    within the limit.
@@ -663,7 +665,7 @@ For each of **at most 2 follow-up rounds**:
 When Step 13 completes inside this loop, return to the next numbered round,
 **not** to a fresh Step 14 prompt. Never recursively invoke this skill, reset
 the counter after a push, or automatically extend/restart monitoring. After
-round 2, stop and report any remaining unresolved feedback and that the
+round 3, stop and report any remaining unresolved feedback and that the
 monitoring limit was reached; do not claim that future comments are covered.
 
 ## Idempotency, Safe to Re-run
@@ -671,9 +673,9 @@ monitoring limit was reached; do not claim that future comments are covered.
 If the user runs this skill again on the same PR:
 
 1. **Re-run the Step 2 scan**, covering all review-thread metadata, general
-   review bodies, and PR conversation comments. Re-hydrate unresolved thread
-   conversations whose handling is unclear or still eligible; skip resolved
-   threads unless some repo-specific rule requires reopening them.
+   review bodies, and PR conversation comments. Hydrate every unresolved thread's
+   complete conversation before comparing feedback or filtering by disposition;
+   skip resolved threads unless a repo-specific rule requires reopening them.
 2. **Reconstruct the Step 2 record** from specific existing replies and summaries.
    Match source IDs, full bodies, and available update timestamps; do not repeat
    answers to unchanged, addressed feedback. Keep deferred or uncertain sources
@@ -701,7 +703,7 @@ If the user runs this skill again on the same PR:
 - Dismiss stale "changes requested" reviews after addressing feedback
 - Re-request review from reviewers whose feedback was addressed
 - Route complex changes to the owning repo's local skills and `CLAUDE.md`
-- Offer opt-in monitoring for new comments and remaining unresolved feedback, capped at 2 follow-up rounds
+- Offer opt-in monitoring for new comments and remaining unresolved feedback, capped at 3 follow-up rounds
 
 **This skill does NOT:**
 - Create new PRs (use the owning repo's local preflight/readiness flow first)

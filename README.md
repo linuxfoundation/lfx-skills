@@ -64,7 +64,7 @@ implementation recipes; they hand off to the owning repo for detail.
 | `/lfx-skills:lfx-object-store-design`   | Add object storage capability to a service: S3-compatible code patterns, upload/download API shapes, Helm credential modes, nats-s3 + nginx-s3-gateway local stack, `CDN_URL_PREFIX` contract. |
 | `/lfx-skills:lfx-object-store-ops`      | Provision object storage backends (private S3 + CloudFront OAC + IRSA) in `lfx-v2-opentofu`. For linuxfoundation org members.                                                                  |
 
-### Workflow skills (9)
+### Workflow skills (10)
 
 Cross-repo developer workflows that apply across every LFX repo.
 
@@ -79,6 +79,7 @@ Cross-repo developer workflows that apply across every LFX repo.
 | `/lfx-skills:lfx-cdp-snowflake-connectors` | Scaffold a CDP snowflake-connector data source in `crowd.dev`; retained centrally from `main`.                                                                               |
 | `/lfx-skills:lfx-data-engineer`            | Generate PR-ready dbt models, SQL transformations, and tests for `lf-dbt`, including medallion architecture, sqlfluff conventions, macros, and validation workflow guidance. |
 | `/lfx-skills:lfx-security-engineer`        | Security review for LFX repos: OWASP Top 10 scan, auth/authz review, secret detection, Terraform audit, migration safety. Use before PRs touching auth, permissions, or data handling. |
+| `/lfx-skills:lfx-megalinter`               | MegaLinter rollout, version pinning, linter failure fixes, Go toolchain vs MegaLinter bundled Go (`GOTOOLCHAIN=auto`), and stale CVE suppression cleanup.                    |
 
 ### Pre-PR review (1)
 
@@ -188,6 +189,8 @@ prompt under `agents/` for the exact invocation contract.
 │   ├── lfx-object-store-design/
 │   ├── lfx-object-store-ops/
 │   ├── lfx-security-engineer/   # OWASP scan + security review
+│   ├── lfx-megalinter/          # MegaLinter rollout and CI lint/scan fixes
+│   │   └── references/          # Go toolchain, linter fixes, adjacent CI fixes
 │   ├── lfx-v2-ticket-writer/
 │   ├── lfx-pre-pr-review/       # the pre-PR review lifecycle, one home
 │   ├── lfx-local-review/        # earlier central lifecycle, kept until every repo has adopted the above

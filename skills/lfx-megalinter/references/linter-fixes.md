@@ -42,22 +42,86 @@ There's no easy local feedback loop for spelling, so keep `SPELL_CSPELL` in
 `DISABLE_ERRORS_LINTERS` (non-blocking) rather than in `DISABLE_LINTERS`.
 Add missing words to `.cspell.json` in **lowercase**.
 
-When a script rewrites the `flagWords` placeholder in `.cspell.json`, guard
-the `sed` with an anchored exact-count check so it can't silently corrupt the
-file if the placeholder is missing or duplicated:
+### Shared `flagWords`
 
-```bash
-test "$(grep -c '^[[:space:]]*"flagWords"[[:space:]]*:[[:space:]]*\[\],[[:space:]]*$' .cspell.json)" -eq 1 && \
-  gsed -i '...' .cspell.json
+LFX repos don't maintain their own `flagWords` (terms cspell rejects, mostly
+non-inclusive language). They pull the org-wide list from
+`lfx-public-workflows` at MegaLinter run time and keep only repo-specific
+`words`, `dictionaries`, and `ignorePaths` locally. The source of truth for
+this setup is
+[lfx-public-workflows/cspell/README.md](https://github.com/linuxfoundation/lfx-public-workflows/blob/main/cspell/README.md);
+read it when the setup below doesn't match what you find.
+
+Every repo with cspell enabled needs both parts:
+
+1. A placeholder in `.cspell.json`, on its own line, exactly
+   `"flagWords": [],`:
+
+   ```json
+   {
+     "language": "en",
+     "dictionaries": ["companies", "filetypes", "fullstack", "softwareTerms"],
+     "words": ["lfx", "lfxv", "linuxfoundation"],
+     "flagWords": [],
+     "ignorePaths": [".cspell.json", "CODEOWNERS", "LICENSE", "LICENSE-docs", "megalinter-reports"]
+   }
+   ```
+
+2. Pre/post commands in `.mega-linter.yml` that back up `.cspell.json`,
+   fetch the snippet, substitute it for the placeholder, and restore the
+   original after cspell runs:
+
+   ```yaml
+   SPELL_CSPELL_PRE_COMMANDS:
+     - command: >-
+         cp .cspell.json /tmp/cspell.json.orig &&
+         curl -sSf --connect-timeout 5 --max-time 15
+         https://raw.githubusercontent.com/linuxfoundation/lfx-public-workflows/737873e045a02df2f66b09d8061b98997cdf1880/cspell/flagwords.json.snippet
+         -o /tmp/flagwords.json.snippet &&
+         test "$(grep -c '^[[:space:]]*"flagWords"[[:space:]]*:[[:space:]]*\[\],[[:space:]]*$' .cspell.json)" -eq 1 &&
+         sed -i -e '/^[[:space:]]*"flagWords"[[:space:]]*:[[:space:]]*\[\],[[:space:]]*$/{r /tmp/flagwords.json.snippet' -e 'd}' .cspell.json
+       cwd: workspace
+       continue_if_failed: false
+   SPELL_CSPELL_POST_COMMANDS:
+     - command: cp /tmp/cspell.json.orig .cspell.json
+       cwd: workspace
+   ```
+
+Why each piece matters (keep them all when copying):
+
+- **Pinned SHA, not `main`**: a mutable ref would let an upstream change
+  silently alter every repo's cspell policy with no reviewable diff. To pick
+  up list changes, bump the SHA in a PR.
+- **`continue_if_failed: false` and `curl -sSf`**: pre-commands default to
+  continuing on failure, which would leave `flagWords: []` and silently
+  disable the shared policy; `-S` keeps curl's error visible in the logs.
+- **`grep -c ... -eq 1` guard**: `sed` succeeds even when the placeholder
+  matches zero or several lines, so without it a missing or reformatted
+  placeholder would also silently disable the policy.
+- **Timeouts**: pre-commands have no built-in timeout, so a stalled fetch
+  would otherwise hang until the CI job times out.
+- **Backup/restore**: `make megalinter` bind-mounts the working tree, so
+  without `SPELL_CSPELL_POST_COMMANDS` a local run leaves the substituted
+  `.cspell.json` on disk, ready to be committed by accident.
+- **`sed`, not `gsed`**: these commands run inside MegaLinter's Linux image,
+  which ships GNU `sed` (plus `curl`), not on the macOS host.
+
+## gitleaks / betterleaks
+
+MegaLinter v10 replaced `REPOSITORY_GITLEAKS` with `REPOSITORY_BETTERLEAKS`,
+so any gitleaks finding or config means the repo is on an older MegaLinter.
+Resolve every gitleaks issue by moving the repo to the skill's pinned
+release (v10.1.0) — don't tune or suppress gitleaks. Then clean up its
+leftovers as part of the removed-linters sweep: `REPOSITORY_GITLEAKS_*` keys,
+`.gitleaks.toml`, and `gitleaks:allow` comments (convert any still-needed
+ones to `betterleaks:allow`).
+
+For a small, localized betterleaks false positive, add a trailing
+`betterleaks:allow` comment on the flagged line:
+
+```go
+const exampleToken = "not-a-real-secret-value" // betterleaks:allow
 ```
-
-## gitleaks / betterleaks false positives
-
-For small, localized false positives, use inline annotations
-(`gitleaks:allow` or `betterleaks:allow`, matching the release's secret
-scanner) on the flagged line. If the finding comes from a repo still on an
-older MegaLinter, moving it to the skill's pinned release (v10.1.0, which
-uses betterleaks) is the fix; don't bump one repo past that pin.
 
 ## zizmor
 

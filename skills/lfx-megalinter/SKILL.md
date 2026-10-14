@@ -231,7 +231,8 @@ CVE-YYYY-NNNNN
 Read [references/linter-fixes.md](references/linter-fixes.md) when a specific
 linter fails, or when `GO_GOLANGCI_LINT` is disabled or non-blocking (the
 standard is to re-enable it). It covers: Trivy rate limits, golangci-lint
-and revive, cspell, gitleaks/betterleaks false positives, zizmor
+and revive, cspell (including the shared `flagWords` setup every cspell repo
+needs), gitleaks (resolved by upgrading) and betterleaks, zizmor
 online/offline mode and the `github-app` false positive, ESLint flat config,
 and yamllint.
 

@@ -176,11 +176,17 @@ New or edited feedback needs assessment; compare the body as well as any availab
 timestamp. Record this workflow's own replies and summaries so they are not
 mistaken for new reviewer feedback.
 
+Use the reconstructed record to identify eligible unaddressed items, not merely
+unresolved threads. Skip unchanged items already answered, rejected with user
+approval, deferred, or awaiting input. New or edited feedback remains eligible
+for assessment; a claimed fix is not handled until publication is confirmed.
+
 ### Edge Cases
 
-- **No unaddressed feedback**: If there are no unresolved threads or unaddressed general review/PR comments,
-  tell the user there is nothing to address and go to Step 14. During an active monitoring loop, count this
-  as a completed check and continue within its existing limit instead of prompting again.
+- **No eligible feedback**: If there are no eligible unaddressed items within
+  unresolved threads or general review/PR comments, tell the user there is nothing
+  to address and go to Step 14. During an active monitoring loop, count this as a
+  completed check and continue within its existing limit instead of prompting again.
 - **Outdated threads**: Include them but flag them, the code may have shifted since the comment was made. Read the current file to determine if the feedback still applies.
 - **General PR review comments** (not attached to a specific line): Collect review
   bodies separately and respond through Step 9's PR-level reply mechanics. Reference
@@ -195,7 +201,9 @@ mistaken for new reviewer feedback.
 
 Before categorizing or acting on any comment, validate whether the reviewer's feedback is actually correct. Reviewers can make mistakes; blindly implementing every comment can introduce regressions.
 
-For each unresolved thread and unaddressed general review/PR comment, follow the four-step validation flow in [`references/validation-heuristics.md`](references/validation-heuristics.md):
+For each eligible unaddressed item within an unresolved thread or general review/PR
+comment, follow the four-step validation flow in
+[`references/validation-heuristics.md`](references/validation-heuristics.md):
 
 Attribute each item to the author of the comment or general source being assessed,
 not automatically to the thread opener. Use that author's bot classification

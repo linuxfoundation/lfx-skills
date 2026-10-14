@@ -9,7 +9,8 @@ How to assess whether a reviewer's comment is actually correct before implementi
 
 Reviewers can make mistakes, they may misread the code, apply conventions from a different repo, or flag something that is already handled elsewhere. Blindly implementing every comment can introduce regressions.
 
-For each unresolved thread and each collected general review body or PR comment:
+For each eligible unaddressed item selected in Step 2 from an unresolved thread,
+general review body, or PR comment:
 
 1. **Establish the evidence location.** If the source names a file and line, read
    the actual current code/docs there, not just the reviewed diff snippet, with

@@ -9,8 +9,10 @@ After pushing changes and posting the summary, dismiss any "changes requested" r
 
 ## Identify reviews to dismiss
 
-Use the REST API to list pull request reviews and identify those where:
-- `state` is `CHANGES_REQUESTED`
+Fetch every REST review page and ignore pending drafts. Select each reviewer's
+latest submitted review across all states, then identify candidates where:
+
+- The latest review's `state` is `CHANGES_REQUESTED`
 - The reviewer had actionable thread comments, general review-body feedback, or PR
   conversation comments addressed in this iteration, with any fixing commit
   confirmed published
@@ -19,8 +21,11 @@ Use the REST API to list pull request reviews and identify those where:
   just as an open thread does
 
 ```bash
-# Get the most recent CHANGES_REQUESTED review per reviewer
-gh api repos/$OWNER/$REPO/pulls/$NUMBER/reviews --jq '[ map(select(.state == "CHANGES_REQUESTED")) | group_by(.user.login)[] | max_by(.submitted_at) | {id: .id, user: .user.login}]'
+# Fetch every page, select each reviewer's latest submitted state, then filter
+gh api "repos/$OWNER/$REPO/pulls/$NUMBER/reviews" --paginate --slurp |
+  jq '[add | map(select(.state != "PENDING")) | group_by(.user.login)[]
+    | max_by([.submitted_at, .id]) | select(.state == "CHANGES_REQUESTED")
+    | {id: .id, user: .user.login}]'
 ```
 
 ## Dismiss each stale review
@@ -51,9 +56,11 @@ gh pr edit $NUMBER --repo $OWNER/$REPO --add-reviewer "reviewer1,reviewer2"
 ## Edge cases
 
 - **Reviewer is not a collaborator**: `--add-reviewer` may fail for external contributors. If it fails, note it in the report but don't block.
-- **Multiple reviews from the same reviewer**: A reviewer may have submitted multiple reviews. Only dismiss the most recent `CHANGES_REQUESTED` review, GitHub uses the latest review state per reviewer.
+- **Multiple reviews from the same reviewer**: Use the latest submitted review
+  across all pages and states, ignoring pending drafts. Dismiss only if that latest
+  review is `CHANGES_REQUESTED`; a newer review in another state blocks dismissal.
 - **Mixed reviewers**: Some reviewers may have had all their thread comments,
   general review-body feedback, and actionable PR conversation comments addressed
   while others still have open findings. Only dismiss and re-request for reviewers
   whose feedback was fully addressed.
-- **No `CHANGES_REQUESTED` reviews**: Skip this step entirely, nothing to dismiss.
+- **No latest `CHANGES_REQUESTED` reviews**: Skip this step; no reviewer is eligible.

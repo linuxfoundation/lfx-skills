@@ -248,7 +248,7 @@ Ten workflow skills ship alongside the architecture skills in this same
 | Onboarding and first-time setup      | `/lfx-skills:lfx-setup`                    |
 | DCO and GPG signing                  | `/lfx-skills:lfx-git-setup`                |
 | Cross-repo personal PR dashboard     | `/lfx-skills:lfx-pr-catchup`               |
-| GitHub PR review threads             | `/lfx-skills:lfx-pr-resolve`               |
+| Single-PR feedback and monitoring    | `/lfx-skills:lfx-pr-resolve`               |
 | Local multi-branch journey worktrees | `/lfx-skills:lfx-test-journey`             |
 | Snowflake access requests            | `/lfx-skills:lfx-snowflake-access`         |
 | CDP Snowflake connector scaffolding  | `/lfx-skills:lfx-cdp-snowflake-connectors` |

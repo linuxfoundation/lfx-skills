@@ -9,10 +9,22 @@ How to assess whether a reviewer's comment is actually correct before implementi
 
 Reviewers can make mistakes, they may misread the code, apply conventions from a different repo, or flag something that is already handled elsewhere. Blindly implementing every comment can introduce regressions.
 
-For each unresolved thread and each collected general PR review comment:
+For each eligible unaddressed item selected in Step 2 from an unresolved thread,
+general review body, or PR comment:
 
-1. **Read the actual code** at the referenced file and line, not just the diff snippet the reviewer saw. Read enough surrounding context (20-30 lines) to understand what the code is doing.
-2. **Check the repo's existing patterns**, search for how similar code is written elsewhere in the codebase. If the reviewer says "use X pattern" but the rest of the repo uses Y pattern, that's a red flag.
+1. **Establish the evidence location.** If the source names a file and line, read
+   the actual current code/docs there, not just the reviewed diff snippet, with
+   enough surrounding context (normally 20–30 lines).
+   If no location is supplied, use the claim's symbols or described behavior to
+   find the relevant current code/docs and validate the concrete claim there.
+   For a pure question or discussion without a code claim, use the PR description,
+   diff, linked documentation, and prior responses as evidence instead.
+   If the available evidence cannot settle the concern, state what is missing and
+   route it as a discussion for a user decision; do not invent a location or defect.
+2. **For code/doc claims, check the repo's existing patterns**, search for how
+   similar code is written elsewhere in the codebase. If the reviewer says "use
+   X pattern" but the rest of the repo uses Y, flag the mismatch for assessment.
+
    ```bash
    # Example: reviewer says "use BehaviorSubject" but check what the repo actually does
    grep -r "signal(" src/app/modules/ --include="*.ts" -l | head -10

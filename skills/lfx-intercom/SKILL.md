@@ -84,7 +84,7 @@ Check all of the following and produce a gap report:
 | **Anonymous boot** | Is `bootIntercomAnonymous()` called in `ngOnInit()` before user auth check? | ✅ Required if app has public pages; skip if auth-only app |
 | **Anonymous→identified upgrade** | Does `boot()` detect anonymous session and upgrade to identified via `shutdownForReboot()`? | ✅ Required if anonymous boot is used — must use `shutdown()+boot()`, NOT `update()`. `Intercom('update')` with `user_id` does NOT promote an anonymous session to identified — the server still treats the visitor as anonymous, causing wrong audience targeting for posts/banners. |
 | **Identified boot** | Is identified `boot()` called inside `userProfile$` subscription with `intercomBootAttempted` guard? | ✅ Required |
-| **Shutdown on logout** | Are `Intercom('shutdown')` called and the JWT cleared **before** the logout navigation leaves the page, and, in public-page apps, the anonymous session re-booted afterwards (right away if the app stays loaded, otherwise on the next page load)? | ✅ Required — a `userProfile$ == null` branch alone is not enough when a logout path navigates away before `null` is emitted (by default `<lfx-header-v2>`, `href="/logout"`, auth0 `logout()`); see 5b |
+| **Shutdown on logout** | Are `Intercom('shutdown')` called and the JWT cleared **before** the logout navigation leaves the page, and, in public-page apps, the anonymous session re-booted afterwards (right away if the app stays loaded, otherwise on the next page load)? | ✅ Required — a `userProfile$ == null` branch alone is not enough when a logout path navigates away before `null` is emitted (by default `<lfx-header-v2>`, `href="/logout"`, auth0-angular `AuthService.logout()`); see 5b |
 | **App IDs** | Dev: `mxl90k6y`, Prod: `w29sqomy` | ✅ Shared across all LFX apps |
 | **Auth0 claim** | Is `http://lfx.dev/claims/intercom` used (not the deprecated HMAC)? | ✅ JWT claim only |
 | **CSP** | Are ALL Intercom domains in the Content Security Policy, including WebSocket entries? | ✅ Required if CSP exists |
@@ -685,7 +685,7 @@ Crowdfunding (PRs #31-#38), and PCC. Logout paths re-validated 2026-10-02.
 **Lesson learned (2026-10-02)**: Wiring `shutdown()` only to the
 `userProfile$ == null` branch is not enough when a logout path navigates away
 before `null` is emitted (by default `<lfx-header-v2>`, `href="/logout"`,
-auth0-angular `logout()`). The page unloads first, so shutdown never runs
+auth0-angular `AuthService.logout()`). The page unloads first, so shutdown never runs
 and Intercom's first-party session cookie survives logout. Shut down
 synchronously on the logout path itself (see 5b), and verify by reloading after
 logout, not by watching the console.

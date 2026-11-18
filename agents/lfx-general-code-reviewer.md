@@ -173,6 +173,18 @@ Evaluate the changed code against these criteria:
 - Are there SQL injection, XSS, or other injection vulnerabilities?
 - Are authentication and authorization properly implemented?
 - Are sensitive operations properly guarded?
+- In a `.github/workflows/*.yml` or `*.yaml` file, is a `uses:` reference (a
+  step-level action or a job-level call to a reusable workflow,
+  `jobs.<job_id>.uses:`) pointing to an external repo pinned to a mutable tag
+  (`@v4`) or branch (`@main`) instead of a full commit SHA? Pin with a
+  trailing version comment for readability, e.g.
+  `uses: actions/checkout@<sha> # v4.1.1` — a local reference (`uses: ./...`)
+  is exempt.
+- Is there a missing least-privilege `permissions:` block,
+  `pull_request_target` combined with checkout of an untrusted PR head, or
+  `${{ github.event.* }}` interpolated directly into a `run:` step's script
+  body (must instead go through an `env:` variable, read with quoted,
+  shell-appropriate syntax, e.g. `"$VAR"` in bash, `$env:VAR` in PowerShell)?
 
 **Data Privacy / PII**:
 

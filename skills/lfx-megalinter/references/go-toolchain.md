@@ -20,7 +20,10 @@ toolchain mainstream-supported, avoids incompatibilities with tools pinned to
 an older Go, and still picks up every security patch.
 
 - **Patch updates** within the target minor are always taken — they are the
-  fix for Go stdlib CVEs.
+  fix for Go stdlib CVEs. Go ships security fixes to both supported minors
+  on the same day, so a stdlib fix is never a reason to move up a minor. For
+  example, the crypto/x509 distrust of the compromised eMudhra intermediates
+  shipped in both go1.26.10 and go1.27.3 (2026-10-19).
 - **Dependency fixes don't move the minor.** If upgrading a dependency to
   fix a CVE would raise the `go` directive past the target minor (Go's
   module tooling does this automatically), revert that upgrade, keep the
@@ -136,13 +139,18 @@ Effects under `GOTOOLCHAIN=local`:
 Fix: add the `GOTOOLCHAIN=auto` setting from the section above; `go` then
 downloads the matching toolchain from the module proxy.
 
-### Minor-level gap: no workaround
+### Minor-level gap
 
-Example: `go.mod` says `go 1.27.0`, MegaLinter bundles `1.26.x`.
-`GOTOOLCHAIN=auto` downloads go1.27 successfully, but the precompiled tools
-were built with go1.26 and can't read go1.27 export data, syntax, or stdlib.
+Example: `go.mod` says `go 1.27.x`, MegaLinter bundles `1.26.x`.
+`GOTOOLCHAIN=auto` downloads go1.27 successfully. What happens next depends
+on the Go release each precompiled tool was built with: a tool built with
+go1.26 can't read go1.27 export data, syntax, or stdlib.
 
-golangci-lint signature:
+**golangci-lint** fails when its binary was built with an older minor than
+`go.mod` targets. MegaLinter v10.2.0 bundles golangci-lint 2.15.0, whose
+release binary is built with Go 1.27.0 (the `GO_VERSION` in golangci-lint's
+release workflow), so on v10.2.0 golangci-lint lints go1.27 modules. On an
+older MegaLinter release, the signature is:
 
 ```text
 Error: can't load config: the Go language version (go1.26) used to build golangci-lint is lower than the targeted Go version (1.27.0)
@@ -150,7 +158,10 @@ Error: can't load config: the Go language version (go1.26) used to build golangc
 
 or `export data version 5 is greater than maximum supported version 4`.
 
-govulncheck (via osv-scanner) signature — note the downloaded
+**govulncheck** (via osv-scanner) was built with go1.26 on v10.1.0, where
+this signature was observed; v10.2.0 ships the same Alpine osv-scanner 2.3.8
+package line (`2.3.8-r3`) on a Go 1.26 runtime. The signature — note the
+downloaded
 `golang.org/toolchain@v0.0.1-go1.27.0...` paths, proving the download
 worked:
 
@@ -161,5 +172,16 @@ Failed to run code analysis (govulncheck) ... loading packages:
 .../client.go:9:1: package requires newer Go version go1.27 (application built with go1.26)
 ```
 
+osv-scanner then falls back to matching vulnerabilities by version: the
+linter passes when no dependency version has a known vulnerability and fails
+on any match, reachable or not. It does not fail on the govulncheck error
+itself.
+
 Fix: revert `go.mod` to the latest patch of MegaLinter's bundled minor. The
-version policy above exists to keep repos out of this regime.
+version policy above exists to keep repos out of this regime. A repo whose
+`CLAUDE.md`/`AGENTS.md` explicitly supersedes the policy and targets the
+newer minor can stay there on v10.2.0: golangci-lint works, and osv-scanner
+runs in version-matching mode. Don't add a `GO_GOLANGCI_LINT_PRE_COMMANDS`
+install of a newer golangci-lint unless the pinned release's bundled one was
+built with an older minor than `go.mod` targets, and remove such a
+pre-command once the pinned release bundles the same version.

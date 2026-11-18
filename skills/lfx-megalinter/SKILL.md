@@ -174,8 +174,10 @@ golangci-lint/govulncheck fail on Go version. Summary:
   step `env:` and the Makefile `docker run -e`), so a `go.mod` patch ahead of
   MegaLinter's bundled Go just works. No `*_UNSECURED_ENV_VARIABLES`
   allowlisting is needed.
-- A **minor-level** gap (go.mod `1.N+1.x`, MegaLinter bundles `1.N.x`) has no
-  workaround; the policy above keeps repos out of it.
+- A **minor-level** gap (go.mod `1.N+1.x`, MegaLinter bundles `1.N.x`)
+  breaks govulncheck's call analysis, so osv-scanner falls back to
+  version-only matching; golangci-lint depends on the Go it was built with
+  (v10.2.0's handles Go 1.27). The policy above keeps repos out of it.
 
 ## Stale suppression cleanup
 

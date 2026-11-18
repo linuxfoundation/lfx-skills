@@ -71,9 +71,11 @@ Or empirically:
 `docker run --rm --entrypoint go ghcr.io/oxsecurity/megalinter-<flavor>:<tag> version`.
 MegaLinter v10.2.0 (the skill's pinned release) bundles Go **1.26.10** in
 its runtime (`GO_ALPINE_VERSION`), with some tools built from Go 1.27.3
-(`GO_IMAGE_VERSION`). The runtime minor (1.26) is what matters for the gap
-regimes below: the Go linters load packages with it, and osv-scanner's
-govulncheck is built with it.
+(`GO_IMAGE_VERSION`). The runtime is what the image's `go` command runs
+under `GOTOOLCHAIN=local`, and the Alpine-built osv-scanner/govulncheck is
+built with its minor (1.26). With `GOTOOLCHAIN=auto`, packages load with the
+`go.mod` toolchain instead, and each precompiled tool's own build Go decides
+whether it can read that toolchain's output: see the gap regimes below.
 
 ## Always set `GOTOOLCHAIN=auto`
 
@@ -184,4 +186,5 @@ newer minor can stay there on v10.2.0: golangci-lint works, and osv-scanner
 runs in version-matching mode. Don't add a `GO_GOLANGCI_LINT_PRE_COMMANDS`
 install of a newer golangci-lint unless the pinned release's bundled one was
 built with an older minor than `go.mod` targets, and remove such a
-pre-command once the pinned release bundles the same version.
+pre-command once the pinned release's bundled golangci-lint is built with a
+Go minor at least as new as `go.mod` targets.

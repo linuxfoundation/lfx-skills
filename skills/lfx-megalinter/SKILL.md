@@ -64,7 +64,7 @@ same; only put values in the workflow `env:` that exist only in Actions.
 
 ## MegaLinter version
 
-The fleet standard is **MegaLinter v10.1.0**. Pin exactly this release, not
+The fleet standard is **MegaLinter v10.2.0**. Pin exactly this release, not
 whatever is newest upstream: the fixes in this skill were tested against it,
 and a newer release can bundle different linter and Go versions that
 invalidate them. Moving the fleet to a newer release is done by updating and
@@ -76,7 +76,7 @@ Three places must agree — half-upgrades are easy to miss:
    SHA is the same for every flavor:
 
    ```yaml
-   uses: oxsecurity/megalinter/flavors/go@9949bad031045f366be2467e00e8371a7328a2e2  # v10.1.0
+   uses: oxsecurity/megalinter/flavors/go@f2fe8c1cba37091848df3e524066c8c23ef353ed  # v10.2.0
    ```
 
 2. **Makefile** — pin the image **digest**, not just the tag. Example for
@@ -85,9 +85,9 @@ Three places must agree — half-upgrades are easy to miss:
    <!-- markdownlint-disable MD010 -->
 
    ```makefile
-   # Run MegaLinter locally via Docker (matches CI Go flavor at v10.1.0).
+   # Run MegaLinter locally via Docker (matches CI Go flavor at v10.2.0).
    # Keep this digest in sync with .github/workflows/mega-linter.yml.
-   MEGALINTER_IMAGE := ghcr.io/oxsecurity/megalinter-go@sha256:42e091a4bcbe9141fe420c2520ed7addf75ae60a0c9d42e3df1278eef1c90a88  # v10.1.0
+   MEGALINTER_IMAGE := ghcr.io/oxsecurity/megalinter-go@sha256:e676b8e9dac00d148bf1abb6ab809f1df76f07e804d8061f78631975d0c90925  # v10.2.0
    megalinter:
    	docker pull $(MEGALINTER_IMAGE)
    	docker run --rm --platform linux/amd64 -e GOTOOLCHAIN=auto -v '$(CURDIR):/tmp/lint:rw' $(MEGALINTER_IMAGE)
@@ -95,18 +95,18 @@ Three places must agree — half-upgrades are easy to miss:
 
    <!-- markdownlint-enable MD010 -->
 
-   v10.1.0 digests by flavor (use the flavor matching the workflow's
+   v10.2.0 digests by flavor (use the flavor matching the workflow's
    `flavors/<flavor>` path):
 
    | Flavor       | `MEGALINTER_IMAGE`                                                                                                 |
    |--------------|--------------------------------------------------------------------------------------------------------------------|
-   | `go`         | `ghcr.io/oxsecurity/megalinter-go@sha256:42e091a4bcbe9141fe420c2520ed7addf75ae60a0c9d42e3df1278eef1c90a88`         |
-   | `python`     | `ghcr.io/oxsecurity/megalinter-python@sha256:f12a40b0dd5ad2c9aa029dcf7d3a0a92182d05cacc32d37756e67c3446484acb`     |
-   | `javascript` | `ghcr.io/oxsecurity/megalinter-javascript@sha256:185a0eada2c8082910fc62a8ab29133521f9341d996e58a8de36a07f0a740a26` |
-   | `cupcake`    | `ghcr.io/oxsecurity/megalinter-cupcake@sha256:7cce5b9d46564149d451a9752c5c266982f10c231be7df79996f46e3e171d2fc`    |
+   | `go`         | `ghcr.io/oxsecurity/megalinter-go@sha256:e676b8e9dac00d148bf1abb6ab809f1df76f07e804d8061f78631975d0c90925`         |
+   | `python`     | `ghcr.io/oxsecurity/megalinter-python@sha256:65ccdc8cc09a282112e08a26da1580d33524b8b1c68f1f5eec0f94c0112764d5`     |
+   | `javascript` | `ghcr.io/oxsecurity/megalinter-javascript@sha256:0fde748d739c85248c033fba141e482f1a3e9053905f2959efbcbd6dcd1d631f` |
+   | `cupcake`    | `ghcr.io/oxsecurity/megalinter-cupcake@sha256:0e62d95de2e4388530579e1cdf531e3752ac70549ab78666c64429bd734dbae7`    |
 
    For any other flavor,
-   `docker buildx imagetools inspect ghcr.io/oxsecurity/megalinter-<flavor>:v10.1.0`
+   `docker buildx imagetools inspect ghcr.io/oxsecurity/megalinter-<flavor>:v10.2.0`
    prints the digest to copy.
 
 3. **`.mega-linter.yml`** — any version-coupled settings.
@@ -155,7 +155,7 @@ replacement's names instead (e.g. gitleaks → betterleaks, see
 `REPOSITORY_KICS` (Checkov, enabled by default, covers it), so a
 `REPOSITORY_KICS` entry in `DISABLE_ERRORS_LINTERS` is dead config.
 
-Then re-check the repo's Go pin against v10.1.0's bundled Go (next section).
+Then re-check the repo's Go pin against v10.2.0's bundled Go (next section).
 
 ## Go toolchain version
 

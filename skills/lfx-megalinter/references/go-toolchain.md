@@ -66,10 +66,11 @@ curl -s "https://raw.githubusercontent.com/oxsecurity/megalinter/<tag>/flavors/<
 
 Or empirically:
 `docker run --rm --entrypoint go ghcr.io/oxsecurity/megalinter-<flavor>:<tag> version`.
-MegaLinter v10.1.0 (the skill's pinned release) bundles Go **1.26.3** in
-its runtime (`GO_ALPINE_VERSION`), with some tools built from Go 1.26.7
-(`GO_IMAGE_VERSION`). The minor version (1.26) is what matters for the gap
-regimes below.
+MegaLinter v10.2.0 (the skill's pinned release) bundles Go **1.26.10** in
+its runtime (`GO_ALPINE_VERSION`), with some tools built from Go 1.27.3
+(`GO_IMAGE_VERSION`). The runtime minor (1.26) is what matters for the gap
+regimes below: the Go linters load packages with it, and osv-scanner's
+govulncheck is built with it.
 
 ## Always set `GOTOOLCHAIN=auto`
 
@@ -113,14 +114,14 @@ Go minor is too new.
 
 ### Patch-level gap: fixed by `GOTOOLCHAIN=auto`
 
-Example: `go.mod` says `go 1.26.9`, MegaLinter bundles `1.26.3`. The image
+Example: `go.mod` says `go 1.26.11`, MegaLinter bundles `1.26.10`. The image
 defaults to `GOTOOLCHAIN=local`, so without the setting above anything that
 loads packages fails.
 
 Signature:
 
 ```text
-go: go.mod requires go >= 1.26.9 (running go 1.26.3; GOTOOLCHAIN=local)
+go: go.mod requires go >= 1.26.11 (running go 1.26.10; GOTOOLCHAIN=local)
 ```
 
 Effects under `GOTOOLCHAIN=local`:

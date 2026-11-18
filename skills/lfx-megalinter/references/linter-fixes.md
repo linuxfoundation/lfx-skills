@@ -111,7 +111,7 @@ Why each piece matters (keep them all when copying):
 MegaLinter v10 replaced `REPOSITORY_GITLEAKS` with `REPOSITORY_BETTERLEAKS`,
 so a gitleaks finding means the repo is on an older MegaLinter. Resolve
 every gitleaks issue by moving the repo to the skill's pinned release
-(v10.1.0) — don't tune or suppress gitleaks.
+(v10.2.0) — don't tune or suppress gitleaks.
 
 Then explicitly migrate gitleaks configuration to betterleaks names.
 betterleaks still reads the gitleaks names for backward compatibility, but
@@ -134,7 +134,7 @@ files=$(git grep -l 'gitleaks:allow') && gsed -i 's/gitleaks:allow/betterleaks:a
 
 Check each `REPOSITORY_GITLEAKS_*` key against the betterleaks variable list
 in MegaLinter's
-[betterleaks docs](https://megalinter.io/10.1.0/descriptors/repository_betterleaks/)
+[betterleaks docs](https://megalinter.io/10.2.0/descriptors/repository_betterleaks/)
 before renaming it.
 
 For a small, localized betterleaks false positive, add a trailing
@@ -161,7 +161,8 @@ gh api repos/<owner>/<repo> --jq '.visibility'
   ```yaml
   # zizmor's "artipacked" audit needs the GitHub API (to verify
   # SHA-pinned action tags), which requires GITHUB_TOKEN.
-  ACTION_ZIZMOR_UNSECURED_ENV_VARIABLES: GITHUB_TOKEN
+  ACTION_ZIZMOR_UNSECURED_ENV_VARIABLES:
+    - GITHUB_TOKEN
   ```
 
 - **Any target is a private repo other than the workflow's own** (a private
@@ -177,7 +178,7 @@ Don't blanket-copy `--offline` from another repo without checking its
 
 `actions/create-github-app-token` with both `owner:` and `repositories:` set
 is flagged as "token granted access to all repositories" by zizmor v1.25.0,
-which MegaLinter v10.1.0 bundles (fixed upstream in zizmor v1.25.1).
+which MegaLinter v10.2.0 still bundles (fixed upstream in zizmor v1.25.1).
 Suppress inline on the `owner:` line, splitting the rationale across preceding
 lines to stay under
 yamllint's 120-character limit:

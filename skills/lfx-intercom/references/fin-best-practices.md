@@ -149,6 +149,9 @@ Apply the lens in practice — for each article ask:
 4. Are all acronyms defined on first use?
 5. Does the language match how users actually phrase their questions?
 
+Before publishing any article, also run the pre-publish checklist in [kb-content-standards.md](kb-content-standards.md),
+which covers article shape, terminology, and hand-offs.
+
 ---
 
 ## Data Quality

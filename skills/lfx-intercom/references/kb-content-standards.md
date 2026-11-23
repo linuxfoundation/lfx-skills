@@ -1,13 +1,23 @@
 <!-- Copyright The Linux Foundation and each contributor to LFX. -->
 <!-- SPDX-License-Identifier: MIT -->
 
-# Help Center content standards for Fin
+# Support content standards for Fin
 
-Use this reference when writing a new Help Center article, rewriting or restructuring an existing one, or reviewing
+Use this reference when writing a new article or docs page, rewriting or restructuring an existing one, or reviewing
 one before it is published. It builds on [fin-best-practices.md](fin-best-practices.md) and does not replace it: that
 file covers Fin as a whole, and this one covers the article itself.
 
 **Audience:** Support/CX team members and anyone drafting articles with an AI assistant. No coding required.
+
+## Where the content lives
+
+LFX publishes support content in two places:
+
+- **Intercom articles** in the Intercom Help Center, for example LF Events.
+- **Public in-app docs pages,** which are not part of the Intercom Help Center.
+
+The writing rules apply to both, and "article" in this file means either one. Where a rule only applies to one of
+them, it says so. If the request doesn't make clear which one is being written, ask before drafting.
 
 ---
 
@@ -75,9 +85,9 @@ with everyone who drafts articles.
 ### Logical structure with keyword repetition
 
 Open with the answer, repeat key terms, and end with a clear outcome. Repeat the main keywords in every section, and
-don't swap in synonyms, so Fin can match whichever section it retrieves. Stop at two uses of a word per paragraph;
-beyond that, writing turns robotic. This extends pillar 2: restating the question helps Fin find the article, and
-repeating keywords helps it find the right section.
+don't swap in synonyms, so Fin can match whichever section it retrieves. Stop at two uses of a key term per
+paragraph; beyond that, writing turns robotic. This extends pillar 2: restating the question helps Fin find the
+article, and repeating keywords helps it find the right section.
 
 ### Explicit context
 
@@ -108,7 +118,7 @@ then how to do it.
 
 | Section | What goes in it |
 | --- | --- |
-| **Description** | The article's description field, not the body. One sentence, 140 characters or fewer, saying what the article answers. |
+| **Description** | One sentence, 140 characters or fewer, saying what the article answers. For an Intercom article, this goes in the article's description field, not the body. For a docs page, use the page summary if the docs site has one. |
 | **Overview** | The direct answer, in at least two sentences. If the article is role-specific, it also says who it applies to. |
 | **Why it matters** | When and why a customer needs this. This lets Fin match a vaguely worded question to the right article. |
 | **How to do it** | Numbered steps. Each says what the customer does, what they see, and what happens. |
@@ -122,7 +132,7 @@ Don't reference steps, concepts, or terms before they have been introduced.
 
 ## Formatting
 
-These are house-style defaults. Confirm or adjust them for your Help Center.
+These are house-style defaults. Confirm or adjust them for the Intercom Help Center and the docs site.
 
 - **Headings:** sentence case, except proper nouns and named features. Don't start headings with -ing verbs.
 - **Lists:** numbered lists for sequential steps only, and bullets for options and breakdowns.
@@ -134,20 +144,21 @@ These are house-style defaults. Confirm or adjust them for your Help Center.
 
 ## Source of truth
 
-When sources disagree, the higher one wins. Flag the conflict rather than choosing between them, because a silent
-choice hides a contradiction that will surface again in another article.
+When sources disagree, use the higher one in the article, and flag the conflict to the owning team so the lower
+source gets corrected. Don't choose silently, because a silent choice hides a contradiction that will surface again
+in another article.
 
 1. Terms of service and published policies.
 2. Answers confirmed by the owning team.
-3. Published Help Center articles.
+3. Published Intercom articles and docs pages.
 4. Drafts, FAQ sheets, and internal notes.
 
 ---
 
-## Five failures that break a Help Center
+## Five failures that break support content
 
-1. **Duplicates.** The biggest risk, because Fin picks between them unpredictably. Search the Help Center before
-   adding anything, and merge articles that answer the same question.
+1. **Duplicates.** The biggest risk, because Fin picks between them unpredictably. Search both the Intercom Help
+   Center and the docs pages before adding anything, and merge articles that answer the same question.
 2. **Contradictions.** Different figures in different places. Resolve them using the source-of-truth order above.
 3. **Terminology drift.** Several words for the same thing. It accumulates quietly and degrades every answer.
 4. **Empty placeholders.** A titled article with no content is worse than none, because Fin can still retrieve it.
@@ -159,7 +170,7 @@ choice hides a contradiction that will surface again in another article.
 
 ## What belongs in an article, and what doesn't
 
-| Help Center article | Fin Guidance | Fin Attributes |
+| Article or docs page | Fin Guidance | Fin Attributes |
 | --- | --- | --- |
 | What something is and why it exists. | Which words Fin should use, and synonym mapping. | How conversations are classified for reporting and routing. |
 | Step-by-step instructions. | Tone and register. | |
@@ -172,8 +183,8 @@ choice hides a contradiction that will surface again in another article.
 
 Set up a project so every conversation shares the same context, and attach:
 
-- **The Help Center structure:** the collections and the questions in each, so the assistant knows where every
-  article belongs.
+- **The content structure:** the Help Center collections for Intercom articles, or the docs site's sections for docs
+  pages, and the questions in each, so the assistant knows where every article belongs.
 - **Legal and policy documents:** the source of truth for money, eligibility, and deadlines.
 - **Existing articles and drafts,** however rough. Accurate rough notes beat polished but outdated prose.
 - **Screenshots of every screen a customer uses.** The assistant can't see the product, and without screenshots it
@@ -214,12 +225,13 @@ The first five checks are the content-quality questions from
 5. Does the language match how users actually phrase their questions?
 6. Does it answer one question only, with the question as the title? For an FAQ article, does each question have its
    own header and a complete answer?
-7. Is the description written, in 140 characters or fewer?
-8. Did you search the Help Center first, and confirm no other article answers this question?
+7. Is the description (Intercom) or page summary (docs page) written, in 140 characters or fewer?
+8. Did you search the Intercom Help Center and the docs pages first, and confirm no other article answers this
+   question?
 9. Does every section make sense when read on its own?
 10. Is it specific and single-path, with no vague phrasing and no branching?
 11. Are all figures and UI labels exact and confirmed, with glossary terms throughout?
-12. Is every word used no more than twice in a paragraph?
+12. Is each key term used no more than twice in a paragraph?
 13. Does it end in a concrete next step, with any hand-off listing what the team needs and no "contact support" or
     routed email address?
 14. Do screenshots have matching text?

@@ -94,7 +94,7 @@ Check all of the following and produce a gap report:
 | **Identified boot** | Is identified `boot()` called inside `userProfile$` subscription with `intercomBootAttempted` guard? | ✅ Required |
 | **Shutdown on logout** | Are `Intercom('shutdown')` called and the JWT cleared **before** the logout navigation leaves the page, and, in public-page apps, the anonymous session re-booted afterwards (right away if the app stays loaded, otherwise on the next page load)? | ✅ Required — a `userProfile$ == null` branch alone is not enough when a logout path navigates away before `null` is emitted (by default `<lfx-header-v2>`, `href="/logout"`, auth0 `logout()`); see 5b |
 | **App IDs** | Dev: `mxl90k6y`, Prod: `w29sqomy` | ✅ Shared across all LFX apps |
-| **Auth0 claim** | Is `http://lfx.dev/claims/intercom` used (not the deprecated HMAC)? | ✅ JWT claim only |
+| **Auth0 claim** | Is `http://lfx.dev/claims/intercom` used (not the legacy HMAC)? | ✅ JWT claim only |
 | **CSP** | Are ALL Intercom domains in the Content Security Policy, including WebSocket entries? | ✅ Required if CSP exists |
 | **environment vars** | Are all 4 env fields present in both `environment.ts` and `environment.prod.ts`? | ✅ Required |
 
@@ -600,12 +600,6 @@ Add a new `case` block to the `switch (event.client.name)` statement:
 
 ```javascript
 case "Your App Name Here": {
-  // HMAC claim is deprecated but kept for backward compat with existing clients.
-  // New apps must add both until all clients migrate to the JWT claim.
-  api.idToken.setCustomClaim(
-    `${lfPrefix}intercom`,
-    intercomHMAC(event.user.username),
-  );
   api.idToken.setCustomClaim(
     `${lfxPrefix}intercom`,
     await intercomJWT(event.user.username),
@@ -721,9 +715,8 @@ attributes instead.
 
 - **Do not use an npm Intercom package** — LFX uses direct script injection
   consistently across all apps. Keep it consistent.
-- **The HMAC claim** (`https://sso.linuxfoundation.org/claims/intercom`) is
-  deprecated — the JWT claim (`http://lfx.dev/claims/intercom`) is current. Use
-  only the JWT claim in your Angular code.
+- **The legacy HMAC claim** (`https://sso.linuxfoundation.org/claims/intercom`)
+  should not be used. Use only the JWT claim (`http://lfx.dev/claims/intercom`).
 - **Shared App IDs**: Dev (`mxl90k6y`) and Prod (`w29sqomy`) are shared across
   all LFX apps. Do not create a new Intercom workspace.
 - **Identity verification is mandatory** — do not boot identified Intercom

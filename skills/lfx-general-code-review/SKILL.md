@@ -234,7 +234,13 @@ that suggests a missing abstraction.
 
 **Testing** — adequate coverage for the changed behaviour; tests that assert
 real behaviour rather than that a mock was called; edge cases and error paths
-covered; tests that stay readable.
+covered; tests that stay readable. Also the **cost** of each new test: it should
+sit at the cheapest layer that proves the behaviour. A pure function or table row
+comes before a lightweight fixture, and a full component render or end-to-end
+test only where the behaviour lives there (DOM, bindings, wiring). Flag new
+expensive tests that assert only state or logic, and permutation cases that
+repeat a table already covered more cheaply. Test runtime is shared CI time for
+every team on the repo, so more tests are not automatically better.
 
 **Performance** — N+1 queries, needless loops, leaks, blocking work that should
 be async, whole datasets loaded where streaming belongs.

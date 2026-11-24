@@ -49,7 +49,9 @@ If there is more than one such section, say so and stop
 — that is a broken adoption, not an absent one, and running this skill instead
 would answer a configuration error with a different workflow.
 
-You address PR review feedback end-to-end: read the comments, make the code changes, commit, respond to each reviewer, resolve the threads, and post a summary. The goal is to close the feedback loop completely, reviewers should see exactly what was done and why.
+You address PR review feedback end-to-end: read the comments, make the code changes, commit, respond to each reviewer,
+resolve the threads, and post a summary. The goal is to close the feedback loop completely, reviewers should see exactly
+what was done and why.
 
 ## Step 1: Identify the PR
 
@@ -82,6 +84,7 @@ gh api "repos/<org>/<repo>/contents/CLAUDE.md?ref=<base-branch>" \
 ```
 
 Do not read `CLAUDE.md` from wherever this session happens to be running.
+
 ### Auto-detection
 
 ```bash
@@ -100,7 +103,8 @@ If no PR is found for the current branch, ask:
 
 ### Derive Repository Variables
 
-Extract the owner, repo, and PR number from the identified PR. If the user provided a URL, parse it. If auto-detected, derive from the current repo:
+Extract the owner, repo, and PR number from the identified PR. If the user provided a URL, parse it. If auto-detected,
+derive from the current repo:
 
 ```bash
 # From the current repo's remote
@@ -134,21 +138,26 @@ REPO=$(gh repo view --json name -q '.name')
 Before processing threads, identify which reviewers are AI bots. Common bot indicators:
 
 - Username ends with `[bot]` (e.g., `copilot[bot]`, `coderabbitai[bot]`, `github-actions[bot]`)
-- Username matches known AI review bots: `copilot`, `coderabbitai`, `codeclimate`, `sonarcloud`, `deepsource`, `sourcery-ai`, `ellipsis-dev`, `korbit-ai`, `bito-ai`, `pr-agent`
+- Username matches known AI review bots: `copilot`, `coderabbitai`, `codeclimate`, `sonarcloud`, `deepsource`,
+  `sourcery-ai`, `ellipsis-dev`, `korbit-ai`, `bito-ai`, `pr-agent`
 - User type from the API is `Bot` rather than `User`
 
-Maintain a list of bot reviewer logins for this PR. These reviewers must **never be `@mentioned`** in any content posted to GitHub (comments, commit messages, summary). Tagging bots causes them to re-trigger and attempt to act on already-resolved feedback.
+Maintain a list of bot reviewer logins for this PR. These reviewers must **never be `@mentioned`** in any content posted
+to GitHub (comments, commit messages, summary). Tagging bots causes them to re-trigger and attempt to act on
+already-resolved feedback.
 
-**Bot comments are still actionable**, address their feedback like any other reviewer. The restriction is only on `@mentioning` them in GitHub-posted content.
+**Bot comments are still actionable**, address their feedback like any other reviewer. The restriction is only on
+`@mentioning` them in GitHub-posted content.
 
 ### Filter to Actionable Threads
 
-From the response, collect only **unresolved** threads (`isResolved == false`). Skip threads that are already resolved, someone else handled them or they were resolved in a previous iteration.
+From the response, collect only **unresolved** threads (`isResolved == false`). Skip threads that are already resolved,
+someone else handled them or they were resolved in a previous iteration.
 
 For each unresolved thread, extract:
 
 | Field | Source |
-|-------|--------|
+| ------- | -------- |
 | Thread ID | `id` (needed for resolving later) |
 | File path | `path` |
 | Line(s) | `line`, `startLine` |
@@ -191,7 +200,8 @@ they are not mistaken for new reviewer feedback.
   unresolved threads or general review/PR comments, tell the user there is nothing
   to address and go to Step 14. During an active monitoring loop, count this as a
   completed check and continue within its existing limit instead of prompting again.
-- **Outdated threads**: Include them but flag them, the code may have shifted since the comment was made. Read the current file to determine if the feedback still applies.
+- **Outdated threads**: Include them but flag them, the code may have shifted since the comment was made.
+  Read the current file to determine if the feedback still applies.
 - **General PR review comments** (not attached to a specific line): Collect review
   bodies separately and respond through Step 9's PR-level reply mechanics. Reference
   the source permalink, reviewer, and published fixing commit (if any). Mention human
@@ -243,7 +253,7 @@ general source may contain several actionable items; track each separately
 without duplicating findings already represented by a thread.
 
 | Category | Description | Action |
-|----------|-------------|--------|
+| ---------- | ------------- | -------- |
 | **Code change** | Reviewer requests a specific modification and the suggestion is valid | Make the change |
 | **Question** | Reviewer asks "why did you...?" or "what about...?" | Respond with explanation |
 | **Nitpick / style** | Minor formatting, naming suggestion, or preference | Make the change (quick wins build goodwill) |
@@ -253,7 +263,7 @@ without duplicating findings already represented by a thread.
 
 > Before making changes, present the categorized item plan to the user with validation notes and source permalinks.
 
-```
+```text
 ═══════════════════════════════════════════
 PR #[number], REVIEW COMMENTS TO ADDRESS
 ═══════════════════════════════════════════
@@ -290,11 +300,14 @@ Shall I proceed with items 1-2? Items 4-5 need your direction.
 ═══════════════════════════════════════════
 ```
 
-**Wait for user approval before making changes.** The user has final say on whether to implement, push back, or discuss further, especially for items flagged as potential false positives.
+**Wait for user approval before making changes.** The user has final say on whether to implement, push back, or discuss
+further, especially for items flagged as potential false positives.
 
 ### Responding to False Positives
 
-When the user confirms a comment is a false positive, draft a respectful response (acknowledge intent, explain the repo convention with evidence, offer to discuss). See [`references/validation-heuristics.md`](references/validation-heuristics.md), "Responding to a confirmed false positive" for the response template and tone.
+When the user confirms a comment is a false positive, draft a respectful response (acknowledge intent, explain the repo
+convention with evidence, offer to discuss). See [`references/validation-heuristics.md`](references/validation-heuristics.md),
+"Responding to a confirmed false positive" for the response template and tone.
 
 ## Step 5: Address Each Comment
 
@@ -311,7 +324,8 @@ Work through the approved comments systematically.
 
 1. **Read the relevant code** to understand the context
 2. **Draft a response** that explains the reasoning, be specific, reference the code
-3. **Ask the user to review the draft response** if the question touches on architectural decisions or trade-offs the user should weigh in on
+3. **Ask the user to review the draft response** if the question touches on architectural decisions or trade-offs the user
+   should weigh in on
 
 ### For Discussion Items
 
@@ -324,15 +338,16 @@ knowledge (e.g., "refactor this to use signals instead of BehaviorSubject"),
 route to the owning repo's local workflow. Use `/lfx-skills:lfx` when the
 owner is unclear, then use that repo's `CLAUDE.md` and local skills.
 
-```
+```text
 Skill(skill: "<repo-local-skill>", args: "FIX PR REVIEW: [description of the change needed]. File: [path]. Context: reviewer asked for [what they said]. Follow the existing pattern in [example file].")
 ```
 
-```
+```text
 Skill(skill: "<repo-local-skill>", args: "FIX PR REVIEW: [description of the change needed]. Repo: [path]. Context: reviewer asked for [what they said].")
 ```
 
-For simple, targeted fixes (rename a variable, add a null check, fix an import), make the change directly, no need to delegate.
+For simple, targeted fixes (rename a variable, add a null check, fix an import), make the change directly, no need to
+delegate.
 
 ## Step 6: Validate Changes
 
@@ -359,9 +374,16 @@ summarizes the approved changes for this review iteration.
 
 ### Commit Message Format
 
-The commit message must clearly state what review feedback was addressed, so that both git history readers and PR reviewers can understand what happened. **Do NOT include real reviewer GitHub handles in the commit message body** — the LFX plugin-wide PII rule at `skills/lfx/SKILL.md` (hard rule 4 in `skills/lfx/references/data-privacy.md`) treats GitHub handles as linked pseudonyms and prohibits them in commit messages except in the DCO `Signed-off-by:` trailer and consenting `Co-authored-by:` trailers. A reviewer is neither the DCO signer nor a coauthor, so their handle does not qualify. Bot reviewer names (e.g. `copilot[bot]`, `coderabbitai[bot]`) are tool identifiers, not linked pseudonyms, and may appear in commit bodies. Human reviewer identity is captured by the linked PR — readers can consult the PR thread history for who requested what:
+The commit message must clearly state what review feedback was addressed, so that both git history readers and PR reviewers
+can understand what happened. **Do NOT include real reviewer GitHub handles in the commit message body** — the LFX
+plugin-wide PII rule at `skills/lfx/SKILL.md` (hard rule 4 in `skills/lfx/references/data-privacy.md`) treats GitHub handles
+as linked pseudonyms and prohibits them in commit messages except in the DCO `Signed-off-by:` trailer and consenting
+`Co-authored-by:` trailers. A reviewer is neither the DCO signer nor a coauthor, so their handle does not qualify. Bot
+reviewer names (e.g. `copilot[bot]`, `coderabbitai[bot]`) are tool identifiers, not linked pseudonyms, and may appear in
+commit bodies. Human reviewer identity is captured by the linked PR — readers can consult the PR thread history for who
+requested what:
 
-```
+```text
 fix(review): address PR #[number] review feedback
 
 Address review comments from the reviewers on PR #[number]:
@@ -373,15 +395,22 @@ Address review comments from the reviewers on PR #[number]:
 Resolves [N] review threads.
 ```
 
-Note: The `--signoff` flag automatically appends the `Signed-off-by:` trailer, do not include it manually in the message body.
+Note: The `--signoff` flag automatically appends the `Signed-off-by:` trailer, do not include it manually in the message
+body.
 
 ### Commit Rules
 
-- **One commit per review iteration**, don't create separate commits per comment. Reviewers want to see a single cohesive response to their feedback.
+- **One commit per review iteration**, don't create separate commits per comment. Reviewers want to see a single cohesive
+  response to their feedback.
 - **Reference the PR number** in the commit subject.
-- **Do not include real reviewer handles in commit messages.** Bot reviewer names (e.g. `copilot[bot]`) are tool identifiers and may appear — but never with an `@` prefix, since tagging bots causes them to re-trigger. Human reviewer identity belongs in the PR thread reply and the PR summary comment (Steps 9 and 11), which are not persistent commit-message content and are not in the scope of hard rule 4.
-- **Include `--signoff` and `-S`**, `--signoff` is required for DCO compliance, `-S` for GPG-signed commits. Both are enforced on LFX repos.
-- **List every change**, the commit body should be a complete record. Someone reading the commit message should know exactly what review feedback was addressed without needing to read the diff.
+- **Do not include real reviewer handles in commit messages.** Bot reviewer names (e.g. `copilot[bot]`) are tool identifiers
+  and may appear — but never with an `@` prefix, since tagging bots causes them to re-trigger. Human reviewer identity belongs
+  in the PR thread reply and the PR summary comment (Steps 9 and 11), which are not persistent commit-message content and
+  are not in the scope of hard rule 4.
+- **Include `--signoff` and `-S`**, `--signoff` is required for DCO compliance, `-S` for GPG-signed commits. Both are enforced
+  on LFX repos.
+- **List every change**, the commit body should be a complete record. Someone reading the commit message should know exactly
+  what review feedback was addressed without needing to read the diff.
 
 ```bash
 git add [specific files that were changed]
@@ -449,7 +478,7 @@ General review bodies and PR conversation comments have no thread ID, so Step
 
 **For code changes made:**
 
-> ```
+> ```text
 > Done, [specific description of the change made].
 >
 > See commit [short SHA]: [one-line summary of what changed in this file].
@@ -457,7 +486,7 @@ General review bodies and PR conversation comments have no thread ID, so Step
 >
 > **For questions answered (no code change):**
 >
-> ```
+> ```text
 > [Clear, specific answer to the question with code references where helpful].
 >
 > No code change needed, [brief explanation of why the current approach is correct].
@@ -465,13 +494,13 @@ General review bodies and PR conversation comments have no thread ID, so Step
 >
 > **For nitpicks fixed:**
 >
-> ```
+> ```text
 > Fixed, [what was changed]. Good catch!
 > ```
 >
 > **For discussion items where user provided direction:**
 >
-> ```
+> ```text
 > [Explanation of the decision and reasoning].
 >
 > [Description of what was changed, or why no change was made].
@@ -479,7 +508,7 @@ General review bodies and PR conversation comments have no thread ID, so Step
 >
 > **For false positives (user confirmed no change needed):**
 >
-> ```
+> ```text
 > Thanks for flagging this, I can see why it looks [wrong/inconsistent/off].
 >
 > [Explanation with evidence: "This repo uses [pattern X] for [reason]. You can see
@@ -564,9 +593,12 @@ EOF
 
 ## Step 12: Dismiss Stale Reviews and Re-request
 
-If changes were pushed in Step 8, dismiss any `CHANGES_REQUESTED` reviews from reviewers whose feedback was fully addressed in this iteration, then re-request their review so they receive a notification. If no code changes were made (e.g., only questions answered), skip this step.
+If changes were pushed in Step 8, dismiss any `CHANGES_REQUESTED` reviews from reviewers whose feedback was fully addressed
+in this iteration, then re-request their review so they receive a notification. If no code changes were made (e.g., only
+questions answered), skip this step.
 
-See [`references/dismiss-rerequest.md`](references/dismiss-rerequest.md) for the full flow (identify reviews, dismiss, re-request, edge cases).
+See [`references/dismiss-rerequest.md`](references/dismiss-rerequest.md) for the full flow (identify reviews, dismiss,
+re-request, edge cases).
 
 ## Step 13: Report to User
 
@@ -581,7 +613,7 @@ For a response-only round, omit commit and pushed-branch fields and report the
 approved replies and any applicable thread resolutions without implying that code
 was published.
 
-```
+```text
 ═══════════════════════════════════════════
 PR #[number], REVIEW FEEDBACK ADDRESSED
 ═══════════════════════════════════════════
@@ -691,6 +723,7 @@ If the user runs this skill again on the same PR:
 ## Scope Boundaries
 
 **This skill DOES:**
+
 - Fetch and analyze PR review threads, general review bodies, and PR conversation comments
 - Categorize comments by type (code change, question, discussion)
 - Make targeted code changes to address review feedback
@@ -706,6 +739,7 @@ If the user runs this skill again on the same PR:
 - Offer opt-in monitoring for new comments and remaining unresolved feedback, capped at 2 follow-up rounds
 
 **This skill does NOT:**
+
 - Create new PRs (use the owning repo's local preflight/readiness flow first)
 - Build new features from scratch (use the owning repo's local development skill)
 - Review code (use the configured reviewer agents or repo-local review workflow)

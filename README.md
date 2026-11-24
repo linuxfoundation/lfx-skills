@@ -68,18 +68,18 @@ implementation recipes; they hand off to the owning repo for detail.
 
 Cross-repo developer workflows that apply across every LFX repo.
 
-| Skill                                      | Purpose                                                                                                                                                                      |
-|--------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `/lfx-skills:lfx-setup`                    | Environment setup for any LFX repo (Angular or Go). Prerequisites, clone, install, env vars, dev server.                                                                     |
-| `/lfx-skills:lfx-git-setup`                | Interactive DCO sign-off plus GPG-signed commit setup. Required for all LFX repos.                                                                                           |
-| `/lfx-skills:lfx-pr-catchup`               | Morning PR catch-up dashboard: unresolved comments, status changes, stale PRs, approved-but-not-merged across all your open PRs.                                             |
-| `/lfx-skills:lfx-pr-resolve`               | Address PR feedback, respond and resolve threads, refresh reviews, then offer up to 2 opt-in monitoring rounds for new or unresolved feedback.                               |
-| `/lfx-skills:lfx-test-journey`             | Combine feature branches across repos into git worktrees for end-to-end journey testing.                                                                                     |
-| `/lfx-skills:lfx-snowflake-access`         | Request Snowflake access or service accounts via the `lfx-snowflake-terraform` repo.                                                                                         |
-| `/lfx-skills:lfx-cdp-snowflake-connectors` | Scaffold a CDP snowflake-connector data source in `crowd.dev`; retained centrally from `main`.                                                                               |
-| `/lfx-skills:lfx-data-engineer`            | Generate PR-ready dbt models, SQL transformations, and tests for `lf-dbt`, including medallion architecture, sqlfluff conventions, macros, and validation workflow guidance. |
-| `/lfx-skills:lfx-security-engineer`        | Security review for LFX repos: OWASP Top 10 scan, auth/authz review, secret detection, Terraform audit, migration safety. Use before PRs touching auth, permissions, or data handling. |
-| `/lfx-skills:lfx-megalinter`               | MegaLinter rollout, version pinning, linter failure fixes, Go toolchain vs MegaLinter bundled Go (`GOTOOLCHAIN=auto`), and stale CVE suppression cleanup.                    |
+| Skill | Purpose |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/lfx-skills:lfx-setup` | Environment setup for any LFX repo (Angular or Go). Prerequisites, clone, install, env vars, dev server. |
+| `/lfx-skills:lfx-git-setup` | Interactive DCO sign-off plus GPG-signed commit setup. Required for all LFX repos. |
+| `/lfx-skills:lfx-pr-catchup` | Morning PR catch-up dashboard: unresolved comments, status changes, stale PRs, approved-but-not-merged across all your open PRs. |
+| `/lfx-skills:lfx-pr-resolve` | Address PR feedback, respond and resolve threads, refresh reviews, then offer up to 2 opt-in monitoring rounds for new or unresolved feedback. |
+| `/lfx-skills:lfx-test-journey` | Combine feature branches across repos into git worktrees for end-to-end journey testing. |
+| `/lfx-skills:lfx-snowflake-access` | Request Snowflake access or service accounts via the `lfx-snowflake-terraform` repo. |
+| `/lfx-skills:lfx-cdp-snowflake-connectors` | Scaffold a CDP snowflake-connector data source in `crowd.dev`; retained centrally from `main`. |
+| `/lfx-skills:lfx-data-engineer` | Generate PR-ready dbt models, SQL transformations, and tests for `lf-dbt`, including medallion architecture, sqlfluff conventions, macros, and validation workflow guidance. |
+| `/lfx-skills:lfx-security-engineer` | Security review for LFX repos: OWASP Top 10 scan, auth/authz review, secret detection, Terraform audit, migration safety. Use before PRs touching auth, permissions, or data handling. |
+| `/lfx-skills:lfx-megalinter` | MegaLinter rollout, version pinning, linter failure fixes, Go toolchain vs MegaLinter bundled Go (`GOTOOLCHAIN=auto`), and stale CVE suppression cleanup. |
 
 ### Pre-PR review (1)
 
@@ -104,9 +104,9 @@ The earlier central lifecycle and the general review method. The lifecycle
 skill is kept for repos that have not yet adopted `/lfx-skills:lfx-pre-pr-review`
 and is removed once they all have.
 
-| Skill                                 | Purpose                                                                                                                                                                                                                                                                                        |
-|---------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `/lfx-skills:lfx-local-review`        | The earlier central review lifecycle: local pre-PR review and Post-PR iteration, end to end, for repos that have not yet adopted the pre-PR review block. Those repos point at it rather than describing it.                                                                                   |
+| Skill | Purpose |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/lfx-skills:lfx-local-review` | The earlier central review lifecycle: local pre-PR review and Post-PR iteration, end to end, for repos that have not yet adopted the pre-PR review block. Those repos point at it rather than describing it. |
 | `/lfx-skills:lfx-general-code-review` | The general review method itself: correctness, security, data privacy, error handling, simplicity, naming, DRY, testing, performance, style — and the target repo's own written conventions, rules and checklists, read from that repo. Loaded by the `general` reviewer of `/lfx-skills:lfx-pre-pr-review`. Not invoked by hand. |
 
 What follows documents the **earlier lifecycle only**; a repo starting today

@@ -5,7 +5,7 @@ description: >
   and PR conversation comments, makes code changes,
   commits with a summary, responds to each comment, resolves threads, posts
   a follow-up summary, dismisses stale "changes requested" reviews, and
-  re-requests review, and offers up to three opt-in monitoring rounds. Use
+  re-requests review, and offers up to two opt-in monitoring rounds. Use
   whenever someone wants to address PR feedback, fix review comments, resolve
   PR threads, iterate on a pull request after review, or "monitor this PR for
   new comments." Works on one PR; monitoring follows its feedback-resolution
@@ -573,7 +573,7 @@ See [`references/dismiss-rerequest.md`](references/dismiss-rerequest.md) for the
 > Use one final report outside monitoring, and a shorter round-status report during monitoring.
 
 Outside monitoring, present the final status with the template below. During a
-monitoring round, report `Monitoring round [N]/3` plus what was assessed, what
+monitoring round, report `Monitoring round [N]/2` plus what was assessed, what
 action was taken, whether a commit was published, what threads were resolved,
 and what remains open. Do not repeat the monitoring offer inside the loop.
 
@@ -607,7 +607,7 @@ Summary comment posted: [PR URL]
 
 What's next:
   [- Reviewers have been re-requested and will be notified (only if refreshed)]
-  - Optionally monitor this PR for feedback in up to 3 follow-up rounds
+  - Optionally monitor this PR for feedback in up to 2 follow-up rounds
   [- [N] feedback items still need discussion, follow up at their source permalinks]
 ═══════════════════════════════════════════
 ```
@@ -619,10 +619,10 @@ After the final report (or Step 2 finds nothing to address), use
 
 > "Would you like me to monitor this PR for new comments and remaining
 > unresolved feedback, validate what needs fixing, and run this same resolution
-> workflow for up to 3 follow-up rounds? I'll wait 60 seconds before each check
+> workflow for up to 2 follow-up rounds? I'll wait 60 seconds before each check
 > and still ask for approval before making changes."
 
-Offer **Monitor (up to 3 rounds)** and **Finish now**. Do not start monitoring
+Offer **Monitor (up to 2 rounds)** and **Finish now**. Do not start monitoring
 without an explicit opt-in. If the user declines, finish without further checks.
 
 ### Monitoring Loop
@@ -631,7 +631,7 @@ The initial resolution pass does **not** count toward the limit. Maintain one
 session-local counter for this PR, initially `0`, and reuse the assessed-feedback
 record initialized in Step 2. Unassessed feedback remains eligible.
 
-For each of **at most 3 follow-up rounds**:
+For each of **at most 2 follow-up rounds**:
 
 1. **Wait and count.** Wait 60 seconds (`sleep 60`), then increment the counter
    before fetching. Every check consumes a round, even if no new or valid
@@ -657,7 +657,7 @@ For each of **at most 3 follow-up rounds**:
    re-request rules; do not create empty commits or post duplicate replies or
    summaries when no action is taken.
 5. **Report the round.** Replace Step 13's terminal report with
-   `Monitoring round [N]/3`, feedback assessed, actions taken, commit/publication
+   `Monitoring round [N]/2`, feedback assessed, actions taken, commit/publication
    state (if any), and anything still unresolved. Do not repeat the monitoring
    offer. If there is no eligible feedback, say so and continue to the next check
    within the limit.
@@ -665,7 +665,7 @@ For each of **at most 3 follow-up rounds**:
 When Step 13 completes inside this loop, return to the next numbered round,
 **not** to a fresh Step 14 prompt. Never recursively invoke this skill, reset
 the counter after a push, or automatically extend/restart monitoring. After
-round 3, stop and report any remaining unresolved feedback and that the
+round 2, stop and report any remaining unresolved feedback and that the
 monitoring limit was reached; do not claim that future comments are covered.
 
 ## Idempotency, Safe to Re-run
@@ -703,7 +703,7 @@ If the user runs this skill again on the same PR:
 - Dismiss stale "changes requested" reviews after addressing feedback
 - Re-request review from reviewers whose feedback was addressed
 - Route complex changes to the owning repo's local skills and `CLAUDE.md`
-- Offer opt-in monitoring for new comments and remaining unresolved feedback, capped at 3 follow-up rounds
+- Offer opt-in monitoring for new comments and remaining unresolved feedback, capped at 2 follow-up rounds
 
 **This skill does NOT:**
 - Create new PRs (use the owning repo's local preflight/readiness flow first)

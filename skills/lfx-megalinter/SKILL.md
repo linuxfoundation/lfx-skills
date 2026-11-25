@@ -202,8 +202,9 @@ For each hit:
 1. Check whether the cited fix is already satisfied by the current `go.mod`
    or dependency version. If so, the suppression is just stale — remove it.
 2. If the blocker is a patch-level Go gap within MegaLinter's bundled minor,
-   bump `go.mod` to the latest patch (with `GOTOOLCHAIN=auto` set, as
-   always) instead of keeping the suppression.
+   bump `go.mod` to the latest patch (the `toolchain` line for an importable
+   module; see [Go toolchain version](#go-toolchain-version)), with
+   `GOTOOLCHAIN=auto` set as always, instead of keeping the suppression.
 3. If the blocker is a claim about MegaLinter's bundled Go, verify it against
    the current release (see the reference) — these claims go stale quickly.
 4. Remove the entry from **every** ignore file carrying it (the same CVE is

@@ -71,12 +71,16 @@ not by whether anything imports it today. A module whose packages are all
   raises the line to match; leave it there rather than reverting the
   dependency. Never raise it past the target minor.
 - **Patch updates bump `toolchain`, not `go`**:
-  `go mod edit -go=1.26 -toolchain=go1.26.11`.
-- **Builds follow `toolchain`.** `actions/setup-go` v6+ with
+  `go mod edit -toolchain=go1.26.11`. Lowering `go` is a separate step;
+  check dependency floors first, since `go mod edit` doesn't.
+- **Builds follow `toolchain`.** In CI, `actions/setup-go` v6+ with
   `go-version-file: go.mod` installs the `toolchain` version when the line is
   present; v5 reads only `go`, so upgrade to v6 before adopting this form.
-  `GOTOOLCHAIN=auto` (below) and `go build` select it the same way. Pin
-  Dockerfile Go builder images to the `toolchain` patch.
+  Pin Dockerfile Go builder images to the `toolchain` patch. MegaLinter's
+  `GOTOOLCHAIN=auto` (below) raises its older bundled Go to the `toolchain`
+  version. Local builds use Go's default toolchain selection, which treats
+  `toolchain` as a minimum, so a newer installed Go wins; run
+  `GOTOOLCHAIN=go1.26.11 go build` to match CI exactly.
 - **Scanners follow `toolchain`.** osv-scanner takes the Go stdlib version
   from `toolchain` when present, so stdlib CVE matching stays exact. Without
   a `toolchain` line, a minor-only `go 1.26` is scanned as the unpatched
@@ -230,7 +234,9 @@ linter passes when no dependency version has a known vulnerability and fails
 on any match, reachable or not. It does not fail on the govulncheck error
 itself.
 
-Fix: revert `go.mod` to the latest patch of MegaLinter's bundled minor. The
+Fix: revert `go.mod` to the latest patch of MegaLinter's bundled minor (in
+`toolchain` for an importable module; see
+[Importable modules](#importable-modules-minor-only-go-patch-in-toolchain)). The
 version policy above exists to keep repos out of this regime. A repo whose
 `CLAUDE.md`/`AGENTS.md` explicitly supersedes the policy and targets the
 newer minor can stay there on v10.2.0: golangci-lint works, and osv-scanner

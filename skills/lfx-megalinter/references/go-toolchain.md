@@ -76,7 +76,11 @@ not by whether anything imports it today. A module whose packages are all
 - **Builds follow `toolchain`.** In CI, `actions/setup-go` v6+ with
   `go-version-file: go.mod` installs the `toolchain` version when the line is
   present; v5 reads only `go`, so upgrade to v6 before adopting this form.
-  Pin Dockerfile Go builder images to the `toolchain` patch. MegaLinter's
+  Pin a Dockerfile's Go builder image to the `toolchain` patch only when
+  that Dockerfile builds shipped images. Most LFX services publish with
+  `ko` (which builds with the setup-go toolchain) and keep a Dockerfile for
+  local builds only; leave those as they are, including an unpinned
+  `cgr.dev/chainguard/go:latest` builder with its checkov skip. MegaLinter's
   `GOTOOLCHAIN=auto` (below) raises its older bundled Go to the `toolchain`
   version. Local builds use Go's default toolchain selection, which treats
   `toolchain` as a minimum, so a newer installed Go wins; run

@@ -159,8 +159,8 @@ gh api repos/<owner>/<repo> --jq '.visibility'
   `ACTION_ZIZMOR_ARGUMENTS: "--offline"` and add:
 
   ```yaml
-  # zizmor's "artipacked" audit needs the GitHub API (to verify
-  # SHA-pinned action tags), which requires GITHUB_TOKEN.
+  # zizmor's online audits (e.g. resolving action refs/tags to the
+  # pinned SHAs) query the GitHub API, which requires GITHUB_TOKEN.
   ACTION_ZIZMOR_UNSECURED_ENV_VARIABLES:
     - GITHUB_TOKEN
   ```

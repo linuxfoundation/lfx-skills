@@ -234,9 +234,21 @@ linter passes when no dependency version has a known vulnerability and fails
 on any match, reachable or not. It does not fail on the govulncheck error
 itself.
 
-Fix: revert `go.mod` to the latest patch of MegaLinter's bundled minor (in
-`toolchain` for an importable module; see
-[Importable modules](#importable-modules-minor-only-go-patch-in-toolchain)). The
+Fix: move `go.mod` back to MegaLinter's bundled minor. Changing only
+`toolchain` isn't enough, because the `go` line still requires the newer
+minor.
+
+1. Look up the latest patch of the bundled minor (e.g. `1.26`) as in
+   [Finding the latest patch for a minor](#finding-the-latest-patch-for-a-minor),
+   using that minor rather than the one in the current `go` line.
+2. Lower `go` to that minor: `go 1.26` for an importable module, or the
+   latest patch for a deployable-only one. If a dependency requires the newer
+   minor, downgrade that dependency first.
+3. For an importable module, set `toolchain` to the latest patch (see
+   [Importable modules](#importable-modules-minor-only-go-patch-in-toolchain)),
+   then run `go mod tidy`.
+
+The
 version policy above exists to keep repos out of this regime. A repo whose
 `CLAUDE.md`/`AGENTS.md` explicitly supersedes the policy and targets the
 newer minor can stay there on v10.2.0: golangci-lint works, and osv-scanner

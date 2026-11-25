@@ -9,10 +9,16 @@ built with a specific Go release. Both constrain what `go.mod` can declare.
 
 ## Version policy
 
-Set `go.mod`'s `go` directive to the **latest patch of the previous minor
-version** (latest stable minor − 1) — e.g. if `go1.27.x` is the current
-stable minor, use the newest `go1.26.x`. Apply this directly in whichever
-direction it requires (upgrade or downgrade); it needs no user input.
+Build with the **latest patch of the previous minor version** (latest
+stable minor − 1) — e.g. if `go1.27.x` is the current stable minor, use the
+newest `go1.26.x`. Apply this directly in whichever direction it requires
+(upgrade or downgrade); it needs no user input.
+
+Where that patch is declared depends on whether other modules can import
+this one (see [Importable modules](#importable-modules-minor-only-go-patch-in-toolchain)):
+
+- **Importable module** — `go 1.26` plus `toolchain go1.26.11`.
+- **Deployable-only module** — `go 1.26.11`, with no `toolchain` line.
 
 Why: this is a self-updating, objective rule. MegaLinter's bundled Go lags
 upstream by months; staying one minor behind latest stable keeps the
@@ -35,6 +41,49 @@ an older Go, and still picks up every security patch.
   pinned MegaLinter release** (see the minor-level gap below). If latest
   stable − 1 is newer than that, use the bundled minor and tell the user the
   skill's MegaLinter pin needs updating.
+
+### Importable modules: minor-only `go`, patch in `toolchain`
+
+A module's `go` directive is a floor for every consumer: Go requires a
+module's `go` line to be at least as high as each dependency's. A library
+that declares `go 1.26.11` forces every module that imports it onto Go
+1.26.11 or newer, even when the consumer has its own reasons to be on an
+earlier patch. The `toolchain` directive has no such effect — Go ignores it
+in dependencies.
+
+So a module that other modules **can** import — any module with an
+exportable package (one outside `internal/` that isn't `package main`), such
+as a service that ships a client or shared types — declares only the minor
+in `go` and pins the patch in `toolchain`:
+
+```text
+go 1.26
+
+toolchain go1.26.11
+```
+
+A module can't know who imports it, so decide by whether it is importable,
+not by whether anything imports it today. A module whose packages are all
+`main` or under `internal/` is deployable-only and keeps the patch in `go`.
+
+- **Keep `go` as low as the dependencies allow**, ideally `go 1.N`. If a
+  dependency declares a patch (e.g. `go 1.26.3`), Go's module tooling
+  raises the line to match; leave it there rather than reverting the
+  dependency. Never raise it past the target minor.
+- **Patch updates bump `toolchain`, not `go`**:
+  `go mod edit -go=1.26 -toolchain=go1.26.11`.
+- **Builds follow `toolchain`.** `actions/setup-go` v6+ with
+  `go-version-file: go.mod` installs the `toolchain` version when the line is
+  present; v5 reads only `go`, so upgrade to v6 before adopting this form.
+  `GOTOOLCHAIN=auto` (below) and `go build` select it the same way. Pin
+  Dockerfile Go builder images to the `toolchain` patch.
+- **Scanners follow `toolchain`.** osv-scanner takes the Go stdlib version
+  from `toolchain` when present, so stdlib CVE matching stays exact. Without
+  a `toolchain` line, a minor-only `go 1.26` is scanned as the unpatched
+  1.26 stdlib and reports every stdlib CVE fixed since.
+- **Keep `toolchain` newer than `go`.** `go mod tidy` drops a `toolchain`
+  line that is no newer than the `go` line, which reverts the module to
+  building with whatever Go is installed.
 
 ### Repo-level Go version rules
 
@@ -121,7 +170,9 @@ Go minor is too new.
 
 Example: `go.mod` says `go 1.26.11`, MegaLinter bundles `1.26.10`. The image
 defaults to `GOTOOLCHAIN=local`, so without the setting above anything that
-loads packages fails.
+loads packages fails. (An importable module with `go 1.26` and
+`toolchain go1.26.11` doesn't fail under `GOTOOLCHAIN=local`; its linters
+just run on the bundled patch instead of the pinned one.)
 
 Signature:
 

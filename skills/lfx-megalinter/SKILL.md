@@ -5,7 +5,8 @@ description: >
   upgrading MegaLinter, pinning its version in the workflow and Makefile,
   fixing MegaLinter failures (zizmor, trivy, grype, osv-scanner, golangci-lint,
   revive, cspell, yamllint, eslint, gitleaks/betterleaks, checkov), choosing
-  the go.mod Go toolchain version relative to MegaLinter's bundled Go, the
+  the go.mod Go toolchain version relative to MegaLinter's bundled Go
+  (including minor-only `go` plus `toolchain` pins for importable modules), the
   GOTOOLCHAIN=auto fix, and cleaning up stale scanner suppressions
   (.trivyignore, .grype.yaml, osv-scanner.toml). Use when the user mentions
   MegaLinter, mega-linter.yml, .mega-linter.yml, a failing lint/security CI
@@ -160,12 +161,17 @@ Then re-check the repo's Go pin against v10.2.0's bundled Go (next section).
 ## Go toolchain version
 
 Read [references/go-toolchain.md](references/go-toolchain.md) whenever you
-change `go.mod`'s `go` directive, see a `go.mod requires go >=` error, or see
-golangci-lint/govulncheck fail on Go version. Summary:
+change `go.mod`'s `go` or `toolchain` directive, see a
+`go.mod requires go >=` error, or see golangci-lint/govulncheck fail on Go
+version. Summary:
 
-- Set `go.mod` to the **latest patch of the previous minor** Go release
+- Build with the **latest patch of the previous minor** Go release
   (latest stable minor − 1), upgrading or downgrading as needed, with no
   user input. Never exceed the minor bundled by the pinned MegaLinter.
+- An **importable** module (any exportable package: not `package main`,
+  not under `internal/`) declares only the minor in `go` (e.g. `go 1.26`)
+  and pins the patch in `toolchain go1.26.11`, so consumers aren't forced
+  onto its patch. A deployable-only module puts the patch in `go`.
 - If a dependency CVE fix would raise the `go` directive past that minor,
   revert it and record an ID-scoped CVE exception instead.
 - This replaces Go version rules in the repo's `CLAUDE.md`/`AGENTS.md`
